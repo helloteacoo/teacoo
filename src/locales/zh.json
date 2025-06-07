@@ -1,0 +1,8 @@
+{
+  "login": {
+    "title": "登入系統",
+    "email": "電子郵件",
+    "password": "密碼",
+    "submit": "登入"
+  }
+}
