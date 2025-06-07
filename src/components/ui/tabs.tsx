@@ -30,6 +30,11 @@ export function TabsTrigger({ value, children }: TabsTriggerProps) {
   );
 }
 
-export function TabsContent({ value, children }) {
+interface TabsContentProps {
+  value: string;
+  children: ReactNode;
+}
+
+export function TabsContent({ value, children }: TabsContentProps) {
   return <div className="tabs-content mt-4">{children}</div>;
 }
