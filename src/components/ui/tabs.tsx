@@ -1,12 +1,28 @@
-export function Tabs({ children, defaultValue }) {
+import { ReactNode } from 'react';
+
+interface TabsProps {
+  children: ReactNode;
+  defaultValue?: string;
+}
+
+export function Tabs({ children, defaultValue }: TabsProps) {
   return <div className="tabs">{children}</div>;
 }
 
-export function TabsList({ children }) {
+interface TabsListProps {
+  children: ReactNode;
+}
+
+export function TabsList({ children }: TabsListProps) {
   return <div className="tabs-list flex space-x-2">{children}</div>;
 }
 
-export function TabsTrigger({ value, children }) {
+interface TabsTriggerProps {
+  value: string;
+  children: ReactNode;
+}
+
+export function TabsTrigger({ value, children }: TabsTriggerProps) {
   return (
     <button className="tabs-trigger px-4 py-2 border rounded">
       {children}
