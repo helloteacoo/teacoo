@@ -6,15 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  // 確保所有路由都能正確處理
-  async rewrites() {
-    return [
-      {
-        source: '/:path*',
-        destination: '/:path*',
-      },
-    ];
-  },
+  // 移除不必要的 rewrites
 };
 
 module.exports = nextConfig;  // 如果用 next.config.js
