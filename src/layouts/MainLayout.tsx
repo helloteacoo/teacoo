@@ -1,12 +1,21 @@
 // src/layouts/MainLayout.tsx
-import { NavLink, Outlet } from "react-router-dom";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import type { ReactNode } from "react";
 
-export default function MainLayout() {
+interface MainLayoutProps {
+  children: ReactNode;
+}
+
+export default function MainLayout({ children }: MainLayoutProps) {
+  const router = useRouter();
+  const currentPath = router.pathname;
+
   const tabs = [
-    { to: "/library", label: "我的題庫" },
-    { to: "/result", label: "答題結果" },
-    { to: "/settings", label: "設定" },
+    { href: "/LibraryPage", label: "我的題庫" },
+    { href: "/ResultPage", label: "答題結果" },
+    { href: "/SettingsPage", label: "設定" },
   ];
 
   return (
@@ -27,19 +36,17 @@ export default function MainLayout() {
               <div className="hidden md:block">
                 <div className="ml-10 flex items-baseline space-x-4">
                   {tabs.map((tab) => (
-                    <NavLink
-                      key={tab.to}
-                      to={tab.to}
-                      className={({ isActive }) =>
-                        `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive
+                    <Link
+                      key={tab.href}
+                      href={tab.href}
+                      className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        currentPath === tab.href
                           ? "bg-accent text-white"
                           : "text-white hover:bg-accent/80 active:bg-accent"
-                        }`
-                      }
+                      }`}
                     >
                       {tab.label}
-                    </NavLink>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -78,7 +85,7 @@ export default function MainLayout() {
 
       <main>
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 text-text">
-          <Outlet />
+          {children}
         </div>
       </main>
     </div>

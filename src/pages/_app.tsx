@@ -16,14 +16,35 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import '../styles/agGridCustom.css';
 
 // 不需要認證的頁面路徑
-const publicPaths = ['/', '/register'];
+const publicPaths = ['/', '/register', '/LoginPage'];
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAuthChecked(true);
+      const currentPath = router.pathname;
+      
+      if (!user && !publicPaths.includes(currentPath)) {
+        router.push('/LoginPage');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  if (!authChecked) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <>
       <Head>
         <link rel="icon" href="/favicon.ico" />
         <title>Teacoo</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <I18nextProvider i18n={i18n}>
         <Component {...pageProps} />

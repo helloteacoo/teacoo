@@ -1,17 +1,21 @@
+import type { FormEvent, ChangeEvent } from "react";
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useRouter } from 'next/router';
+import Link from 'next/link';
+
+type RoleType = "teacher" | "student";
 
 export default function LoginPage() {
-  const [role, setRole] = useState("teacher");
+  const [role, setRole] = useState<RoleType>("teacher");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [studentName, setStudentName] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -26,6 +30,10 @@ export default function LoginPage() {
         alert("登入失敗：未知錯誤");
       }
     }
+  };
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
+    setter(e.target.value);
   };
 
   return (
@@ -102,7 +110,7 @@ export default function LoginPage() {
                         type="email"
                         value={email}
                         autoComplete="email"
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleInputChange(e, setEmail)}
                         required
                         className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:outline-primary"
                       />
@@ -115,9 +123,9 @@ export default function LoginPage() {
                         Password
                       </label>
                       <div className="text-sm">
-                        <a href="#" className="font-semibold text-primary hover:text-primary/80">
+                        <Link href="#" className="font-semibold text-primary hover:text-primary/80">
                           Forgot password?
-                        </a>
+                        </Link>
                       </div>
                     </div>
                     <div className="mt-2">
@@ -127,7 +135,7 @@ export default function LoginPage() {
                         type="password"
                         value={password}
                         autoComplete="current-password"
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => handleInputChange(e, setPassword)}
                         required
                         className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:outline-primary"
                       />
@@ -146,9 +154,9 @@ export default function LoginPage() {
 
                 <p className="text-center text-sm text-gray-500">
                   Not a member?{" "}
-                  <a href="#" className="font-semibold text-primary hover:text-primary/80">
+                  <Link href="/register" className="font-semibold text-primary hover:text-primary/80">
                     Register Now
-                  </a>
+                  </Link>
                 </p>
               </div>
             ) : (
@@ -164,7 +172,7 @@ export default function LoginPage() {
                       type="text"
                       autoComplete="name"
                       value={studentName}
-                      onChange={(e) => setStudentName(e.target.value)}
+                      onChange={(e) => handleInputChange(e, setStudentName)}
                       placeholder="請輸入你的名字"
                       className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:outline-primary"
                     />
