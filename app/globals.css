@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    @apply bg-background text-foreground;
+  }
+ 
+  .dark {
+    @apply bg-background-dark text-foreground-dark;
+  }
+}
+
+.dark .bg-mainBg {
+  @apply bg-maindarkBg;
+}
+
+.dark .bg-cardBg {
+  @apply bg-carddarkBg;
+}
+
+body {
+  @apply bg-background text-foreground;
+}
+
+/* 隱藏滾動條但保持可滾動 */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari and Opera */
+}
+
+/* 添加滾動提示陰影 */
+.overflow-x-auto {
+  position: relative;
+}
+
+.overflow-x-auto::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to left, var(--background-start-rgb) 0%, transparent 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.overflow-x-auto:hover::after {
+  opacity: 1;
+} 

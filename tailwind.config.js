@@ -1,18 +1,29 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {
       colors: {
         primary: '#215F97',
-        primaryDark: '#104A7C',
-        mainBg: '#F5EFE6',
-        cardBg: '#E4D1B5',
+        mainBg: '#F3F4F6',
+        cardBg: '#E8EEF5',
+        maindarkBg: '#1E293B',
+        carddarkBg: '#334155',
+        background: {
+          DEFAULT: '#FFFFFF',
+          dark: '#1E293B'
+        },
+        foreground: {
+          DEFAULT: '#000000',
+          dark: '#FFFFFF'
+        },
+        
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

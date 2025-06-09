@@ -5,8 +5,7 @@ const nextConfig = {
   output: 'standalone',
   images: {
     unoptimized: true
-  },
-  // 移除不必要的 rewrites
+  }
 };
 
 module.exports = nextConfig;  // 如果用 next.config.js
