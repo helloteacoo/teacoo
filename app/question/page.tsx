@@ -318,53 +318,19 @@ export default function QuestionPage() {
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <div className="sticky top-0 z-10 bg-mainBg dark:bg-gray-900 pb-2 border-b border-transparent">
-            <div className="hidden lg:flex items-center gap-4 mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="搜尋題目關鍵字..."
-                    className="w-[300px] flex-shrink-0"
-                    value={keyword}
-                    onChange={handleKeywordChange}
-                  />
-                  <Button
-                    onClick={() => {
-                      const allIds = questions.flatMap((q: Question) => 
-                        q.type === '閱讀測驗' 
-                          ? [q.id, ...q.questions.map(subQ => subQ.id)] 
-                          : [q.id]
-                      );
-                      setSelectedQuestions(allIds);
-                    }}
-                    className="text-gray-200"
-                  >
-                    ✅ 全部勾選
-                  </Button>
-                  <Button onClick={() => setSelectedQuestions([])} className="text-gray-300">
-                    ⬜️ 全部取消
-                  </Button>
-                  <Button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    disabled={selectedQuestions.length === 0}
-                    className="text-gray-200"
-                  >
-                    🗑️ 刪除題目
-                  </Button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+            {/* 桌面版/平板橫放布局 (lg 以上) */}
+            <div className="hidden sm:flex sm:flex-col gap-4 mb-4">
+              {/* 第一行：功能按鈕 */}
+              <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
                 <Button className="text-gray-200">🤖 AI匯入</Button>
                 <Button className="text-gray-200">➕ 新增題目</Button>
                 <Button className="text-gray-200">🧪 自我練習</Button>
                 <Button className="text-gray-200">📤 派發作業</Button>
                 <Button className="text-gray-300">📄 匯出題目</Button>
               </div>
-            </div>
 
-            {/* 平板直立布局 (sm ~ lg) */}
-            <div className="hidden sm:flex sm:flex-col lg:hidden gap-4 mb-4">
-              {/* 第一排：搜尋框 + 全選按鈕組 */}
-              <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+              {/* 第二行：搜尋和選擇按鈕 */}
+              <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
                 <Input
                   placeholder="搜尋題目關鍵字..."
                   className="w-[300px] flex-shrink-0"
@@ -380,36 +346,27 @@ export default function QuestionPage() {
                     );
                     setSelectedQuestions(allIds);
                   }}
-                  className="whitespace-nowrap text-gray-200"
+                  className="text-gray-200"
                 >
-                  ✅ 全部勾選
+                  ✅ 全選
                 </Button>
                 <Button 
                   onClick={() => setSelectedQuestions([])} 
-                  className="whitespace-nowrap text-gray-300"
+                  className="text-gray-300"
                 >
-                  ⬜️ 全部取消
+                  ⬜️ 取消
                 </Button>
                 <Button
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={selectedQuestions.length === 0}
-                  className="whitespace-nowrap text-gray-200"
+                  className="text-gray-200"
                 >
-                  🗑️ 刪除題目
+                  🗑️ 刪除
                 </Button>
-              </div>
-
-              {/* 第二排：功能按鈕 */}
-              <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
-                <Button className="whitespace-nowrap text-gray-200">🤖 AI匯入</Button>
-                <Button className="whitespace-nowrap text-gray-200">➕ 新增題目</Button>
-                <Button className="whitespace-nowrap text-gray-200">🧪 自我練習</Button>
-                <Button className="whitespace-nowrap text-gray-200">📤 派發作業</Button>
-                <Button className="whitespace-nowrap text-gray-300">📄 匯出題目</Button>
               </div>
             </div>
 
-            {/* 手機版布局要相應調整 */}
+            {/* 手機版直立布局 (sm 以下) */}
             <div className="sm:hidden space-y-4 mb-4">
               <Input
                 placeholder="搜尋題目關鍵字..."
