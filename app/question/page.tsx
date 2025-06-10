@@ -302,6 +302,23 @@ export default function QuestionPage() {
     });
   };
 
+  const [isPremium] = useState(false); // 用戶訂閱狀態
+  const ITEMS_PER_PAGE = 25; // 每頁顯示的卡片數量
+  const MAX_ITEMS = isPremium ? 1000 : 100; // 最大卡片數量限制
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const paginatedQuestions = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredQuestions.slice(startIndex, endIndex);
+  }, [filteredQuestions, currentPage]);
+
+  const totalPages = Math.ceil(filteredQuestions.length / ITEMS_PER_PAGE);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-mainBg dark:bg-gray-900">
       <Navigation />
@@ -416,8 +433,16 @@ export default function QuestionPage() {
             </div>
           </div>
 
-          <div className="overflow-y-auto h-[calc(100vh-64px-72px)] pr-2 space-y-4">
-            {filteredQuestions.map((q: Question) => {
+          <div className="overflow-y-auto h-[calc(100vh-64px-72px-40px)] pr-2 space-y-4">
+            {questions.length > MAX_ITEMS && (
+              <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg mb-4">
+                <p className="text-yellow-800 dark:text-yellow-200">
+                  {isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！'}
+                </p>
+              </div>
+            )}
+            
+            {paginatedQuestions.map((q: Question) => {
               const isCollapsed = collapsedCards.includes(q.id);
               return (
                 <div key={q.id} className="relative p-4 bg-cardBg dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg">
@@ -489,6 +514,42 @@ export default function QuestionPage() {
                 </div>
               );
             })}
+          </div>
+
+          {/* 分頁控制區 */}
+          <div className="flex justify-center items-center gap-2 mt-4 pb-4">
+            <Button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="text-gray-200"
+            >
+              ←
+            </Button>
+            
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <Button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  className={`w-8 h-8 p-0 ${
+                    currentPage === pageNum
+                      ? "bg-primary text-white"
+                      : "text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  {pageNum}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="text-gray-200"
+            >
+              →
+            </Button>
           </div>
         </main>
       </div>

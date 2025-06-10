@@ -4,6 +4,12 @@
 
 @layer base {
   :root {
+    --radius: 0.5rem;
+
+    --border: 215.4 16.3% 46.9%;
+    --input: 215.4 16.3% 46.9%;
+    --ring: 215.4 16.3% 46.9%;
+    
     @apply bg-background text-foreground;
   }
  
