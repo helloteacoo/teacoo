@@ -445,8 +445,8 @@ export default function QuestionPage() {
           allTags={allTags}
         />
 
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          <div className="sticky top-0 z-10 bg-mainBg dark:bg-gray-900 pb-2 border-b border-transparent">
+        <main className="flex-1 p-4 lg:p-6 overflow-auto max-w-full">
+          <div className="sticky top-0 z-10 bg-mainBg dark:bg-gray-900 pb-2 border-b border-transparent overflow-hidden">
             {/* 桌面版/平板橫放布局 (lg 以上) */}
             <div className="hidden sm:flex sm:flex-col gap-4 mb-4">
               {/* 第一行：功能按鈕 */}

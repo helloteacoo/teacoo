@@ -90,28 +90,24 @@ export const sampleQuestions: Question[] = [
     questions: [
       {
         id: 'sample-cloze-1',
-        content: '',
         options: ['新增題目', '編輯', '刪除', '匯入'],
         answer: '新增題目',
         explanation: '點擊右上角的「新增題目」按鈕來新增題目。',
       },
       {
         id: 'sample-cloze-2',
-        content: '',
         options: ['答案', '標籤', '說明', '選項'],
         answer: '標籤',
         explanation: '標籤功能可以幫助您更好地組織和分類題目。',
       },
       {
         id: 'sample-cloze-3',
-        content: '',
         options: ['關鍵字搜尋', '複製', '預覽', '排序'],
         answer: '關鍵字搜尋',
         explanation: '使用關鍵字搜尋功能可以快速找到包含特定文字的題目。',
       },
       {
         id: 'sample-cloze-4',
-        content: '',
         options: ['標籤篩選', '排序', '匯出', '刪除'],
         answer: '標籤篩選',
         explanation: '使用標籤篩選功能可以顯示具有特定標籤的題目。',
