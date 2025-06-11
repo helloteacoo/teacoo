@@ -448,7 +448,7 @@ export default function QuestionPage() {
               <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
                 <Input
                   placeholder="搜尋題目關鍵字..."
-                  className="w-[300px] flex-shrink-0"
+                  className="w-[300px] flex-shrink-0 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   value={keyword}
                   onChange={handleKeywordChange}
                 />
@@ -478,7 +478,7 @@ export default function QuestionPage() {
             <div className="sm:hidden space-y-4 mb-4">
               <Input
                 placeholder="搜尋題目關鍵字..."
-                className="w-full"
+                className="w-full placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 value={keyword}
                 onChange={handleKeywordChange}
               />

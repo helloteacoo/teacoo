@@ -48,7 +48,7 @@ export default function Navigation() {
                     className={`text-base font-semibold transition-colors duration-150 border-b-2 px-1.5 pb-1.5 ${
                       pathname === item.href
                         ? 'text-primary border-primary'
-                        : 'text-gray-700 hover:text-primary hover:border-primary'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:border-primary'
                     }`}
                   >
                     {item.name}
@@ -154,7 +154,7 @@ export default function Navigation() {
                     block px-3 py-2 rounded-md text-base font-medium transition-colors duration-150
                     ${pathname === item.href
                       ? 'bg-primary text-white'
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}
+                      : 'text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'}
                   `}
                   onClick={() => setIsMenuOpen(false)}
                 >
