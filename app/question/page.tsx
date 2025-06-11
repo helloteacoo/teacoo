@@ -61,6 +61,8 @@ function isGroupQuestion(q: Question): q is ReadingQuestion | ClozeQuestion {
 
 export default function QuestionPage() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isFirstLogin, setIsFirstLogin] = useState(true);
   const [questions, setQuestions] = useState<Question[]>(sampleQuestions);
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
@@ -95,7 +97,7 @@ export default function QuestionPage() {
       題組: true,
       閱讀測驗: true,
       克漏字: true,
-    };
+  };
 
     // 根據初始題目設置題型和標籤的勾選狀態
     const types = new Set<string>();
@@ -186,10 +188,16 @@ export default function QuestionPage() {
         } else if (isGroupQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.article.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some(sub =>
-              sub.content.toLowerCase().includes(lowerKeyword) ||
-              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-              sub.answer.toLowerCase().includes(lowerKeyword)
+            (isReadingQuestion(q) ? 
+              (q as ReadingQuestion).questions.some(sub =>
+                sub.content.toLowerCase().includes(lowerKeyword) ||
+                sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+                sub.answer.toLowerCase().includes(lowerKeyword)
+              ) :
+              (q as ClozeQuestion).questions.some(sub =>
+                sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+                sub.answer.toLowerCase().includes(lowerKeyword)
+              )
             );
         }
         return false;
@@ -291,16 +299,14 @@ export default function QuestionPage() {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.article.toLowerCase().includes(lowerKeyword) ||
             q.questions.some((sub: SubQuestion) =>
-              sub.content.toLowerCase().includes(lowerKeyword) ||
-              sub.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
+              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
               sub.answer.toLowerCase().includes(lowerKeyword)
             );
         } else if (isClozeQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.article.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some((sub: SubQuestion) =>
-              sub.content.toLowerCase().includes(lowerKeyword) ||
-              sub.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
+            q.questions.some(sub =>
+              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
               sub.answer.toLowerCase().includes(lowerKeyword)
             );
         }
@@ -409,6 +415,19 @@ export default function QuestionPage() {
         : [q.id]
     );
     setSelectedQuestions(filteredIds);
+  };
+
+  const handleEditQuestion = (data: Question) => {
+    setQuestions(prev => 
+      prev.map(q => q.id === editingQuestion?.id ? { ...data, id: q.id } : q)
+    );
+    setShowEditModal(false);
+    setEditingQuestion(null);
+  };
+
+  const handleEditClick = (question: Question) => {
+    setEditingQuestion(question);
+    setTimeout(() => setShowEditModal(true), 0);
   };
 
   return (
@@ -536,7 +555,7 @@ export default function QuestionPage() {
               return (
                 <div key={q.id} className="relative p-4 bg-cardBg dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg">
                   <Button
-                    onClick={() => alert(`編輯題目：${q.id}`)}
+                    onClick={() => handleEditClick(q)}
                     className="absolute top-3 right-3 bg-transparent hover:bg-transparent text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 p-0 h-auto shadow-none"
                     title="編輯"
                     variant="ghost"
@@ -656,9 +675,9 @@ export default function QuestionPage() {
                         ) : isClozeQuestion(q) && (
                           <>
                             <ul className="list-decimal pl-5 text-sm mt-2 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.questions.map((sub: SubQuestion) => (
+                              {q.questions.map((sub, index) => (
                                 <li key={sub.id} className="mb-2">
-                                  {sub.content && <div>{sub.content}</div>}
+                                  <div>空格 {index + 1}</div>
                                   <ul className="list-none pl-5 mt-1">
                                     {sub.options.map((opt: string, i: number) => (
                                       <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
@@ -740,6 +759,16 @@ export default function QuestionPage() {
         onSubmit={handleAddQuestion}
         defaultTags={[]}
         isPremium={isPremium}
+      />
+
+      <AddQuestionModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        onSubmit={handleEditQuestion}
+        defaultTags={editingQuestion?.tags || []}
+        isPremium={isPremium}
+        initialData={editingQuestion}
+        isEditMode
       />
     </div>
   );

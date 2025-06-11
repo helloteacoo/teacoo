@@ -2,6 +2,7 @@
 
 import QuestionFormModal from './QuestionFormModal';
 import type { Question } from '../../types/question';
+import type { SingleQuestionType, GroupQuestionType } from './QuestionFormModal';
 
 // 檢查是否超過每日題組限制
 const checkGroupQuestionLimit = (isPremium: boolean): boolean => {
@@ -36,20 +37,24 @@ const incrementGroupQuestionCount = () => {
   localStorage.setItem('groupQuestionCount', JSON.stringify(data));
 };
 
-interface AddQuestionModalProps {
+export interface AddQuestionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: Question) => void;
   defaultTags?: string[];
   isPremium?: boolean;
+  initialData?: Question | null;
+  isEditMode?: boolean;
 }
 
-export default function AddQuestionModal({ 
-  open, 
-  onOpenChange, 
-  onSubmit, 
-  defaultTags = [], 
-  isPremium = false 
+export default function AddQuestionModal({
+  open,
+  onOpenChange,
+  onSubmit,
+  defaultTags = [],
+  isPremium = false,
+  initialData = null,
+  isEditMode = false
 }: AddQuestionModalProps) {
   const checkPermission = () => {
     const hasPermission = checkGroupQuestionLimit(isPremium);
@@ -66,7 +71,14 @@ export default function AddQuestionModal({
       onSubmit={onSubmit}
       defaultTags={defaultTags}
       isPremium={isPremium}
-      title="新增題目"
+      title={isEditMode ? '編輯題目' : '新增題目'}
+      initialMode={isEditMode && initialData ? (
+        ['閱讀測驗', '克漏字'].includes(initialData.type) ? 'group' : 'single'
+      ) : 'single'}
+      initialQuestionType={isEditMode && initialData && !['閱讀測驗', '克漏字'].includes(initialData.type) ? (initialData.type as SingleQuestionType) : undefined}
+      initialGroupType={isEditMode && initialData && ['閱讀測驗', '克漏字'].includes(initialData.type) ? (initialData.type as GroupQuestionType) : undefined}
+      initialData={initialData}
+      isEditMode={isEditMode}
       checkGroupPermission={checkPermission}
       onGroupSubmitSuccess={incrementGroupQuestionCount}
     />

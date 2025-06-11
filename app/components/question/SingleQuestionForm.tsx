@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
@@ -9,6 +9,7 @@ import { Checkbox } from '../ui/checkbox';
 import TagSelector from '../TagSelector';
 import { Button } from '../ui/button';
 import type { ChangeEvent } from 'react';
+import type { Question, SingleChoiceQuestion, MultipleChoiceQuestion, FillInQuestion, ShortAnswerQuestion } from '../../types/question';
 
 type SingleQuestionType = '單選題' | '多選題' | '填空題' | '簡答題';
 
@@ -25,36 +26,76 @@ type SingleQuestionFormData = BaseFormData & (
   | { type: '簡答題'; answer: string }
 );
 
-interface SingleQuestionFormProps {
-  type: SingleQuestionType;
-  onChange: (data: SingleQuestionFormData) => void;
+export interface SingleQuestionFormProps {
+  type: '單選題' | '多選題' | '填空題' | '簡答題';
+  onChange: (data: Question) => void;
   defaultTags?: string[];
   isPremium?: boolean;
+  initialData?: Question;
 }
 
-export default function SingleQuestionForm({ type, onChange, defaultTags = [], isPremium = false }: SingleQuestionFormProps) {
+export default function SingleQuestionForm({
+  type,
+  onChange,
+  defaultTags = [],
+  isPremium = false,
+  initialData
+}: SingleQuestionFormProps) {
   const [content, setContent] = useState('');
-  const [options, setOptions] = useState(['', '', '', '']);
-  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number>(-1); // 改用索引
-  const [selectedAnswerIndices, setSelectedAnswerIndices] = useState<number[]>([]); // 多選用索引陣列
+  const [options, setOptions] = useState<string[]>(['', '', '', '']);
+  const [answer, setAnswer] = useState('');
+  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(-1);
+  const [selectedAnswerIndices, setSelectedAnswerIndices] = useState<number[]>([]);
   const [fillInAnswers, setFillInAnswers] = useState<string[]>([]);
   const [shortAnswer, setShortAnswer] = useState('');
   const [explanation, setExplanation] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [blanks, setBlanks] = useState<string[]>([]);
 
+  // 同步 initialData 的變化
+  useEffect(() => {
+    console.log('🧪 SingleQuestionForm - initialData:', initialData);
+    if (initialData && initialData.type === type) {
+      setContent(initialData.content);
+      setExplanation(initialData.explanation || '');
+      setTags(initialData.tags);
+
+      if (type === '單選題') {
+        const data = initialData as SingleChoiceQuestion;
+        setOptions(data.options);
+        setAnswer(data.answer);
+        const answerIndex = data.options.indexOf(data.answer);
+        setSelectedAnswerIndex(answerIndex);
+      } else if (type === '多選題') {
+        const data = initialData as MultipleChoiceQuestion;
+        setOptions(data.options);
+        const indices = data.answer.map(ans => data.options.indexOf(ans));
+        setSelectedAnswerIndices(indices);
+      } else if (type === '填空題') {
+        const data = initialData as FillInQuestion;
+        setFillInAnswers(data.answers);
+      } else if (type === '簡答題') {
+        const data = initialData as ShortAnswerQuestion;
+        setShortAnswer(data.answer);
+      }
+    }
+  }, [initialData, type]);
+
   // Reset form when type changes
   useEffect(() => {
-    setContent('');
-    setOptions(['', '', '', '']);
-    setSelectedAnswerIndex(-1);
-    setSelectedAnswerIndices([]);
-    setFillInAnswers([]);
-    setShortAnswer('');
-    setExplanation('');
-    setTags(defaultTags);
-    setBlanks([]);
-  }, [type, defaultTags]);
+    if (!initialData) {
+      setContent('');
+      setOptions(['', '', '', '']);
+      setAnswer('');
+      setSelectedAnswerIndex(-1);
+      setSelectedAnswerIndices([]);
+      setFillInAnswers([]);
+      setShortAnswer('');
+      setExplanation('');
+      setTags(defaultTags);
+      setBlanks([]);
+    }
+  }, [type, defaultTags, initialData]);
 
   const extractBlanks = useCallback((text: string) => {
     const matches = text.match(/\[\[(.*?)\]\]/g) || [];
@@ -99,6 +140,79 @@ export default function SingleQuestionForm({ type, onChange, defaultTags = [], i
     newAnswers[index] = value;
     setFillInAnswers(newAnswers);
   };
+
+  const validateForm = useMemo(() => {
+    // 共同條件：題目內容不可為空
+    if (!content.trim()) {
+      return '請輸入題目內容';
+    }
+
+    // 共同條件：至少一個標籤
+    if (tags.length === 0) {
+      return '請至少選擇一個標籤';
+    }
+
+    switch (type) {
+      case '單選題': {
+        // 檢查至少有 A 和 B 兩個選項
+        const validOptions = options.slice(0, 2).filter(opt => opt.trim());
+        if (validOptions.length < 2) {
+          return '請至少填寫選項 A 和 B';
+        }
+        // 必須選擇一個正確答案
+        if (selectedAnswerIndex === -1) {
+          return '請選擇正確答案';
+        }
+        break;
+      }
+
+      case '多選題': {
+        // 檢查至少有 4 個選項
+        const validOptions = options.filter(opt => opt.trim());
+        if (validOptions.length < 4) {
+          return '請填寫至少 4 個選項';
+        }
+        // 至少選擇 2 個正確答案
+        if (selectedAnswerIndices.length < 2) {
+          return '請至少選擇 2 個正確答案';
+        }
+        break;
+      }
+
+      case '填空題': {
+        // 檢查是否有填空標記
+        const newBlanks = extractBlanks(content);
+        if (newBlanks.length === 0) {
+          return '請在題目中使用 [[答案]] 標記填空處';
+        }
+        // 檢查所有答案是否填寫
+        if (fillInAnswers.some(ans => !ans.trim())) {
+          return '請填寫所有填空答案';
+        }
+        break;
+      }
+
+      case '簡答題': {
+        // 檢查標準答案是否填寫
+        if (!shortAnswer.trim()) {
+          return '請輸入標準答案';
+        }
+        break;
+      }
+    }
+
+    return ''; // 通過所有驗證
+  }, [
+    type,
+    content,
+    options,
+    selectedAnswerIndex,
+    selectedAnswerIndices,
+    fillInAnswers,
+    shortAnswer,
+    tags,
+    extractBlanks
+  ]);
 
   const handleSubmit = () => {
     // 檢查必要欄位
@@ -149,33 +263,55 @@ export default function SingleQuestionForm({ type, onChange, defaultTags = [], i
       return;
     }
 
-    const baseData: BaseFormData = {
+    const baseData = {
+      id: Math.random().toString(36).substring(7),
       content,
       explanation,
       tags,
     };
 
-    const formData: SingleQuestionFormData = type === '單選題' ? {
-      ...baseData,
-      type: '單選題',
-      options,
-      answer: selectedAnswerIndex >= 0 ? options[selectedAnswerIndex] : ''
-    } : type === '多選題' ? {
-      ...baseData,
-      type: '多選題',
-      options,
-      answer: selectedAnswerIndices.map(i => options[i])
-    } : type === '填空題' ? {
-      ...baseData,
-      type: '填空題',
-      answers: fillInAnswers
-    } : {
-      ...baseData,
-      type: '簡答題',
-      answer: shortAnswer
-    };
+    let questionData: Question;
 
-    onChange(formData);
+    switch (type) {
+      case '單選題':
+        questionData = {
+          ...baseData,
+          type,
+          options,
+          answer: options[selectedAnswerIndex],
+        } as SingleChoiceQuestion;
+        break;
+
+      case '多選題':
+        questionData = {
+          ...baseData,
+          type,
+          options,
+          answer: selectedAnswerIndices.map(i => options[i]),
+        } as MultipleChoiceQuestion;
+        break;
+
+      case '填空題':
+        questionData = {
+          ...baseData,
+          type,
+          answers: fillInAnswers,
+        } as FillInQuestion;
+        break;
+
+      case '簡答題':
+        questionData = {
+          ...baseData,
+          type,
+          answer: shortAnswer,
+        } as ShortAnswerQuestion;
+        break;
+
+      default:
+        throw new Error(`未知的題型：${type}`);
+    }
+
+    onChange(questionData);
   };
 
   return (
@@ -280,9 +416,12 @@ export default function SingleQuestionForm({ type, onChange, defaultTags = [], i
         />
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit">
-        💾儲存
+      <div className="flex justify-end gap-4 items-center">
+        {validateForm && (
+          <span className="text-red-500">⚠️ {validateForm}</span>
+        )}
+        <Button type="submit" disabled={!!validateForm}>
+          💾儲存
         </Button>
       </div>
     </form>

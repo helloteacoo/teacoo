@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import SingleQuestionForm from '../question/SingleQuestionForm';
 import GroupQuestionForm from '../question/GroupQuestionForm';
-import type { FormMode, Question } from '../../types/question';
+import type { Question, QuestionType } from '../../types/question';
 import type { 
   SingleChoiceQuestion, 
   MultipleChoiceQuestion, 
@@ -27,104 +27,107 @@ type SingleQuestionFormData = BaseFormData & (
   | { type: '簡答題'; answer: string }
 );
 
-type GroupQuestionType = '閱讀測驗' | '克漏字' | '';
-type SingleQuestionType = '單選題' | '多選題' | '填空題' | '簡答題' | '';
+export type SingleQuestionType = '單選題' | '多選題' | '填空題' | '簡答題';
+export type GroupQuestionType = '閱讀測驗' | '克漏字';
+export type QuestionMode = 'single' | 'group';
 
-interface QuestionFormModalProps {
+export interface QuestionFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: Question) => void;
   defaultTags?: string[];
   isPremium?: boolean;
   title?: string;
-  initialMode?: FormMode;
+  initialMode?: QuestionMode;
   initialQuestionType?: SingleQuestionType;
   initialGroupType?: GroupQuestionType;
-  onModeChange?: (mode: FormMode) => void;
+  initialData?: Question | null;
+  isEditMode?: boolean;
+  onModeChange?: (mode: QuestionMode) => void;
   onQuestionTypeChange?: (type: SingleQuestionType) => void;
   onGroupTypeChange?: (type: GroupQuestionType) => void;
   checkGroupPermission?: () => boolean;
   onGroupSubmitSuccess?: () => void;
 }
 
-export default function QuestionFormModal({ 
-  open, 
-  onOpenChange, 
-  onSubmit, 
-  defaultTags = [], 
+export default function QuestionFormModal({
+  open,
+  onOpenChange,
+  onSubmit,
+  defaultTags = [],
   isPremium = false,
   title = '新增題目',
   initialMode = 'single',
-  initialQuestionType = '',
-  initialGroupType = '',
+  initialQuestionType = undefined,
+  initialGroupType = undefined,
+  initialData = null,
+  isEditMode = false,
   onModeChange,
   onQuestionTypeChange,
   onGroupTypeChange,
   checkGroupPermission = () => true,
   onGroupSubmitSuccess
 }: QuestionFormModalProps) {
-  const [mode, setMode] = useState<FormMode>(initialMode);
-  const [questionType, setQuestionType] = useState<SingleQuestionType>(initialQuestionType);
-  const [groupType, setGroupType] = useState<GroupQuestionType>(initialGroupType);
-  const [lastUsedTags, setLastUsedTags] = useState<string[]>(defaultTags);
+  const [mode, setMode] = useState<QuestionMode>(initialMode);
+  const [questionType, setQuestionType] = useState<SingleQuestionType | undefined>(initialQuestionType);
+  const [groupType, setGroupType] = useState<GroupQuestionType | undefined>(initialGroupType);
   const [key, setKey] = useState(0);
+  const [lastUsedTags, setLastUsedTags] = useState<string[]>(defaultTags);
 
+  // 當 initialData 改變時，更新表單狀態
   useEffect(() => {
-    if (!open) {
-      setMode(initialMode);
-      setQuestionType('');
-      setGroupType('');
+    console.log('🧪 QuestionFormModal - initialData:', initialData);
+    console.log('🧪 QuestionFormModal - isEditMode:', isEditMode);
+    
+    if (isEditMode && initialData) {
+      if (['閱讀測驗', '克漏字'].includes(initialData.type)) {
+        setMode('group');
+        setGroupType(initialData.type as GroupQuestionType);
+      } else {
+        setMode('single');
+        setQuestionType(initialData.type as SingleQuestionType);
+      }
+      // 更新最後使用的標籤
+      setLastUsedTags(initialData.tags);
     }
-  }, [open, initialMode]);
+  }, [isEditMode, initialData]);
 
-  const handleModeChange = (newMode: FormMode) => {
-    if (newMode === 'group' && !checkGroupPermission()) {
-      return;
-    }
+  // 如果是編輯模式但沒有初始資料，不要渲染
+  if (isEditMode && !initialData) {
+    console.log('🧪 QuestionFormModal - 等待初始資料...');
+    return null;
+  }
+
+  const handleModeChange = (newMode: QuestionMode) => {
     setMode(newMode);
+    setQuestionType(undefined);
+    setGroupType(undefined);
     setKey(prev => prev + 1);
     onModeChange?.(newMode);
   };
 
-  const handleQuestionTypeChange = (newType: SingleQuestionType) => {
-    setQuestionType(newType);
-    setKey(prev => prev + 1);
-    onQuestionTypeChange?.(newType);
+  const handleQuestionTypeChange = (type: SingleQuestionType) => {
+    setQuestionType(type);
+    onQuestionTypeChange?.(type);
   };
 
-  const handleGroupTypeChange = (newType: GroupQuestionType) => {
-    setGroupType(newType);
-    setKey(prev => prev + 1);
-    onGroupTypeChange?.(newType);
-  };
-
-  const handleSingleQuestionSubmit = (data: SingleQuestionFormData) => {
-    try {
-      const questionId = Math.random().toString(36).substring(7);
-      setLastUsedTags(data.tags);
-      onSubmit({ ...data, id: questionId } as Question);
-      onOpenChange(false);
-    } catch (error) {
-      console.error('新增單題失敗:', error);
-      alert('新增題目失敗，請稍後再試');
+  const handleGroupTypeChange = (type: GroupQuestionType) => {
+    if (!checkGroupPermission()) {
+      return;
     }
+    setGroupType(type);
+    onGroupTypeChange?.(type);
   };
 
-  const handleGroupQuestionSubmit = (data: ReadingQuestion | ClozeQuestion) => {
-    try {
-      if (!checkGroupPermission()) {
-        return;
-      }
+  const handleSingleQuestionSubmit = (data: Question) => {
+    onSubmit(data);
+    setLastUsedTags(data.tags);
+  };
 
-      const questionId = Math.random().toString(36).substring(7);
-      setLastUsedTags(data.tags);
-      onSubmit({ ...data, id: questionId });
-      onGroupSubmitSuccess?.();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('新增題組失敗:', error);
-      alert('新增題目失敗，請稍後再試');
-    }
+  const handleGroupQuestionSubmit = (data: Question) => {
+    onSubmit(data);
+    setLastUsedTags(data.tags);
+    onGroupSubmitSuccess?.();
   };
 
   return (
@@ -135,22 +138,24 @@ export default function QuestionFormModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid w-full grid-cols-2">
-            <button
-              type="button"
-              className={`px-4 py-2 border rounded ${mode === 'single' ? 'bg-primary text-white' : ''}`}
-              onClick={() => handleModeChange('single')}
-            >
-              單題
-            </button>
-            <button
-              type="button"
-              className={`px-4 py-2 border rounded ${mode === 'group' ? 'bg-primary text-white' : ''}`}
-              onClick={() => handleModeChange('group')}
-            >
-              題組
-            </button>
-          </div>
+          {!isEditMode && (
+            <div className="grid w-full grid-cols-2">
+              <button
+                type="button"
+                className={`px-4 py-2 border rounded ${mode === 'single' ? 'bg-primary text-white' : ''}`}
+                onClick={() => handleModeChange('single')}
+              >
+                單題
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 border rounded ${mode === 'group' ? 'bg-primary text-white' : ''}`}
+                onClick={() => handleModeChange('group')}
+              >
+                題組
+              </button>
+            </div>
+          )}
 
           {mode === 'single' && (
             <div className="space-y-4">
@@ -174,6 +179,7 @@ export default function QuestionFormModal({
                   onChange={handleSingleQuestionSubmit}
                   defaultTags={lastUsedTags}
                   isPremium={isPremium}
+                  initialData={isEditMode && initialData && !['閱讀測驗', '克漏字'].includes(initialData.type) ? initialData : undefined}
                 />
               )}
             </div>
@@ -182,7 +188,7 @@ export default function QuestionFormModal({
           {mode === 'group' && (
             <div className="space-y-4">
               <div className="grid w-full grid-cols-2">
-                {(['閱讀測驗', '克漏字'] as const).map((type) => (
+                {(['閱讀測驗', '克漏字'] as GroupQuestionType[]).map((type) => (
                   <button
                     key={type}
                     type="button"
@@ -201,6 +207,7 @@ export default function QuestionFormModal({
                   onChange={handleGroupQuestionSubmit}
                   defaultTags={lastUsedTags}
                   isPremium={isPremium}
+                  initialData={isEditMode && initialData && ['閱讀測驗', '克漏字'].includes(initialData.type) ? initialData : undefined}
                 />
               )}
             </div>
