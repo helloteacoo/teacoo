@@ -1,24 +1,12 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
+import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
+import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
-import type { Question } from "@/types/question";
+import type { Question, ReadingQuestion, SubQuestion } from "../../types/question";
 import type { Dispatch, SetStateAction } from "react";
 
-export type FilterKey =
-  | '單題'
-  | '單選題'
-  | '多選題'
-  | '填空題'
-  | '簡答題'
-  | '題組'
-  | '閱讀測驗'
-  | '克漏字'
-  | '國文'
-  | '自然'
-  | '國小'
-  | '國中';
+export type FilterKey = string;
 
 type Props = {
   filters: Record<FilterKey, boolean>;
@@ -27,7 +15,8 @@ type Props = {
   setShowDeleteConfirm: (v: boolean) => void;
   selectedQuestions: string[];
   setSelectedQuestions: (v: string[]) => void;
-  setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
+  setQuestions: Dispatch<SetStateAction<Question[]>>;
+  allTags: string[];
 };
 
 export default function Sidebar({
@@ -38,6 +27,7 @@ export default function Sidebar({
   selectedQuestions,
   setSelectedQuestions,
   setQuestions,
+  allTags,
 }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -80,8 +70,8 @@ export default function Sidebar({
                   {['單選題', '多選題', '填空題', '簡答題'].map((key) => (
                     <div key={key} className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
                       <Checkbox
-                        checked={filters[key as FilterKey]}
-                        onCheckedChange={() => toggleFilter(key as FilterKey)}
+                        checked={filters[key]}
+                        onCheckedChange={() => toggleFilter(key)}
                       />
                       <span>{key}</span>
                     </div>
@@ -102,8 +92,8 @@ export default function Sidebar({
                   {['閱讀測驗', '克漏字'].map((key) => (
                     <div key={key} className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
                       <Checkbox
-                        checked={filters[key as FilterKey]}
-                        onCheckedChange={() => toggleFilter(key as FilterKey)}
+                        checked={filters[key]}
+                        onCheckedChange={() => toggleFilter(key)}
                       />
                       <span>{key}</span>
                     </div>
@@ -117,17 +107,17 @@ export default function Sidebar({
           <div>
             <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">標籤</h3>
             <div className="flex flex-wrap gap-2">
-              {['國文', '自然', '國小', '國中'].map((key) => (
+              {allTags.map((tag) => (
                 <Button
-                  key={key}
-                  onClick={() => toggleFilter(key as FilterKey)}
+                  key={tag}
+                  onClick={() => toggleFilter(tag)}
                   className={`px-3 py-1 rounded-full transition-colors border-none focus:outline-none ${
-                    filters[key as FilterKey]
+                    filters[tag]
                       ? 'bg-primary text-white'
                       : 'bg-blue-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {key}
+                  {tag}
                 </Button>
               ))}
             </div>
@@ -136,14 +126,15 @@ export default function Sidebar({
 
         {showDeleteConfirm && (
           <ConfirmDeleteModal
-            onClose={() => setShowDeleteConfirm(false)}
+            open={showDeleteConfirm}
+            onOpenChange={setShowDeleteConfirm}
             onConfirm={() => {
               setQuestions((prev: Question[]) =>
                 prev.filter(
                   (q) =>
                     !selectedQuestions.includes(q.id) &&
                     (q.type !== '閱讀測驗' ||
-                      !q.questions.some((sub) => selectedQuestions.includes(sub.id)))
+                      !(q as ReadingQuestion).questions.some((sub: SubQuestion) => selectedQuestions.includes(sub.id)))
                 )
               );
               setSelectedQuestions([]);

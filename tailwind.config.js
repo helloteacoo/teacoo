@@ -24,7 +24,10 @@ module.exports = {
           DEFAULT: '#FFFFFF',
           dark: '#1E293B'
         },
-        foreground: "hsl(var(--foreground))",
+        foreground: {
+          DEFAULT: '#000000',
+          dark: '#FFFFFF'
+        },
         mainBg: '#F3F4F6',
         cardBg: '#E8EEF5',
         maindarkBg: '#1E293B',

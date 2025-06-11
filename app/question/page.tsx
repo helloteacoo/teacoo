@@ -1,35 +1,26 @@
 "use client";
 import type { ChangeEvent } from 'react';
 import { useState, useMemo, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import Navigation from '@/components/Navigation';
-import ConfirmDeleteModal from '@/components/modals/ConfirmDeleteModal';
-import Sidebar from '@/components/question/sidebar';
-import type { FilterKey } from '@/components/question/sidebar';
-
-interface SingleQuestion {
-  id: string;
-  type: '單選題';
-  content: string;
-  options: string[];
-  answer: string;
-  tags: string[];
-}
-
-interface GroupQuestion {
-  id: string;
-  type: '閱讀測驗';
-  article: string;
-  questions: {
-    id: string;
-    content: string;
-    options: string[];
-    answer: string;
-  }[];
-  tags: string[];
-}
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Checkbox } from '../components/ui/checkbox';
+import Navigation from '../components/Navigation';
+import ConfirmDeleteModal from '../components/modals/ConfirmDeleteModal';
+import Sidebar from '../components/question/sidebar';
+import type { FilterKey } from '../components/question/sidebar';
+import AddQuestionModal from '../components/modals/AddQuestionModal';
+import type { 
+  Question,
+  SingleChoiceQuestion,
+  MultipleChoiceQuestion,
+  FillInQuestion,
+  ShortAnswerQuestion,
+  ReadingQuestion,
+  ClozeQuestion,
+  SubQuestion,
+  QuestionType
+} from '../types/question';
+import { sampleQuestions } from '../data/sampleQuestions';
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -39,113 +30,119 @@ interface ButtonProps {
   title?: string;
 }
 
-type Question = SingleQuestion | GroupQuestion;
+// Type Guards
+function isSingleChoiceQuestion(q: Question): q is SingleChoiceQuestion {
+  return q.type === '單選題';
+}
+
+function isMultipleChoiceQuestion(q: Question): q is MultipleChoiceQuestion {
+  return q.type === '多選題';
+}
+
+function isFillInQuestion(q: Question): q is FillInQuestion {
+  return q.type === '填空題';
+}
+
+function isShortAnswerQuestion(q: Question): q is ShortAnswerQuestion {
+  return q.type === '簡答題';
+}
+
+function isReadingQuestion(q: Question): q is ReadingQuestion {
+  return q.type === '閱讀測驗';
+}
+
+function isClozeQuestion(q: Question): q is ClozeQuestion {
+  return q.type === '克漏字';
+}
+
+function isGroupQuestion(q: Question): q is ReadingQuestion | ClozeQuestion {
+  return q.type === '閱讀測驗' || q.type === '克漏字';
+}
 
 export default function QuestionPage() {
-  const [questions, setQuestions] = useState<Question[]>([
-    {
-      id: 'q1',
-      type: '單選題',
-      content: '地球是第幾顆行星？',
-      options: ['第一', '第二', '第三', '第四'],
-      answer: '第三',
-      tags: ['自然', '國小'],
-    },
-    {
-      id: 'g1',
-      type: '閱讀測驗',
-      article: '太陽系由太陽和其周圍天體組成，包括八大行星...',
-      questions: [
-        {
-          id: 'g1-q1',
-          content: '太陽系中最大的行星是？',
-          options: ['地球', '火星', '木星', '金星'],
-          answer: '木星',
-        },
-        {
-          id: 'g1-q2',
-          content: '火星表面呈紅色是因為？',
-          options: ['氧氣', '鐵', '氧化鐵', '沙子'],
-          answer: '氧化鐵',
-        },
-      ],
-      tags: ['自然', '國中'],
-    },
-    {
-      id: 'g2',
-      type: '閱讀測驗',
-      article: '太陽系由太陽和其周圍天體組成，包括八大行星...',
-      questions: [
-        {
-          id: 'g2-q1',
-          content: '太陽系中最大的行星是？',
-          options: ['地球', '火星', '木星', '金星'],
-          answer: '木星',
-        },
-        {
-          id: 'g2-q2',
-          content: '火星表面呈紅色是因為？',
-          options: ['氧氣', '鐵', '氧化鐵', '沙子'],
-          answer: '氧化鐵',
-        },
-      ],
-      tags: ['自然', '國中'],
-    },
-  ]);
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>(
-    questions.flatMap((q: Question) => 
-      q.type === '閱讀測驗' 
-        ? [q.id, ...q.questions.map(subQ => subQ.id)] 
-        : [q.id]
-    )
-  );
-
-  const [filters, setFilters] = useState<Record<FilterKey, boolean>>({
-    單題: false,
-    單選題: false,
-    多選題: false,
-    填空題: false,
-    簡答題: false,
-    題組: false,
-    閱讀測驗: false,
-    克漏字: false,
-    國文: false,
-    自然: false,
-    國小: false,
-    國中: false,
-  });
-
-  const hasType = (type: string) => {
-    return questions.some((q: Question) => q.type === type);
-  };
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [isFirstLogin, setIsFirstLogin] = useState(true);
+  const [questions, setQuestions] = useState<Question[]>(sampleQuestions);
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
 
   useEffect(() => {
+    const hasVisited = localStorage.getItem('hasVisitedTeaCoo');
+    if (!hasVisited) {
+      localStorage.setItem('hasVisitedTeaCoo', 'true');
+      setIsFirstLogin(true);
+    } else {
+      setIsFirstLogin(false);
+    }
+  }, []);
+
+  // 計算所有現有的標籤
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    questions.forEach(q => q.tags.forEach(tag => tags.add(tag)));
+    return Array.from(tags);
+  }, [questions]);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // 修改 filters 的初始狀態，根據當前題目設置
+  const [filters, setFilters] = useState<Record<FilterKey, boolean>>(() => {
+    const initialFilters: Record<string, boolean> = {
+      單題: true,
+      單選題: true,
+      多選題: true,
+      填空題: true,
+      簡答題: true,
+      題組: true,
+      閱讀測驗: true,
+      克漏字: true,
+    };
+
+    // 根據初始題目設置題型和標籤的勾選狀態
     const types = new Set<string>();
     const tags = new Set<string>();
 
-    questions.forEach((q: Question) => {
+    questions.forEach(q => {
       types.add(q.type);
       q.tags.forEach(tag => tags.add(tag));
     });
 
-    setFilters(prev => ({
-      ...prev,
-      單選題: types.has('單選題'),
-      多選題: types.has('多選題'),
-      填空題: types.has('填空題'),
-      簡答題: types.has('簡答題'),
-      閱讀測驗: types.has('閱讀測驗'),
-      克漏字: types.has('克漏字'),
-      題組: types.has('閱讀測驗') || types.has('克漏字'),
-      單題: types.has('單選題') || types.has('填空題') || types.has('多選題') || types.has('簡答題'),
-      國文: tags.has('國文'),
-      自然: tags.has('自然'),
-      國小: tags.has('國小'),
-      國中: tags.has('國中'),
-    }));
-  }, [questions]);
+    // 設置標籤勾選狀態
+    tags.forEach(tag => {
+      initialFilters[tag] = true;
+    });
+
+    return initialFilters;
+  });
+
+  // 當題目改變時，更新 filters
+  useEffect(() => {
+    setFilters(prev => {
+      const next = { ...prev };
+      
+      // 保持所有題型為勾選狀態
+      next.單題 = true;
+      next.單選題 = true;
+      next.多選題 = true;
+      next.填空題 = true;
+      next.簡答題 = true;
+      next.題組 = true;
+      next.閱讀測驗 = true;
+      next.克漏字 = true;
+
+      // 更新標籤的勾選狀態
+      allTags.forEach(tag => {
+        if (!(tag in next)) {
+          next[tag] = true;
+        }
+      });
+
+      return next;
+    });
+  }, [questions, allTags]);
+
+  const hasType = (type: string) => {
+    return questions.some((q: Question) => q.type === type);
+  };
 
   const [collapsedCards, setCollapsedCards] = useState<string[]>([]);
   const toggleCollapse = (id: string) => {
@@ -167,27 +164,41 @@ export default function QuestionPage() {
       v && ['單選題', '多選題', '填空題', '簡答題', '閱讀測驗', '克漏字'].includes(k)
     );
     const noTagsSelected = !Object.entries(filters).some(([k, v]) =>
-      v && ['國文', '自然', '國小', '國中'].includes(k)
+      v && allTags.includes(k)
     );
 
     if (lowerKeyword !== '' && (noTypesSelected || noTagsSelected)) {
-      const matched = questions.filter((q: Question) =>
-        q.type === '單選題'
-          ? q.content.toLowerCase().includes(lowerKeyword) ||
+      const matched = questions.filter((q: Question) => {
+        if (isSingleChoiceQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
             q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-            q.answer.toLowerCase().includes(lowerKeyword)
-          : q.article.toLowerCase().includes(lowerKeyword) ||
+            q.answer.toLowerCase().includes(lowerKeyword);
+        } else if (isMultipleChoiceQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+            q.answer.some(ans => ans.toLowerCase().includes(lowerKeyword));
+        } else if (isFillInQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.answers.some(ans => ans.toLowerCase().includes(lowerKeyword));
+        } else if (isShortAnswerQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.answer.toLowerCase().includes(lowerKeyword);
+        } else if (isGroupQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.article.toLowerCase().includes(lowerKeyword) ||
             q.questions.some(sub =>
               sub.content.toLowerCase().includes(lowerKeyword) ||
               sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
               sub.answer.toLowerCase().includes(lowerKeyword)
-            )
-      );
+            );
+        }
+        return false;
+      });
 
       const matchedTypes = new Set<string>();
       const matchedTags = new Set<string>();
 
-      matched.forEach((q: Question) => {
+      matched.forEach(q => {
         matchedTypes.add(q.type);
         q.tags.forEach(tag => matchedTags.add(tag));
       });
@@ -203,7 +214,6 @@ export default function QuestionPage() {
         '單選題', '多選題', '填空題', '簡答題',
         '閱讀測驗', '克漏字', '題組', '單題'
       ];
-      const ALL_TAGS: FilterKey[] = ['國文', '自然', '國小', '國中'];
 
       setFilters(prev => {
         const newFilters: Record<FilterKey, boolean> = { ...prev };
@@ -212,18 +222,19 @@ export default function QuestionPage() {
           newFilters[type] = matchedTypes.has(type) || prev[type];
         });
 
-        ALL_TAGS.forEach(tag => {
-          newFilters[tag] = matchedTags.has(tag) || prev[tag];
+        // 處理所有匹配到的標籤
+        matchedTags.forEach(tag => {
+          newFilters[tag] = true;
         });
 
         return newFilters;
       });
     }
-  }, [keyword, filters, questions]);
+  }, [keyword, filters, questions, allTags]);
 
   const filteredQuestions = useMemo(() => {
     const selectedTags = Object.entries(filters)
-      .filter(([key, value]) => value && ['國文', '自然', '國小', '國中'].includes(key))
+      .filter(([key, value]) => value && allTags.includes(key))
       .map(([key]) => key);
 
     const selectedTypes = Object.entries(filters)
@@ -232,28 +243,74 @@ export default function QuestionPage() {
 
     const lowerKeyword = keyword.trim().toLowerCase();
 
-    const isNoFilter = selectedTypes.length === 0 && selectedTags.length === 0 && lowerKeyword === '';
-    if (isNoFilter) return [];
+    // 如果沒有選擇任何題型或標籤，則不顯示任何題目
+    if (selectedTypes.length === 0 && selectedTags.length === 0) return [];
 
     return questions.filter((q: Question) => {
-      const matchesTypes = selectedTypes.length === 0 || selectedTypes.includes(q.type);
-      const matchesTags = selectedTags.length === 0 || q.tags.some(tag => selectedTags.includes(tag));
-      const matchesKeyword = lowerKeyword === '' || (
-        q.type === '單選題'
-          ? q.content.toLowerCase().includes(lowerKeyword) ||
-            q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-            q.answer.toLowerCase().includes(lowerKeyword)
-          : q.article.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some(sub =>
-              sub.content.toLowerCase().includes(lowerKeyword) ||
-              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-              sub.answer.toLowerCase().includes(lowerKeyword)
-            )
-      );
+      // 檢查是否符合題型條件
+      let matchesTypes = false;
+      
+      // 如果勾選了「題組」但沒有勾選任何單題類型
+      if (filters.題組 && !filters.單題) {
+        // 只顯示閱讀測驗和克漏字類型的題目
+        matchesTypes = q.type === '閱讀測驗' || q.type === '克漏字';
+      }
+      // 如果勾選了「單題」但沒有勾選題組
+      else if (filters.單題 && !filters.題組) {
+        // 只顯示單題類型的題目
+        matchesTypes = ['單選題', '多選題', '填空題', '簡答題'].includes(q.type);
+      }
+      // 如果同時勾選了題組和單題，或者選擇了特定的題型
+      else {
+        matchesTypes = selectedTypes.length === 0 || selectedTypes.includes(q.type);
+      }
 
-      return matchesTypes && matchesTags && matchesKeyword;
+      // 檢查是否符合標籤條件
+      const matchesTags = selectedTags.length === 0 || q.tags.some(tag => selectedTags.includes(tag));
+      
+      // 必須同時符合題型和標籤條件
+      const matchesTypeOrTag = matchesTypes && matchesTags;
+      
+      // 如果有搜尋關鍵字，還需要符合關鍵字條件
+      const matchesKeyword = lowerKeyword === '' || (() => {
+        if (isSingleChoiceQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+            q.answer.toLowerCase().includes(lowerKeyword);
+        } else if (isMultipleChoiceQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+            q.answer.some(ans => ans.toLowerCase().includes(lowerKeyword));
+        } else if (isFillInQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.answers.some(ans => ans.toLowerCase().includes(lowerKeyword));
+        } else if (isShortAnswerQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.answer.toLowerCase().includes(lowerKeyword);
+        } else if (isReadingQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.article.toLowerCase().includes(lowerKeyword) ||
+            q.questions.some((sub: SubQuestion) =>
+              sub.content.toLowerCase().includes(lowerKeyword) ||
+              sub.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
+              sub.answer.toLowerCase().includes(lowerKeyword)
+            );
+        } else if (isClozeQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.article.toLowerCase().includes(lowerKeyword) ||
+            q.questions.some((sub: SubQuestion) =>
+              sub.content.toLowerCase().includes(lowerKeyword) ||
+              sub.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
+              sub.answer.toLowerCase().includes(lowerKeyword)
+            );
+        }
+        return false;
+      })();
+
+      // 只要符合題型或標籤其中一個條件，且符合關鍵字條件就顯示
+      return matchesTypeOrTag && matchesKeyword;
     });
-  }, [questions, filters, keyword]);
+  }, [questions, filters, keyword, allTags]);
 
   const toggleSelection = (id: string) => {
     setSelectedQuestions((prev) =>
@@ -319,6 +376,41 @@ export default function QuestionPage() {
     setCurrentPage(pageNumber);
   };
 
+  const [lastUsedTags, setLastUsedTags] = useState<string[]>([]);
+
+  const handleAddQuestion = (data: Question) => {
+    // 檢查是否超過題目數量限制
+    if (questions.length >= MAX_ITEMS) {
+      alert(isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！');
+      return;
+    }
+
+    // 新增題目時，將新題目加到陣列最前面
+    setQuestions(prev => [{ ...data, id: Math.random().toString(36).substring(7) }, ...prev]);
+    handleModalChange(false);
+  };
+
+  const handleModalChange = (open: boolean) => {
+    setShowAddModal(open);
+  };
+
+  const handleDeleteQuestions = () => {
+    const updatedQuestions = questions.filter(q => !selectedQuestions.includes(q.id));
+    setQuestions(updatedQuestions);
+    setShowDeleteConfirm(false);
+    setSelectedQuestions([]);
+  };
+
+  // 在全選按鈕的點擊處理函數中，只選擇符合篩選條件的題目
+  const handleSelectAll = () => {
+    const filteredIds = filteredQuestions.flatMap((q: Question) => 
+      isGroupQuestion(q)
+        ? [q.id, ...q.questions.map(subQ => subQ.id)]
+        : [q.id]
+    );
+    setSelectedQuestions(filteredIds);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-mainBg dark:bg-gray-900">
       <Navigation />
@@ -331,6 +423,7 @@ export default function QuestionPage() {
           selectedQuestions={selectedQuestions}
           setSelectedQuestions={setSelectedQuestions}
           setQuestions={setQuestions}
+          allTags={allTags}
         />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
@@ -340,7 +433,12 @@ export default function QuestionPage() {
               {/* 第一行：功能按鈕 */}
               <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
                 <Button className="text-gray-200">🤖 AI匯入</Button>
-                <Button className="text-gray-200">➕ 新增題目</Button>
+                <Button 
+                  onClick={() => handleModalChange(true)}
+                  className="text-gray-200"
+                >
+                  ➕ 新增題目
+                </Button>
                 <Button className="text-gray-200">🧪 自我練習</Button>
                 <Button className="text-gray-200">📤 派發作業</Button>
                 <Button className="text-gray-300">📄 匯出題目</Button>
@@ -355,14 +453,7 @@ export default function QuestionPage() {
                   onChange={handleKeywordChange}
                 />
                 <Button
-                  onClick={() => {
-                    const allIds = questions.flatMap((q: Question) => 
-                      q.type === '閱讀測驗' 
-                        ? [q.id, ...q.questions.map(subQ => subQ.id)] 
-                        : [q.id]
-                    );
-                    setSelectedQuestions(allIds);
-                  }}
+                  onClick={handleSelectAll}
                   className="text-gray-200"
                 >
                   ✅ 全選
@@ -394,14 +485,7 @@ export default function QuestionPage() {
               <div className="overflow-x-auto pb-2 hide-scrollbar">
                 <div className="flex gap-2 min-w-min">
                   <Button
-                    onClick={() => {
-                      const allIds = questions.flatMap((q: Question) => 
-                        q.type === '閱讀測驗' 
-                          ? [q.id, ...q.questions.map(subQ => subQ.id)] 
-                          : [q.id]
-                      );
-                      setSelectedQuestions(allIds);
-                    }}
+                    onClick={handleSelectAll}
                     className="whitespace-nowrap text-gray-200"
                   >
                     ✅ 全部勾選
@@ -424,7 +508,12 @@ export default function QuestionPage() {
               <div className="overflow-x-auto pb-2 hide-scrollbar">
                 <div className="flex gap-2 min-w-min">
                   <Button className="whitespace-nowrap text-gray-200">🤖 AI匯入</Button>
-                  <Button className="whitespace-nowrap text-gray-200">➕ 新增題目</Button>
+                  <Button 
+                    onClick={() => handleModalChange(true)}
+                    className="whitespace-nowrap text-gray-200"
+                  >
+                    ➕ 新增題目
+                  </Button>
                   <Button className="whitespace-nowrap text-gray-200">🧪 自我練習</Button>
                   <Button className="whitespace-nowrap text-gray-200">📤 派發作業</Button>
                   <Button className="whitespace-nowrap text-gray-300">📄 匯出題目</Button>
@@ -462,6 +551,7 @@ export default function QuestionPage() {
                             checked={selectedQuestions.includes(q.id)}
                             onCheckedChange={() => toggleSelection(q.id)}
                             className="mt-[2px]"
+                            onClick={e => e.stopPropagation()}
                           />
                         </div>
                         <div className="flex-1">
@@ -469,7 +559,11 @@ export default function QuestionPage() {
                             {q.type} ｜ {q.tags.join(', ')}
                           </div>
                           <div className="font-medium mt-1 text-gray-800 dark:text-gray-300">
-                            1. {q.type === '單選題' ? q.content : q.article}
+                            1. {(() => {
+                              if (isReadingQuestion(q)) return q.article;
+                              if (isClozeQuestion(q)) return q.article;
+                              return q.content;
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -477,7 +571,7 @@ export default function QuestionPage() {
 
                     {!isCollapsed && (
                       <>
-                        {q.type === '單選題' ? (
+                        {isSingleChoiceQuestion(q) ? (
                           <>
                             <ul className="list-none pl-5 text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
                               {q.options.map((opt, i) => (
@@ -487,25 +581,105 @@ export default function QuestionPage() {
                             <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
                               🟢 正解：({String.fromCharCode(65 + q.options.indexOf(q.answer))}) {q.answer}
                             </div>
+                            {q.explanation && (
+                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
+                                💡 解釋：{q.explanation}
+                              </div>
+                            )}
                           </>
-                        ) : (
+                        ) : isMultipleChoiceQuestion(q) ? (
                           <>
-                            <div className="text-sm mt-1 line-clamp-2 text-gray-800 dark:text-gray-300 ml-6"></div>
+                            <ul className="list-none pl-5 text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
+                              {q.options.map((opt, i) => (
+                                <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
+                              ))}
+                            </ul>
+                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
+                              🟢 正解：{q.answer.map(ans => `(${String.fromCharCode(65 + q.options.indexOf(ans))}) ${ans}`).join('、')}
+                            </div>
+                            {q.explanation && (
+                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
+                                💡 解釋：{q.explanation}
+                              </div>
+                            )}
+                          </>
+                        ) : isFillInQuestion(q) ? (
+                          <>
+                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
+                              🟢 正解：{q.answers.join('、')}
+                            </div>
+                            {q.explanation && (
+                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
+                                💡 解釋：{q.explanation}
+                              </div>
+                            )}
+                          </>
+                        ) : isShortAnswerQuestion(q) ? (
+                          <>
+                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
+                              🟢 正解：{q.answer}
+                            </div>
+                            {q.explanation && (
+                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
+                                💡 解釋：{q.explanation}
+                              </div>
+                            )}
+                          </>
+                        ) : isReadingQuestion(q) ? (
+                          <>
                             <ul className="list-decimal pl-5 text-sm mt-2 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.questions.map((sub, index) => (
+                              {q.questions.map((sub: SubQuestion) => (
                                 <li key={sub.id} className="mb-2">
                                   {sub.content}
                                   <ul className="list-none pl-5 mt-1">
-                                    {sub.options.map((opt, i) => (
+                                    {sub.options.map((opt: string, i: number) => (
                                       <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
                                     ))}
                                   </ul>
                                   <div className="text-sm mt-1">
                                     🟢 正解：({String.fromCharCode(65 + sub.options.indexOf(sub.answer))}) {sub.answer}
                                   </div>
+                                  {sub.explanation && (
+                                    <div className="text-sm mt-1 text-gray-600 dark:text-gray-400">
+                                      💡 解釋：{sub.explanation}
+                                    </div>
+                                  )}
                                 </li>
                               ))}
                             </ul>
+                            {q.explanation && (
+                              <div className="text-sm mt-2 text-gray-600 dark:text-gray-400 ml-6">
+                                💡 整體解釋：{q.explanation}
+                              </div>
+                            )}
+                          </>
+                        ) : isClozeQuestion(q) && (
+                          <>
+                            <ul className="list-decimal pl-5 text-sm mt-2 text-gray-800 dark:text-gray-300 ml-6">
+                              {q.questions.map((sub: SubQuestion) => (
+                                <li key={sub.id} className="mb-2">
+                                  {sub.content && <div>{sub.content}</div>}
+                                  <ul className="list-none pl-5 mt-1">
+                                    {sub.options.map((opt: string, i: number) => (
+                                      <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
+                                    ))}
+                                  </ul>
+                                  <div className="text-sm mt-1">
+                                    🟢 正解：({String.fromCharCode(65 + sub.options.indexOf(sub.answer))}) {sub.answer}
+                                  </div>
+                                  {sub.explanation && (
+                                    <div className="text-sm mt-1 text-gray-600 dark:text-gray-400">
+                                      💡 解釋：{sub.explanation}
+                                    </div>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                            {q.explanation && (
+                              <div className="text-sm mt-2 text-gray-600 dark:text-gray-400 ml-6">
+                                💡 整體解釋：{q.explanation}
+                              </div>
+                            )}
                           </>
                         )}
                       </>
@@ -553,6 +727,20 @@ export default function QuestionPage() {
           </div>
         </main>
       </div>
+
+      <ConfirmDeleteModal
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        onConfirm={handleDeleteQuestions}
+      />
+
+      <AddQuestionModal
+        open={showAddModal}
+        onOpenChange={handleModalChange}
+        onSubmit={handleAddQuestion}
+        defaultTags={[]}
+        isPremium={isPremium}
+      />
     </div>
   );
 }

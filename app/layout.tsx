@@ -1,6 +1,6 @@
 'use client';
 
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { SessionProvider } from 'next-auth/react';
 import { Inter } from 'next/font/google';
 import './globals.css';

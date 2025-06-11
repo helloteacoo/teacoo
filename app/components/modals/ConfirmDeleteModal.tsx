@@ -1,19 +1,21 @@
 // components/modals/ConfirmDeleteModal.tsx
 import * as React from "react"
 import * as AlertDialog from "@radix-ui/react-alert-dialog"
-import { Button } from "@/components/ui/button"
+import { Button } from "../ui/button"
 
 interface ConfirmDeleteModalProps {
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }
 
 export default function ConfirmDeleteModal({
-  onClose,
+  open,
+  onOpenChange,
   onConfirm,
 }: ConfirmDeleteModalProps) {
   return (
-    <AlertDialog.Root defaultOpen>
+    <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="fixed inset-0 bg-black/50" />
         <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-6 w-[400px] shadow-lg">
@@ -24,10 +26,16 @@ export default function ConfirmDeleteModal({
             確定要刪除選中的題目嗎？此操作無法復原。
           </AlertDialog.Description>
           <div className="mt-6 flex justify-end space-x-4">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
               取消
             </Button>
-            <Button variant="destructive" onClick={onConfirm}>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                onConfirm();
+                onOpenChange(false);
+              }}
+            >
               確認刪除
             </Button>
           </div>

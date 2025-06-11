@@ -38,6 +38,7 @@ export default function ExcelLikeFilter(props: IFilterParams) {
         value={filterText}
         onChange={e => setFilterText(e.target.value)}
         placeholder="輸入篩選內容"
+        className="placeholder:text-gray-400"
         style={{ width: '100%', marginTop: '8px' }}
       />
     </div>

@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'; // 用於判斷當前路由
 import { useSession } from 'next-auth/react';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Button } from './ui/button';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { SunIcon, MoonIcon, HamburgerMenuIcon, Cross1Icon } from '@radix-ui/react-icons';
 
 const DEFAULT_AVATAR = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23215F97"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"%3E%3C/path%3E%3C/svg%3E';
@@ -48,7 +48,7 @@ export default function Navigation() {
                     className={`text-base font-semibold transition-colors duration-150 border-b-2 px-1.5 pb-1.5 ${
                       pathname === item.href
                         ? 'text-primary border-primary'
-                        : 'text-gray-700 border-transparent hover:text-primary hover:border-primary'
+                        : 'text-gray-700 hover:text-primary hover:border-primary'
                     }`}
                   >
                     {item.name}
@@ -60,7 +60,9 @@ export default function Navigation() {
 
           {/* 桌面版功能區 */}
           <div className="hidden lg:flex lg:items-center lg:space-x-4">
-            <LanguageSwitcher labelClass="text-gray-700 dark:text-gray-300" />
+            <div className="flex-1 flex justify-center">
+              <LanguageSwitcher labelClass="text-gray-700 dark:text-gray-300" />
+            </div>
             <Button
               variant="ghost"
               size="icon"

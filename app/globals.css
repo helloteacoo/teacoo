@@ -9,13 +9,15 @@
     --border: 215.4 16.3% 46.9%;
     --input: 215.4 16.3% 46.9%;
     --ring: 215.4 16.3% 46.9%;
-    
-    @apply bg-background text-foreground;
   }
- 
-  .dark {
-    @apply bg-background-dark text-foreground-dark;
-  }
+}
+
+body {
+  @apply bg-background text-foreground;
+}
+
+.dark body {
+  @apply bg-background-dark text-foreground-dark;
 }
 
 .dark .bg-mainBg {
@@ -24,10 +26,6 @@
 
 .dark .bg-cardBg {
   @apply bg-carddarkBg;
-}
-
-body {
-  @apply bg-background text-foreground;
 }
 
 /* 隱藏滾動條但保持可滾動 */

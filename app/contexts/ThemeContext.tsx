@@ -1,9 +1,9 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { auth } from '@/lib/firebase';
+import { auth } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db } from '../lib/firebase';
 
 type Theme = 'light' | 'dark';
 

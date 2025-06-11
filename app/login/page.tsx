@@ -2,15 +2,15 @@
 import type { FormEvent, ChangeEvent } from "react";
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { auth } from "../lib/firebase";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Checkbox } from "../components/ui/checkbox";
 
 // Icons import
 import {
@@ -200,9 +200,10 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   required
                   placeholder="請輸入您的電子郵件"
+                  className="placeholder:text-gray-400"
                 />
               </div>
 
@@ -214,9 +215,10 @@ export default function LoginPage() {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   required
                   placeholder="請輸入您的密碼"
+                  className="placeholder:text-gray-400"
                 />
               </div>
             </div>
