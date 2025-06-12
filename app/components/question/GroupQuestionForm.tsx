@@ -50,10 +50,19 @@ export default function GroupQuestionForm({
         setExplanation(data.explanation || '');
         setTags(data.tags);
 
-        const formattedQuestions = data.questions.map(q => ({
-          ...q,
-          selectedOptionId: `q${q.id}-option-${q.options.indexOf(q.answer)}`
-        }));
+        const formattedQuestions = data.questions.map((q, qIndex) => {
+          const answerIndex = q.options.findIndex(opt => opt === q.answer);
+          console.log(`🔍 閱讀測驗第 ${qIndex + 1} 題初始化:`, {
+            answer: q.answer,
+            options: q.options,
+            answerIndex,
+            selectedOptionId: answerIndex >= 0 ? String(answerIndex) : ''
+          });
+          return {
+            ...q,
+            selectedOptionId: answerIndex >= 0 ? String(answerIndex) : ''
+          };
+        });
         setQuestions(formattedQuestions);
       } else {
         const data = initialData as ClozeQuestion;
@@ -62,10 +71,19 @@ export default function GroupQuestionForm({
         setExplanation(data.explanation || '');
         setTags(data.tags);
 
-        const formattedQuestions = data.questions.map(q => ({
-          ...q,
-          selectedOptionId: `q${q.id}-option-${q.options.indexOf(q.answer)}`
-        }));
+        const formattedQuestions = data.questions.map((q, qIndex) => {
+          const answerIndex = q.options.findIndex(opt => opt === q.answer);
+          console.log(`🔍 克漏字第 ${qIndex + 1} 題初始化:`, {
+            answer: q.answer,
+            options: q.options,
+            answerIndex,
+            selectedOptionId: answerIndex >= 0 ? String(answerIndex) : ''
+          });
+          return {
+            ...q,
+            selectedOptionId: answerIndex >= 0 ? String(answerIndex) : ''
+          };
+        });
         setQuestions(formattedQuestions);
       }
     }
@@ -137,7 +155,7 @@ export default function GroupQuestionForm({
       newQuestions[index] = { 
         ...newQuestions[index], 
         selectedOptionId: value,
-        answer: value ? newQuestions[index].options[parseInt(value.split('-').pop() || '0')] : ''
+        answer: value ? newQuestions[index].options[parseInt(value)] : ''
       };
     } else if (type === '閱讀測驗' && (field === 'content' || field === 'explanation')) {
       newQuestions[index] = { 
@@ -376,7 +394,7 @@ export default function GroupQuestionForm({
           </div>
 
           {questions.map((question, questionIndex) => (
-            <div key={question.id} className="space-y-4 p-4 border rounded-lg">
+            <div key={question.id} className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <Label>題目 {questionIndex + 1}</Label>
@@ -401,35 +419,35 @@ export default function GroupQuestionForm({
                 <Label>選項</Label>
                 <RadioGroup
                   value={question.selectedOptionId}
-                  onValueChange={(value) => {
-                    if (value.trim()) {
-                      handleQuestionChange(questionIndex, 'answer', value);
-                    }
+                  onValueChange={(value: string) => {
+                    console.log('🔍 閱讀測驗選項變更:', {
+                      questionIndex,
+                      value,
+                      options: question.options
+                    });
+                    handleQuestionChange(questionIndex, 'answer', question.options[parseInt(value)]);
+                    handleQuestionChange(questionIndex, 'selectedOptionId', value);
                   }}
                 >
-                  {question.options.map((option, optionIndex) => {
-                    const optionId = `q${questionIndex}-option-${optionIndex}`;
-                    return (
-                      <div key={optionId} className="flex items-center gap-3">
-                        <div className="w-6">
-                          <RadioGroupItem value={optionId} id={optionId} />
-                        </div>
-                        <Input
-                          value={option}
-                          onChange={(e) => {
-                            handleOptionChange(questionIndex, optionIndex, e.target.value);
-                            // 如果使用者剛好修改的是已選中的選項，更新正解內容
-                            if (question.selectedOptionId === optionId) {
-                              handleQuestionChange(questionIndex, 'answer', optionId);
-                            }
-                          }}
-                          placeholder={`選項 ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (必填)' : ''}`}
-                          className="placeholder:text-gray-400"
-                          required={optionIndex < 2}
-                        />
+                  {question.options.map((option, optionIndex) => (
+                    <div key={optionIndex} className="flex items-center gap-3">
+                      <div className="w-6">
+                        <RadioGroupItem value={String(optionIndex)} id={`q${questionIndex}-option-${optionIndex}`} />
                       </div>
-                    );
-                  })}
+                      <Input
+                        value={option}
+                        onChange={(e) => {
+                          handleOptionChange(questionIndex, optionIndex, e.target.value);
+                          if (question.selectedOptionId === String(optionIndex)) {
+                            handleQuestionChange(questionIndex, 'answer', e.target.value);
+                          }
+                        }}
+                        placeholder={`選項 ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (必填)' : ''}`}
+                        className="placeholder:text-gray-400"
+                        required={optionIndex < 2}
+                      />
+                    </div>
+                  ))}
                 </RadioGroup>
               </div>
 
@@ -453,7 +471,7 @@ export default function GroupQuestionForm({
         <div className="space-y-6">
           <Label>空格選項</Label>
           {questions.map((question, questionIndex) => (
-            <div key={question.id} className="space-y-4 p-4 border rounded-lg">
+            <div key={question.id} className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <div className="flex items-center justify-between">
                 <Label>空格 {questionIndex + 1}</Label>
               </div>
@@ -461,35 +479,35 @@ export default function GroupQuestionForm({
               <div className="space-y-3">
                 <RadioGroup
                   value={question.selectedOptionId}
-                  onValueChange={(value) => {
-                    if (value.trim()) {
-                      handleQuestionChange(questionIndex, 'answer', value);
-                    }
+                  onValueChange={(value: string) => {
+                    console.log('🔍 克漏字選項變更:', {
+                      questionIndex,
+                      value,
+                      options: question.options
+                    });
+                    handleQuestionChange(questionIndex, 'answer', question.options[parseInt(value)]);
+                    handleQuestionChange(questionIndex, 'selectedOptionId', value);
                   }}
                 >
-                  {question.options.map((option, optionIndex) => {
-                    const optionId = `q${questionIndex}-option-${optionIndex}`;
-                    return (
-                      <div key={optionId} className="flex items-center gap-3">
-                        <div className="w-6">
-                          <RadioGroupItem value={optionId} id={optionId} />
-                        </div>
-                        <Input
-                          value={option}
-                          onChange={(e) => {
-                            handleOptionChange(questionIndex, optionIndex, e.target.value);
-                            // 如果使用者剛好修改的是已選中的選項，更新正解內容
-                            if (question.selectedOptionId === optionId) {
-                              handleQuestionChange(questionIndex, 'answer', optionId);
-                            }
-                          }}
-                          placeholder={`選項 ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (必填)' : ''}`}
-                          className="placeholder:text-gray-400"
-                          required={optionIndex < 2}
-                        />
+                  {question.options.map((option, optionIndex) => (
+                    <div key={optionIndex} className="flex items-center gap-3">
+                      <div className="w-6">
+                        <RadioGroupItem value={String(optionIndex)} id={`q${questionIndex}-option-${optionIndex}`} />
                       </div>
-                    );
-                  })}
+                      <Input
+                        value={option}
+                        onChange={(e) => {
+                          handleOptionChange(questionIndex, optionIndex, e.target.value);
+                          if (question.selectedOptionId === String(optionIndex)) {
+                            handleQuestionChange(questionIndex, 'answer', e.target.value);
+                          }
+                        }}
+                        placeholder={`選項 ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (必填)' : ''}`}
+                        className="placeholder:text-gray-400"
+                        required={optionIndex < 2}
+                      />
+                    </div>
+                  ))}
                 </RadioGroup>
               </div>
 

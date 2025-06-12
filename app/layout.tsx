@@ -1,11 +1,14 @@
-'use client';
-
-import { ThemeProvider } from './contexts/ThemeContext';
-import { SessionProvider } from 'next-auth/react';
+import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { Providers } from './providers';
 
 const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'TeaCoo',
+  description: '題目管理系統',
+};
 
 export default function RootLayout({
   children,
@@ -13,11 +16,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-TW" suppressHydrationWarning>
+    <html lang="zh-TW">
       <body className={inter.className}>
-        <SessionProvider>
-          <ThemeProvider>{children}</ThemeProvider>
-        </SessionProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

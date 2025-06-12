@@ -9,9 +9,9 @@ import { Checkbox } from '../ui/checkbox';
 import TagSelector from '../TagSelector';
 import { Button } from '../ui/button';
 import type { ChangeEvent } from 'react';
-import type { Question, SingleChoiceQuestion, MultipleChoiceQuestion, FillInQuestion, ShortAnswerQuestion } from '../../types/question';
+import type { Question, SingleChoiceQuestion, FillInQuestion, ShortAnswerQuestion } from '../../types/question';
 
-type SingleQuestionType = '單選題' | '多選題' | '填空題' | '簡答題';
+type SingleQuestionType = '單選題' | '填空題' | '簡答題';
 
 type BaseFormData = {
   content: string;
@@ -21,17 +21,24 @@ type BaseFormData = {
 
 type SingleQuestionFormData = BaseFormData & (
   | { type: '單選題'; options: string[]; answer: string }
-  | { type: '多選題'; options: string[]; answer: string[] }
   | { type: '填空題'; answers: string[] }
   | { type: '簡答題'; answer: string }
 );
 
 export interface SingleQuestionFormProps {
-  type: '單選題' | '多選題' | '填空題' | '簡答題';
+  type: '單選題' | '填空題' | '簡答題';
   onChange: (data: Question) => void;
   defaultTags?: string[];
   isPremium?: boolean;
   initialData?: Question;
+}
+
+function padOptions(options: string[] = [], minLength = 4): string[] {
+  const padded = [...(options || [])];
+  while (padded.length < minLength) {
+    padded.push('');
+  }
+  return padded;
 }
 
 export default function SingleQuestionForm({
@@ -45,7 +52,6 @@ export default function SingleQuestionForm({
   const [options, setOptions] = useState<string[]>(['', '', '', '']);
   const [answer, setAnswer] = useState('');
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(-1);
-  const [selectedAnswerIndices, setSelectedAnswerIndices] = useState<number[]>([]);
   const [fillInAnswers, setFillInAnswers] = useState<string[]>([]);
   const [shortAnswer, setShortAnswer] = useState('');
   const [explanation, setExplanation] = useState('');
@@ -53,9 +59,11 @@ export default function SingleQuestionForm({
   const [blanks, setBlanks] = useState<string[]>([]);
   const [showError, setShowError] = useState(false);
 
-  // 同步 initialData 的變化
+  // 專門處理 convertedData 的初始設定
   useEffect(() => {
-    console.log('🧪 SingleQuestionForm - initialData:', initialData);
+    console.log('🔥 SingleQuestionForm - initialData:', initialData);
+    console.log('🔥 SingleQuestionForm - type:', type);
+
     if (initialData && initialData.type === type) {
       setContent(initialData.content);
       setExplanation(initialData.explanation || '');
@@ -63,19 +71,24 @@ export default function SingleQuestionForm({
 
       if (type === '單選題') {
         const data = initialData as SingleChoiceQuestion;
-        setOptions(data.options);
-        setAnswer(data.answer);
-        const answerIndex = data.options.indexOf(data.answer);
-        setSelectedAnswerIndex(answerIndex);
-      } else if (type === '多選題') {
-        const data = initialData as MultipleChoiceQuestion;
-        setOptions(data.options);
-        const indices = data.answer.map(ans => data.options.indexOf(ans));
-        setSelectedAnswerIndices(indices);
-      } else if (type === '填空題') {
+        console.log('🔍 單選題資料:', {
+          options: data.options,
+          answer: data.answer,
+          correctIndex: data.correctIndex ?? data.options.findIndex(opt => opt === data.answer),
+          paddedOptions: padOptions(data.options)
+        });
+
+        const correctIndex = data.correctIndex ?? data.options.findIndex(opt => opt === data.answer);
+        setSelectedAnswerIndex(correctIndex);
+        setOptions(padOptions(data.options));
+      }
+
+      if (type === '填空題') {
         const data = initialData as FillInQuestion;
         setFillInAnswers(data.answers);
-      } else if (type === '簡答題') {
+      }
+
+      if (type === '簡答題') {
         const data = initialData as ShortAnswerQuestion;
         setShortAnswer(data.answer);
       }
@@ -86,10 +99,9 @@ export default function SingleQuestionForm({
   useEffect(() => {
     if (!initialData) {
       setContent('');
-      setOptions(['', '', '', '']);
+      setOptions(padOptions());  // 使用 padOptions 確保有四個空選項
       setAnswer('');
       setSelectedAnswerIndex(-1);
-      setSelectedAnswerIndices([]);
       setFillInAnswers([]);
       setShortAnswer('');
       setExplanation('');
@@ -126,16 +138,6 @@ export default function SingleQuestionForm({
     }
   };
 
-  const handleMultipleChoiceChange = (index: number, checked: boolean) => {
-    if (checked) {
-      if (!selectedAnswerIndices.includes(index)) {
-        setSelectedAnswerIndices([...selectedAnswerIndices, index]);
-      }
-    } else {
-      setSelectedAnswerIndices(selectedAnswerIndices.filter(i => i !== index));
-    }
-  };
-
   const handleFillInAnswerChange = (index: number, value: string) => {
     const newAnswers = [...fillInAnswers];
     newAnswers[index] = value;
@@ -163,19 +165,6 @@ export default function SingleQuestionForm({
         // 必須選擇一個正確答案
         if (selectedAnswerIndex === -1) {
           return '請選擇正確答案';
-        }
-        break;
-      }
-
-      case '多選題': {
-        // 檢查至少有 4 個選項
-        const validOptions = options.filter(opt => opt.trim());
-        if (validOptions.length < 4) {
-          return '請填寫至少 4 個選項';
-        }
-        // 至少選擇 2 個正確答案
-        if (selectedAnswerIndices.length < 2) {
-          return '請至少選擇 2 個正確答案';
         }
         break;
       }
@@ -208,7 +197,6 @@ export default function SingleQuestionForm({
     content,
     options,
     selectedAnswerIndex,
-    selectedAnswerIndices,
     fillInAnswers,
     shortAnswer,
     tags,
@@ -222,36 +210,14 @@ export default function SingleQuestionForm({
       return;
     }
 
-    if (type === '單選題' || type === '多選題') {
-      // 檢查至少有兩個選項
-      const validOptions = options.filter(opt => opt.trim());
-      if (validOptions.length < 2) {
-        alert('請至少填寫兩個選項');
-        return;
-      }
-
-      if (type === '單選題' && selectedAnswerIndex === -1) {
-        alert('請選擇正確答案');
-        return;
-      }
-
-      if (type === '多選題' && selectedAnswerIndices.length === 0) {
-        alert('請選擇至少一個正確答案');
-        return;
-      }
+    if (type === '單選題' && selectedAnswerIndex === -1) {
+      alert('請選擇正確答案');
+      return;
     }
 
-    if (type === '填空題') {
-      const newBlanks = extractBlanks(content);
-      if (newBlanks.length === 0) {
-        alert('請在題目中使用 [[答案]] 標記填空處');
-        return;
-      }
-
-      if (fillInAnswers.some(ans => !ans.trim())) {
-        alert('請填寫所有填空答案');
-        return;
-      }
+    if (type === '填空題' && fillInAnswers.some(ans => !ans.trim())) {
+      alert('請填寫所有填空答案');
+      return;
     }
 
     if (type === '簡答題' && !shortAnswer.trim()) {
@@ -281,15 +247,6 @@ export default function SingleQuestionForm({
           options,
           answer: options[selectedAnswerIndex],
         } as SingleChoiceQuestion;
-        break;
-
-      case '多選題':
-        questionData = {
-          ...baseData,
-          type,
-          options,
-          answer: selectedAnswerIndices.map(i => options[i]),
-        } as MultipleChoiceQuestion;
         break;
 
       case '填空題':
@@ -334,28 +291,20 @@ export default function SingleQuestionForm({
         />
       </div>
 
-      {(type === '單選題' || type === '多選題') && (
+      {type === '單選題' && (
         <div className="space-y-4">
           <Label>選項</Label>
           {options.map((option, index) => (
             <div key={index} className="flex items-center gap-3">
               <div className="w-6">
-                {type === '單選題' ? (
-                  <input
-                    type="radio"
-                    id={`option-${index}`}
-                    name="single-choice"
-                    checked={selectedAnswerIndex === index}
-                    onChange={() => handleSingleChoiceChange(index)}
-                    className="h-4 w-4 rounded-full border-gray-300 text-primary focus:ring-primary"
-                  />
-                ) : (
-                  <Checkbox
-                    checked={selectedAnswerIndices.includes(index)}
-                    onCheckedChange={(checked) => handleMultipleChoiceChange(index, checked as boolean)}
-                    className="rounded-full"
-                  />
-                )}
+                <input
+                  type="radio"
+                  id={`option-${index}`}
+                  name="single-choice"
+                  checked={selectedAnswerIndex === index}
+                  onChange={() => handleSingleChoiceChange(index)}
+                  className="h-4 w-4 rounded-full border-gray-300 text-primary focus:ring-primary"
+                />
               </div>
               <Input
                 value={option}

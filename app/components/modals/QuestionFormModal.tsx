@@ -5,14 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import SingleQuestionForm from '../question/SingleQuestionForm';
 import GroupQuestionForm from '../question/GroupQuestionForm';
 import type { Question, QuestionType } from '../../types/question';
-import type { 
-  SingleChoiceQuestion, 
-  MultipleChoiceQuestion, 
-  FillInQuestion, 
-  ShortAnswerQuestion, 
-  ReadingQuestion,
-  ClozeQuestion 
-} from '../../types/question';
 import { Button } from '../ui/button';
 
 type BaseFormData = {
@@ -23,12 +15,11 @@ type BaseFormData = {
 
 type SingleQuestionFormData = BaseFormData & (
   | { type: '單選題'; options: string[]; answer: string }
-  | { type: '多選題'; options: string[]; answer: string[] }
   | { type: '填空題'; answers: string[] }
   | { type: '簡答題'; answer: string }
 );
 
-export type SingleQuestionType = '單選題' | '多選題' | '填空題' | '簡答題';
+export type SingleQuestionType = '單選題' | '填空題' | '簡答題';
 export type GroupQuestionType = '閱讀測驗' | '克漏字';
 export type QuestionMode = 'single' | 'group';
 
@@ -117,7 +108,7 @@ export default function QuestionFormModal({
   };
 
   // 如果是編輯模式但沒有初始資料，不要渲染
-  if (isEditMode && !initialData) {
+  if (isEditMode && (initialData === null || initialData === undefined)) {
     console.log('🧪 QuestionFormModal - 等待初始資料...');
     return null;
   }
@@ -185,8 +176,8 @@ export default function QuestionFormModal({
         )}
 
         {mode === 'single' && (
-          <div className="grid w-full grid-cols-2 sm:grid-cols-4 gap-2">
-            {(['單選題', '多選題', '填空題', '簡答題'] as SingleQuestionType[]).map((type) => (
+          <div className="grid w-full grid-cols-3 gap-2">
+            {(['單選題', '填空題', '簡答題'] as SingleQuestionType[]).map((type) => (
               <Button
                 key={type}
                 type="button"
@@ -229,12 +220,15 @@ export default function QuestionFormModal({
       <div className="mt-4">
         {mode === 'single' && questionType && (
           <SingleQuestionForm
-            key={`${key}-single`}
-            type={questionType}
+            type={questionType as "單選題" | "填空題" | "簡答題"}
             onChange={handleSingleQuestionSubmit}
             defaultTags={lastUsedTags}
             isPremium={isPremium}
-            initialData={isEditMode && initialData && !['閱讀測驗', '克漏字'].includes(initialData.type) ? initialData : undefined}
+            initialData={
+              initialData && !['閱讀測驗', '克漏字'].includes(initialData.type)
+                ? initialData
+                : undefined
+            }
           />
         )}
 
@@ -245,7 +239,11 @@ export default function QuestionFormModal({
             onChange={handleGroupQuestionSubmit}
             defaultTags={lastUsedTags}
             isPremium={isPremium}
-            initialData={isEditMode && initialData && ['閱讀測驗', '克漏字'].includes(initialData.type) ? initialData : undefined}
+            initialData={
+              initialData && ['閱讀測驗', '克漏字'].includes(initialData.type)
+                ? initialData
+                : undefined
+            }
           />
         )}
       </div>

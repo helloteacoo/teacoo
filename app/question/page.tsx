@@ -13,12 +13,12 @@ import AIconvertModal from '../components/modals/AIconvert';
 import type { 
   Question,
   SingleChoiceQuestion,
-  MultipleChoiceQuestion,
   FillInQuestion,
   ShortAnswerQuestion,
   ReadingQuestion,
   ClozeQuestion,
   SubQuestion,
+  ClozeSubQuestion,
   QuestionType
 } from '../types/question';
 import { sampleQuestions } from '../data/sampleQuestions';
@@ -34,10 +34,6 @@ interface ButtonProps {
 // Type Guards
 function isSingleChoiceQuestion(q: Question): q is SingleChoiceQuestion {
   return q.type === '單選題';
-}
-
-function isMultipleChoiceQuestion(q: Question): q is MultipleChoiceQuestion {
-  return q.type === '多選題';
 }
 
 function isFillInQuestion(q: Question): q is FillInQuestion {
@@ -177,30 +173,27 @@ export default function QuestionPage() {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
             q.answer.toLowerCase().includes(lowerKeyword);
-        } else if (isMultipleChoiceQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-            q.answer.some(ans => ans.toLowerCase().includes(lowerKeyword));
         } else if (isFillInQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.answers.some(ans => ans.toLowerCase().includes(lowerKeyword));
         } else if (isShortAnswerQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.answer.toLowerCase().includes(lowerKeyword);
-        } else if (isGroupQuestion(q)) {
+        } else if (isReadingQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.article.toLowerCase().includes(lowerKeyword) ||
-            (isReadingQuestion(q) ? 
-              (q as ReadingQuestion).questions.some(sub =>
+            q.questions.some((sub: SubQuestion) =>
               sub.content.toLowerCase().includes(lowerKeyword) ||
               sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
               sub.answer.toLowerCase().includes(lowerKeyword)
-              ) :
-              (q as ClozeQuestion).questions.some(sub =>
-                sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-                sub.answer.toLowerCase().includes(lowerKeyword)
-            )
-      );
+            );
+        } else if (isClozeQuestion(q)) {
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            q.article.toLowerCase().includes(lowerKeyword) ||
+            q.questions.some((sub: ClozeSubQuestion) =>
+              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+              sub.answer.toLowerCase().includes(lowerKeyword)
+            );
         }
         return false;
       });
@@ -216,7 +209,7 @@ export default function QuestionPage() {
       if (matchedTypes.has('閱讀測驗') || matchedTypes.has('克漏字')) {
         matchedTypes.add('題組');
       }
-      if (['單選題', '多選題', '填空題', '簡答題'].some(t => matchedTypes.has(t))) {
+      if (['單選題', '填空題', '簡答題'].some(t => matchedTypes.has(t))) {
         matchedTypes.add('單題');
       }
 
@@ -248,7 +241,7 @@ export default function QuestionPage() {
       .map(([key]) => key);
 
     const selectedTypes = Object.entries(filters)
-      .filter(([key, value]) => value && ['單選題', '多選題', '填空題', '簡答題', '閱讀測驗', '克漏字'].includes(key))
+      .filter(([key, value]) => value && ['單選題', '填空題', '簡答題', '閱讀測驗', '克漏字'].includes(key))
       .map(([key]) => key);
 
     const lowerKeyword = keyword.trim().toLowerCase();
@@ -268,7 +261,7 @@ export default function QuestionPage() {
       // 如果勾選了「單題」但沒有勾選題組
       else if (filters.單題 && !filters.題組) {
         // 只顯示單題類型的題目
-        matchesTypes = ['單選題', '多選題', '填空題', '簡答題'].includes(q.type);
+        matchesTypes = ['單選題', '填空題', '簡答題'].includes(q.type);
       }
       // 如果同時勾選了題組和單題，或者選擇了特定的題型
       else {
@@ -285,15 +278,11 @@ export default function QuestionPage() {
       const matchesKeyword = lowerKeyword === '' || (() => {
         if (isSingleChoiceQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+            q.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
             q.answer.toLowerCase().includes(lowerKeyword);
-        } else if (isMultipleChoiceQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-            q.answer.some(ans => ans.toLowerCase().includes(lowerKeyword));
         } else if (isFillInQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.answers.some(ans => ans.toLowerCase().includes(lowerKeyword));
+            q.answers.some((ans: string) => ans.toLowerCase().includes(lowerKeyword));
         } else if (isShortAnswerQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.answer.toLowerCase().includes(lowerKeyword);
@@ -301,16 +290,17 @@ export default function QuestionPage() {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.article.toLowerCase().includes(lowerKeyword) ||
             q.questions.some((sub: SubQuestion) =>
-              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+              sub.content.toLowerCase().includes(lowerKeyword) ||
+              sub.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
               sub.answer.toLowerCase().includes(lowerKeyword)
             );
         } else if (isClozeQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.article.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some(sub =>
-              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+            q.questions.some((sub: ClozeSubQuestion) =>
+              sub.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
               sub.answer.toLowerCase().includes(lowerKeyword)
-      );
+            );
         }
         return false;
       })();
@@ -621,28 +611,12 @@ export default function QuestionPage() {
                         {isSingleChoiceQuestion(q) ? (
                           <>
                             <ul className="list-none pl-5 text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.options.map((opt, i) => (
+                              {q.options.map((opt: string, i: number) => (
                                 <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
                               ))}
                             </ul>
                             <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
                               🟢 正解：({String.fromCharCode(65 + q.options.indexOf(q.answer))}) {q.answer}
-                            </div>
-                            {q.explanation && (
-                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                                💡 解釋：{q.explanation}
-                              </div>
-                            )}
-                          </>
-                        ) : isMultipleChoiceQuestion(q) ? (
-                          <>
-                            <ul className="list-none pl-5 text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.options.map((opt, i) => (
-                                <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
-                              ))}
-                            </ul>
-                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              🟢 正解：{q.answer.map(ans => `(${String.fromCharCode(65 + q.options.indexOf(ans))}) ${ans}`).join('、')}
                             </div>
                             {q.explanation && (
                               <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
@@ -703,7 +677,7 @@ export default function QuestionPage() {
                         ) : isClozeQuestion(q) && (
                           <>
                             <ul className="list-decimal pl-5 text-sm mt-2 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.questions.map((sub, index) => (
+                              {q.questions.map((sub: ClozeSubQuestion, index: number) => (
                                 <li key={sub.id} className="mb-2">
                                   <div>空格 {index + 1}</div>
                                   <ul className="list-none pl-5 mt-1">

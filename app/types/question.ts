@@ -1,4 +1,4 @@
-export type QuestionType = '單選題' | '多選題' | '填空題' | '簡答題' | '閱讀測驗' | '克漏字';
+export type QuestionType = '單選題' | '填空題' | '簡答題' | '閱讀測驗' | '克漏字';
 
 export interface BaseQuestion {
   id: string;
@@ -6,6 +6,23 @@ export interface BaseQuestion {
   content: string;
   explanation?: string;
   tags: string[];
+}
+
+export interface SingleChoiceQuestion extends BaseQuestion {
+  type: '單選題';
+  options: string[];
+  answer: string;
+  correctIndex?: number;
+}
+
+export interface FillInQuestion extends BaseQuestion {
+  type: '填空題';
+  answers: string[];
+}
+
+export interface ShortAnswerQuestion extends BaseQuestion {
+  type: '簡答題';
+  answer: string;
 }
 
 export interface SubQuestion {
@@ -25,28 +42,6 @@ export interface ClozeSubQuestion {
   explanation?: string;
 }
 
-export interface SingleChoiceQuestion extends BaseQuestion {
-  type: '單選題';
-  options: string[];
-  answer: string;
-}
-
-export interface MultipleChoiceQuestion extends BaseQuestion {
-  type: '多選題';
-  options: string[];
-  answer: string[];
-}
-
-export interface FillInQuestion extends BaseQuestion {
-  type: '填空題';
-  answers: string[];
-}
-
-export interface ShortAnswerQuestion extends BaseQuestion {
-  type: '簡答題';
-  answer: string;
-}
-
 export interface ReadingQuestion extends BaseQuestion {
   type: '閱讀測驗';
   article: string;
@@ -61,7 +56,6 @@ export interface ClozeQuestion extends BaseQuestion {
 
 export type Question = 
   | SingleChoiceQuestion 
-  | MultipleChoiceQuestion 
   | FillInQuestion 
   | ShortAnswerQuestion 
   | ReadingQuestion 
@@ -77,9 +71,9 @@ export interface BaseFormData {
 }
 
 export interface SingleQuestionFormData extends BaseFormData {
-  type: '單選題' | '多選題' | '填空題' | '簡答題';
+  type: '單選題' | '填空題' | '簡答題';
   options?: string[];
-  answer?: string | string[];
+  answer?: string;
 }
 
 export interface GroupQuestionFormData extends BaseFormData {

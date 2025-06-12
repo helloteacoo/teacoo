@@ -1,7 +1,6 @@
 import type {
   Question,
   SingleChoiceQuestion,
-  MultipleChoiceQuestion,
   FillInQuestion,
   ShortAnswerQuestion,
   ReadingQuestion,
@@ -23,21 +22,6 @@ export const sampleQuestions: Question[] = [
     tags: ['使用教學', '基礎功能'],
     explanation: '點擊「新增題目」按鈕，或是「AI出題」按鈕，即可開啟新增題目的表單。',
   } as SingleChoiceQuestion,
-  
-  {
-    id: 'sample-multiple',
-    type: '多選題',
-    content: '在TeaCoo中，題目可以包含哪些元素？',
-    options: [
-      '題目內容',
-      '標籤',
-      '解釋說明',
-      '難度等級'
-    ],
-    answer: ['題目內容', '標籤', '解釋說明'],
-    tags: ['使用教學', '進階功能'],
-    explanation: '每個題目都必須包含題目內容，可以選擇性地添加標籤和解釋說明。',
-  } as MultipleChoiceQuestion,
 
   {
     id: 'sample-fill',

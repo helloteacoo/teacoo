@@ -67,7 +67,7 @@ export default function Sidebar({
                   <span className="font-medium">單題</span>
                 </div>
                 <div className="ml-6 space-y-1 mt-1">
-                  {['單選題', '多選題', '填空題', '簡答題'].map((key) => (
+                  {['單選題', '填空題', '簡答題'].map((key) => (
                     <div key={key} className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
                       <Checkbox
                         checked={filters[key]}
