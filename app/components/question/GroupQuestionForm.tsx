@@ -37,6 +37,7 @@ export default function GroupQuestionForm({
   const [tags, setTags] = useState<string[]>([]);
   const [explanation, setExplanation] = useState('');
   const [blankError, setBlankError] = useState<string>('');
+  const [showError, setShowError] = useState(false);
 
   // 同步 initialData 的變化
   useEffect(() => {
@@ -528,12 +529,20 @@ export default function GroupQuestionForm({
       </div>
 
       <div className="flex justify-end gap-4 items-center">
-        {validateForm && (
+        {showError && validateForm && (
           <span className="text-red-500">⚠️ {validateForm}</span>
         )}
-        <Button type="submit" disabled={!!validateForm}>
-          💾儲存
-        </Button>
+        <div 
+          onClick={() => {
+            if (validateForm) {
+              setShowError(true);
+            }
+          }}
+        >
+          <Button type="submit" disabled={!!validateForm}>
+            💾儲存
+          </Button>
+        </div>
       </div>
     </form>
   );

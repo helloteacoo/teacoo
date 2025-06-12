@@ -51,6 +51,7 @@ export default function SingleQuestionForm({
   const [explanation, setExplanation] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [blanks, setBlanks] = useState<string[]>([]);
+  const [showError, setShowError] = useState(false);
 
   // 同步 initialData 的變化
   useEffect(() => {
@@ -417,12 +418,20 @@ export default function SingleQuestionForm({
       </div>
 
       <div className="flex justify-end gap-4 items-center">
-        {validateForm && (
+        {showError && validateForm && (
           <span className="text-red-500">⚠️ {validateForm}</span>
         )}
-        <Button type="submit" disabled={!!validateForm}>
-          💾儲存
-        </Button>
+        <div 
+          onClick={() => {
+            if (validateForm) {
+              setShowError(true);
+            }
+          }}
+        >
+          <Button type="submit" disabled={!!validateForm}>
+            💾儲存
+          </Button>
+        </div>
       </div>
     </form>
   );
