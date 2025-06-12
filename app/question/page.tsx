@@ -9,6 +9,7 @@ import ConfirmDeleteModal from '../components/modals/ConfirmDeleteModal';
 import Sidebar from '../components/question/sidebar';
 import type { FilterKey } from '../components/question/sidebar';
 import AddQuestionModal from '../components/modals/AddQuestionModal';
+import AIconvertModal from '../components/modals/AIconvert';
 import type { 
   Question,
   SingleChoiceQuestion,
@@ -62,6 +63,7 @@ function isGroupQuestion(q: Question): q is ReadingQuestion | ClozeQuestion {
 export default function QuestionPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isFirstLogin, setIsFirstLogin] = useState(true);
   const [questions, setQuestions] = useState<Question[]>(sampleQuestions);
@@ -190,15 +192,15 @@ export default function QuestionPage() {
             q.article.toLowerCase().includes(lowerKeyword) ||
             (isReadingQuestion(q) ? 
               (q as ReadingQuestion).questions.some(sub =>
-                sub.content.toLowerCase().includes(lowerKeyword) ||
-                sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-                sub.answer.toLowerCase().includes(lowerKeyword)
+              sub.content.toLowerCase().includes(lowerKeyword) ||
+              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+              sub.answer.toLowerCase().includes(lowerKeyword)
               ) :
               (q as ClozeQuestion).questions.some(sub =>
                 sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
                 sub.answer.toLowerCase().includes(lowerKeyword)
-              )
-            );
+            )
+      );
         }
         return false;
       });
@@ -308,7 +310,7 @@ export default function QuestionPage() {
             q.questions.some(sub =>
               sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
               sub.answer.toLowerCase().includes(lowerKeyword)
-            );
+      );
         }
         return false;
       })();
@@ -430,6 +432,22 @@ export default function QuestionPage() {
     setTimeout(() => setShowEditModal(true), 0);
   };
 
+  const handleAIModalChange = (open: boolean) => {
+    setShowAIModal(open);
+  };
+
+  const handleAIConvert = (data: Question) => {
+    // 檢查是否超過題目數量限制
+    if (questions.length >= MAX_ITEMS) {
+      alert(isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！');
+      return;
+    }
+
+    // 新增題目時，將新題目加到陣列最前面
+    setQuestions(prev => [{ ...data, id: Math.random().toString(36).substring(7) }, ...prev]);
+    handleAIModalChange(false);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-mainBg dark:bg-gray-900">
       <Navigation />
@@ -451,7 +469,12 @@ export default function QuestionPage() {
             <div className="hidden sm:flex sm:flex-col gap-4 mb-4">
               {/* 第一行：功能按鈕 */}
               <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
-                <Button className="text-gray-200">🤖 AI匯入</Button>
+                <Button 
+                  onClick={() => handleAIModalChange(true)}
+                  className="text-gray-200"
+                >
+                  🤖 AI匯入
+                </Button>
                 <Button 
                   onClick={() => handleModalChange(true)}
                   className="text-gray-200"
@@ -526,7 +549,12 @@ export default function QuestionPage() {
               </div>
               <div className="overflow-x-auto pb-2 hide-scrollbar">
                 <div className="flex gap-2 min-w-min">
-                  <Button className="whitespace-nowrap text-gray-200">🤖 AI匯入</Button>
+                  <Button 
+                    onClick={() => handleAIModalChange(true)}
+                    className="whitespace-nowrap text-gray-200"
+                  >
+                    🤖 AI匯入
+                  </Button>
                   <Button 
                     onClick={() => handleModalChange(true)}
                     className="whitespace-nowrap text-gray-200"
@@ -769,6 +797,14 @@ export default function QuestionPage() {
         isPremium={isPremium}
         initialData={editingQuestion}
         isEditMode
+      />
+
+      <AIconvertModal
+        open={showAIModal}
+        onOpenChange={handleAIModalChange}
+        onSubmit={handleAIConvert}
+        defaultTags={[]}
+        isPremium={isPremium}
       />
     </div>
   );

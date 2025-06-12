@@ -329,7 +329,7 @@ export default function SingleQuestionForm({
           value={content}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
           placeholder={type === '填空題' ? '請使用 [[答案]] 標記填空處...' : '請輸入題目內容...'}
-          className="mt-1.5 placeholder:text-gray-400"
+          className="mt-1.5 placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
           required
         />
       </div>
@@ -361,7 +361,7 @@ export default function SingleQuestionForm({
                 value={option}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => handleOptionChange(index, e.target.value)}
                 placeholder={`選項 ${String.fromCharCode(65 + index)}${index < 2 ? ' (必填)' : ''}`}
-                className="placeholder:text-gray-400"
+                className="placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
                 required={index < 2}
               />
             </div>
@@ -390,7 +390,7 @@ export default function SingleQuestionForm({
             value={shortAnswer}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setShortAnswer(e.target.value)}
             placeholder="請輸入答案"
-            className="mt-1.5 placeholder:text-gray-400"
+            className="mt-1.5 placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
             required
           />
         </div>
@@ -402,7 +402,7 @@ export default function SingleQuestionForm({
           value={explanation}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setExplanation(e.target.value)}
           placeholder="請輸入解說..."
-          className="mt-1.5 placeholder:text-gray-400"
+          className="mt-1.5 placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
         />
       </div>
 
@@ -429,7 +429,7 @@ export default function SingleQuestionForm({
           }}
         >
           <Button type="submit" disabled={!!validateForm}>
-            💾儲存
+            <span className="text-white dark:text-mainBg">💾儲存</span>
           </Button>
         </div>
       </div>

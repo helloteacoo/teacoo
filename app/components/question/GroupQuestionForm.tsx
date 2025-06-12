@@ -540,7 +540,7 @@ export default function GroupQuestionForm({
           }}
         >
           <Button type="submit" disabled={!!validateForm}>
-            💾儲存
+            <span className="text-white dark:text-mainBg">💾儲存</span>
           </Button>
         </div>
       </div>

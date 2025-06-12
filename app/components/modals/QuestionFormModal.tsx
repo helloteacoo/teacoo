@@ -13,6 +13,7 @@ import type {
   ReadingQuestion,
   ClozeQuestion 
 } from '../../types/question';
+import { Button } from '../ui/button';
 
 type BaseFormData = {
   content: string;
@@ -38,13 +39,14 @@ export interface QuestionFormModalProps {
   defaultTags?: string[];
   isPremium?: boolean;
   title?: string;
-  initialMode?: QuestionMode;
+  initialMode?: 'single' | 'group';
   initialQuestionType?: SingleQuestionType;
   initialGroupType?: GroupQuestionType;
   initialData?: Question | null;
   isEditMode?: boolean;
-  onModeChange?: (mode: QuestionMode) => void;
-  onQuestionTypeChange?: (type: SingleQuestionType) => void;
+  hideDialog?: boolean;
+  onModeChange?: (mode: 'single' | 'group') => void;
+  onQuestionTypeChange?: (type: SingleQuestionType | GroupQuestionType | undefined) => void;
   onGroupTypeChange?: (type: GroupQuestionType) => void;
   checkGroupPermission?: () => boolean;
   onGroupSubmitSuccess?: () => void;
@@ -58,19 +60,24 @@ export default function QuestionFormModal({
   isPremium = false,
   title = '新增題目',
   initialMode = 'single',
-  initialQuestionType = undefined,
-  initialGroupType = undefined,
+  initialQuestionType,
+  initialGroupType,
   initialData = null,
   isEditMode = false,
+  hideDialog = false,
   onModeChange,
   onQuestionTypeChange,
   onGroupTypeChange,
   checkGroupPermission = () => true,
   onGroupSubmitSuccess
 }: QuestionFormModalProps) {
-  const [mode, setMode] = useState<QuestionMode>(initialMode);
-  const [questionType, setQuestionType] = useState<SingleQuestionType | undefined>(initialQuestionType);
-  const [groupType, setGroupType] = useState<GroupQuestionType | undefined>(initialGroupType);
+  const [mode, setMode] = useState<'single' | 'group'>(initialMode);
+  const [questionType, setQuestionType] = useState<SingleQuestionType | undefined>(
+    initialQuestionType
+  );
+  const [groupType, setGroupType] = useState<GroupQuestionType | undefined>(
+    initialGroupType
+  );
   const [key, setKey] = useState(0);
   const [lastUsedTags, setLastUsedTags] = useState<string[]>(defaultTags);
 
@@ -92,13 +99,16 @@ export default function QuestionFormModal({
     }
   }, [isEditMode, initialData]);
 
-  // 如果是編輯模式但沒有初始資料，不要渲染
-  if (isEditMode && !initialData) {
-    console.log('🧪 QuestionFormModal - 等待初始資料...');
-    return null;
-  }
+  // 同步外部狀態
+  useEffect(() => {
+    onModeChange?.(mode);
+  }, [mode, onModeChange]);
 
-  const handleModeChange = (newMode: QuestionMode) => {
+  useEffect(() => {
+    onQuestionTypeChange?.(mode === 'single' ? questionType : groupType);
+  }, [mode, questionType, groupType, onQuestionTypeChange]);
+
+  const handleModeChange = (newMode: 'single' | 'group') => {
     setMode(newMode);
     setQuestionType(undefined);
     setGroupType(undefined);
@@ -106,8 +116,15 @@ export default function QuestionFormModal({
     onModeChange?.(newMode);
   };
 
-  const handleQuestionTypeChange = (type: SingleQuestionType) => {
-    setQuestionType(type);
+  // 如果是編輯模式但沒有初始資料，不要渲染
+  if (isEditMode && !initialData) {
+    console.log('🧪 QuestionFormModal - 等待初始資料...');
+    return null;
+  }
+
+  const handleQuestionTypeChange = (type: SingleQuestionType | GroupQuestionType | undefined) => {
+    setQuestionType(type as SingleQuestionType);
+    setGroupType(type as GroupQuestionType);
     onQuestionTypeChange?.(type);
   };
 
@@ -130,89 +147,123 @@ export default function QuestionFormModal({
     onGroupSubmitSuccess?.();
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {!isEditMode && (
-            <div className="grid w-full grid-cols-2">
-              <button
+  const content = (
+    <div className="space-y-4">
+      <div className="space-y-4">
+        <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">{title}</h2>
+        {!isEditMode && (
+          <div className="grid w-full grid-cols-2">
+            <div className="flex items-center space-x-2">
+              <Button
                 type="button"
-                className={`px-4 py-2 border rounded ${mode === 'single' ? 'bg-primary text-white' : ''}`}
                 onClick={() => handleModeChange('single')}
+                variant={mode === 'single' ? 'default' : 'outline'}
+                className={`w-full ${
+                  mode === 'single'
+                    ? 'bg-primary text-white dark:bg-primary dark:text-white'
+                    : 'text-gray-600 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                }`}
               >
                 單題
-              </button>
-              <button
+              </Button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
                 type="button"
-                className={`px-4 py-2 border rounded ${mode === 'group' ? 'bg-primary text-white' : ''}`}
                 onClick={() => handleModeChange('group')}
+                variant={mode === 'group' ? 'default' : 'outline'}
+                className={`w-full ${
+                  mode === 'group'
+                    ? 'bg-primary text-white dark:bg-primary dark:text-white'
+                    : 'text-gray-600 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                }`}
               >
                 題組
-              </button>
+              </Button>
             </div>
-          )}
+          </div>
+        )}
 
-          {mode === 'single' && (
-            <div className="space-y-4">
-              <div className="grid w-full grid-cols-4">
-                {(['單選題', '多選題', '填空題', '簡答題'] as SingleQuestionType[]).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    className={`px-4 py-2 border rounded ${questionType === type ? 'bg-primary text-white' : ''}`}
-                    onClick={() => handleQuestionTypeChange(type)}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
+        {mode === 'single' && (
+          <div className="grid w-full grid-cols-2 sm:grid-cols-4 gap-2">
+            {(['單選題', '多選題', '填空題', '簡答題'] as SingleQuestionType[]).map((type) => (
+              <Button
+                key={type}
+                type="button"
+                onClick={() => handleQuestionTypeChange(type)}
+                variant={questionType === type ? 'default' : 'outline'}
+                className={`w-full ${
+                  questionType === type
+                    ? 'bg-primary text-white dark:bg-primary dark:text-white'
+                    : 'text-gray-600 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                }`}
+              >
+                {type}
+              </Button>
+            ))}
+          </div>
+        )}
 
-              {questionType && (
-                <SingleQuestionForm
-                  key={`single-${key}`}
-                  type={questionType}
-                  onChange={handleSingleQuestionSubmit}
-                  defaultTags={lastUsedTags}
-                  isPremium={isPremium}
-                  initialData={isEditMode && initialData && !['閱讀測驗', '克漏字'].includes(initialData.type) ? initialData : undefined}
-                />
-              )}
-            </div>
-          )}
+        {mode === 'group' && (
+          <div className="grid w-full grid-cols-2 gap-2">
+            {(['閱讀測驗', '克漏字'] as GroupQuestionType[]).map((type) => (
+              <Button
+                key={type}
+                type="button"
+                onClick={() => handleGroupTypeChange(type)}
+                variant={groupType === type ? 'default' : 'outline'}
+                className={`w-full ${
+                  groupType === type
+                    ? 'bg-primary text-white dark:bg-primary dark:text-white'
+                    : 'text-gray-600 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                }`}
+              >
+                {type}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
 
-          {mode === 'group' && (
-            <div className="space-y-4">
-              <div className="grid w-full grid-cols-2">
-                {(['閱讀測驗', '克漏字'] as GroupQuestionType[]).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    className={`px-4 py-2 border rounded ${groupType === type ? 'bg-primary text-white' : ''}`}
-                    onClick={() => handleGroupTypeChange(type)}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
+      {/* 表單區域 */}
+      <div className="mt-4">
+        {mode === 'single' && questionType && (
+          <SingleQuestionForm
+            key={`${key}-single`}
+            type={questionType}
+            onChange={handleSingleQuestionSubmit}
+            defaultTags={lastUsedTags}
+            isPremium={isPremium}
+            initialData={isEditMode && initialData && !['閱讀測驗', '克漏字'].includes(initialData.type) ? initialData : undefined}
+          />
+        )}
 
-              {groupType && (
-                <GroupQuestionForm
-                  key={`group-${key}`}
-                  type={groupType}
-                  onChange={handleGroupQuestionSubmit}
-                  defaultTags={lastUsedTags}
-                  isPremium={isPremium}
-                  initialData={isEditMode && initialData && ['閱讀測驗', '克漏字'].includes(initialData.type) ? initialData : undefined}
-                />
-              )}
-            </div>
-          )}
-        </div>
+        {mode === 'group' && groupType && (
+          <GroupQuestionForm
+            key={`${key}-group`}
+            type={groupType}
+            onChange={handleGroupQuestionSubmit}
+            defaultTags={lastUsedTags}
+            isPremium={isPremium}
+            initialData={isEditMode && initialData && ['閱讀測驗', '克漏字'].includes(initialData.type) ? initialData : undefined}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+  if (hideDialog) {
+    return content;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-cardBg dark:bg-gray-800 dark:border-gray-700">
+        <DialogHeader>
+          <DialogTitle className="text-gray-800 dark:text-gray-200">{title}</DialogTitle>
+        </DialogHeader>
+
+        {content}
       </DialogContent>
     </Dialog>
   );
