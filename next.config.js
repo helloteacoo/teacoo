@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@ag-grid-community/core'],
   output: 'standalone',
   images: {
     unoptimized: true
