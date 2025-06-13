@@ -193,7 +193,7 @@ export default function AIconvertModal({
                       ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
                       : isConverting
                         ? 'bg-primary text-white animate-pulse dark:bg-primary dark:text-white'
-                        : 'bg-primary text-white hover:bg-primary/90 dark:bg-primary dark:text-white'
+                      : 'bg-primary text-white hover:bg-primary/90 dark:bg-primary dark:text-white'
                   }`}
                 >
                   {isConverting ? (

@@ -71,14 +71,12 @@ export default function SingleQuestionForm({
 
       if (type === '單選題') {
         const data = initialData as SingleChoiceQuestion;
-        console.log('🔍 單選題資料:', {
-          options: data.options,
-          answer: data.answer,
-          correctIndex: data.correctIndex ?? data.options.findIndex(opt => opt === data.answer),
-          paddedOptions: padOptions(data.options)
-        });
-
-        const correctIndex = data.correctIndex ?? data.options.findIndex(opt => opt === data.answer);
+        let correctIndex = -1;
+        if (typeof data.correctIndex === 'number' && data.correctIndex >= 0) {
+          correctIndex = data.correctIndex;
+        } else {
+          correctIndex = data.options.findIndex(opt => opt === data.answer);
+        }
         setSelectedAnswerIndex(correctIndex);
         setOptions(padOptions(data.options));
       }
