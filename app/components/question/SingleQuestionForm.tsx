@@ -576,36 +576,38 @@ export default function SingleQuestionForm({
       }}
     >
       {/* 題目切換區 */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex-1 flex gap-2 overflow-x-auto pb-2">
-          {questions.map((q, index) => (
-            <Button
-              key={q.id}
-              type="button"
-              variant={currentQuestionIndex === index ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleQuestionChange(index)}
-              className={`whitespace-nowrap ${
-                currentQuestionIndex === index 
-                  ? 'bg-primary text-white'
-                  : 'text-gray-600'
-              }`}
-            >
-              題目 {index + 1}
-              {questions.length > 1 && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteQuestion(index);
-                  }}
-                  className="ml-2 text-gray-400 hover:text-red-500"
-                >
-                  ×
-                </button>
-              )}
-            </Button>
-          ))}
+      <div className="flex items-center gap-2 mb-4 max-w-full">
+        <div className="flex-1 flex gap-2 overflow-x-auto pb-2 min-w-0">
+          <div className="flex gap-2 min-w-min">
+            {questions.map((q, index) => (
+              <Button
+                key={q.id}
+                type="button"
+                variant={currentQuestionIndex === index ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleQuestionChange(index)}
+                className={`whitespace-nowrap ${
+                  currentQuestionIndex === index 
+                    ? 'bg-primary text-white'
+                    : 'text-gray-600'
+                }`}
+              >
+                題目 {index + 1}
+                {questions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteQuestion(index);
+                    }}
+                    className="ml-2 text-gray-400 hover:text-red-500"
+                  >
+                    ×
+                  </button>
+                )}
+              </Button>
+            ))}
+          </div>
         </div>
         <Button
           type="button"

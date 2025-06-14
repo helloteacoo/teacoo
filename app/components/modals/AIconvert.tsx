@@ -46,6 +46,7 @@ export default function AIconvertModal({
   isPremium = false,
   allTags
 }: AIconvertModalProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<'single' | 'group'>('single');
   const [questionType, setQuestionType] = useState<SingleQuestionType | GroupQuestionType>();
   const [sourceText, setSourceText] = useState('');
@@ -54,6 +55,10 @@ export default function AIconvertModal({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<QuestionType>('單選題');
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -255,6 +260,10 @@ export default function AIconvertModal({
       setIsConverting(false);
     }
   };
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

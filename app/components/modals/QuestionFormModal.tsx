@@ -65,6 +65,7 @@ export default function QuestionFormModal({
   onGroupSubmitSuccess,
   allTags
 }: QuestionFormModalProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<'single' | 'group'>(initialMode);
   const [questionType, setQuestionType] = useState<SingleQuestionType | undefined>(
     initialQuestionType
@@ -75,23 +76,49 @@ export default function QuestionFormModal({
   const [key, setKey] = useState(0);
   const [lastUsedTags, setLastUsedTags] = useState<string[]>(defaultTags);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // 當 initialData 改變時，更新表單狀態
   useEffect(() => {
-    console.log('🧪 QuestionFormModal - initialData:', initialData);
-    console.log('🧪 QuestionFormModal - isEditMode:', isEditMode);
-    
-    if (isEditMode && initialData) {
+    if (isEditMode && !initialData) {
+      console.log('🧪 QuestionFormModal - 等待初始資料...');
+      return;
+    }
+
+    if (initialData) {
+      // 設置題型
       if (['閱讀測驗', '克漏字'].includes(initialData.type)) {
         setMode('group');
-        setGroupType(initialData.type as GroupQuestionType);
+        setGroupType(initialData.type as '閱讀測驗' | '克漏字');
+        if (onGroupTypeChange) onGroupTypeChange(initialData.type as '閱讀測驗' | '克漏字');
       } else {
         setMode('single');
         setQuestionType(initialData.type as SingleQuestionType);
+        if (onQuestionTypeChange) onQuestionTypeChange(initialData.type as SingleQuestionType);
       }
+
       // 更新最後使用的標籤
       setLastUsedTags(initialData.tags);
     }
-  }, [isEditMode, initialData]);
+  }, [initialData, isEditMode, onQuestionTypeChange, onGroupTypeChange]);
+
+  // 重置表單狀態
+  const resetForm = () => {
+    setMode(initialMode);
+    setQuestionType(initialQuestionType);
+    setGroupType(initialGroupType);
+    setKey(prev => prev + 1);
+    setLastUsedTags(defaultTags);
+  };
+
+  // 當 Modal 關閉時重置表單
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open, initialMode, initialQuestionType, initialGroupType, defaultTags]);
 
   // 同步外部狀態
   useEffect(() => {
@@ -267,6 +294,10 @@ export default function QuestionFormModal({
       </div>
     </div>
   );
+
+  if (!isMounted) {
+    return null;
+  }
 
   if (hideDialog) {
     return content;
