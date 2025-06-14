@@ -24,6 +24,7 @@ import type {
 import { sampleQuestions } from '../data/sampleQuestions';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
+import { safeLocalStorage } from '@/lib/utils/storage';
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -64,11 +65,22 @@ export default function QuestionPage() {
   const [showAIModal, setShowAIModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isFirstLogin, setIsFirstLogin] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+  
+  // 設置 client-side 標記
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   // 初始化題目列表，優先使用 localStorage 中的題目
   const [questions, setQuestions] = useState<Question[]>(() => {
+    // 在伺服器端返回範例題目
+    if (typeof window === 'undefined') {
+      return sampleQuestions;
+    }
+    
     // 嘗試從 localStorage 讀取題目
-    const savedQuestions = localStorage.getItem('questions');
+    const savedQuestions = safeLocalStorage.getItem('questions');
     if (savedQuestions) {
       try {
         const parsed = JSON.parse(savedQuestions);
@@ -88,14 +100,16 @@ export default function QuestionPage() {
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
 
   useEffect(() => {
-    const hasVisited = localStorage.getItem('hasVisitedTeaCoo');
+    if (!isClient) return;
+    
+    const hasVisited = safeLocalStorage.getItem('hasVisitedTeaCoo');
     if (!hasVisited) {
-      localStorage.setItem('hasVisitedTeaCoo', 'true');
+      safeLocalStorage.setItem('hasVisitedTeaCoo', 'true');
       setIsFirstLogin(true);
     } else {
       setIsFirstLogin(false);
     }
-  }, []);
+  }, [isClient]);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -450,7 +464,7 @@ export default function QuestionPage() {
       setQuestions(prev => {
         const updatedQuestions = [newQuestion, ...prev];
         // 立即儲存到 localStorage
-        localStorage.setItem('questions', JSON.stringify(updatedQuestions));
+        safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
         return updatedQuestions;
       });
 
@@ -463,6 +477,11 @@ export default function QuestionPage() {
       toast.error('匯入失敗，請稍後再試');
     }
   };
+
+  // 如果還在伺服器端，返回 null 或載入中的狀態
+  if (!isClient) {
+    return <div className="h-screen flex items-center justify-center">載入中...</div>;
+  }
 
   return (
     <div className="h-screen flex flex-col bg-mainBg dark:bg-gray-900">
