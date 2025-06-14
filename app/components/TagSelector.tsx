@@ -20,6 +20,7 @@ import { cn } from '../lib/utils';
 type TagSelectorProps = {
   value: string[];
   onChange: (tags: string[]) => void;
+  defaultTags?: string[];
   allTags: string[];
   maxTags?: number;
   minTags?: number;
@@ -30,6 +31,7 @@ type TagSelectorProps = {
 export default function TagSelector({
   value,
   onChange,
+  defaultTags = [],
   allTags,
   maxTags = 4,
   minTags = 1,
