@@ -1,23 +1,36 @@
-export type QuestionType = '單選題' | '填空題' | '簡答題' | '閱讀測驗' | '克漏字';
+export type QuestionType = 
+  | '單選題'
+  | '多選題'
+  | '填空題'
+  | '簡答題'
+  | '閱讀測驗'
+  | '克漏字';
 
 export interface BaseQuestion {
   id: string;
-  type: QuestionType;
+  type: string;
   content: string;
   explanation?: string;
   tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SingleChoiceQuestion extends BaseQuestion {
   type: '單選題';
   options: string[];
-  answer: string;
-  correctIndex?: number;
+  answer: number;
+}
+
+export interface MultipleChoiceQuestion extends BaseQuestion {
+  type: '多選題';
+  options: string[];
+  answers: number[];
 }
 
 export interface FillInQuestion extends BaseQuestion {
   type: '填空題';
-  answers: string[];
+  blanks: string[];
 }
 
 export interface ShortAnswerQuestion extends BaseQuestion {
@@ -56,6 +69,7 @@ export interface ClozeQuestion extends BaseQuestion {
 
 export type Question = 
   | SingleChoiceQuestion 
+  | MultipleChoiceQuestion
   | FillInQuestion 
   | ShortAnswerQuestion 
   | ReadingQuestion 

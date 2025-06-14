@@ -11,15 +11,16 @@ type BaseFormData = {
   content: string;
   explanation: string;
   tags: string[];
+  type: SingleQuestionType | GroupQuestionType;
 };
 
 type SingleQuestionFormData = BaseFormData & (
   | { type: '單選題'; options: string[]; answer: string }
-  | { type: '填空題'; answers: string[] }
+  | { type: '填空題'; answers: string[]; content: string }
   | { type: '簡答題'; answer: string }
 );
 
-export type SingleQuestionType = '單選題' | '填空題' | '簡答題';
+export type SingleQuestionType = '單選題' | '多選題' | '填空題' | '簡答題';
 export type GroupQuestionType = '閱讀測驗' | '克漏字';
 export type QuestionMode = 'single' | 'group';
 
@@ -41,6 +42,7 @@ export interface QuestionFormModalProps {
   onGroupTypeChange?: (type: GroupQuestionType) => void;
   checkGroupPermission?: () => boolean;
   onGroupSubmitSuccess?: () => void;
+  allTags: string[];
 }
 
 export default function QuestionFormModal({
@@ -60,7 +62,8 @@ export default function QuestionFormModal({
   onQuestionTypeChange,
   onGroupTypeChange,
   checkGroupPermission = () => true,
-  onGroupSubmitSuccess
+  onGroupSubmitSuccess,
+  allTags
 }: QuestionFormModalProps) {
   const [mode, setMode] = useState<'single' | 'group'>(initialMode);
   const [questionType, setQuestionType] = useState<SingleQuestionType | undefined>(
@@ -166,7 +169,7 @@ export default function QuestionFormModal({
                 className={`w-full ${
                   mode === 'group'
                     ? 'bg-primary text-white dark:bg-primary dark:text-white'
-                    : 'text-gray-600 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                    : 'text-gray-600 dark:text-gray-800 dark:border-gray-700 dark:hover:bg-gray-300'
                 }`}
               >
                 題組
@@ -176,8 +179,8 @@ export default function QuestionFormModal({
         )}
 
         {mode === 'single' && (
-          <div className="grid w-full grid-cols-3 gap-2">
-            {(['單選題', '填空題', '簡答題'] as SingleQuestionType[]).map((type) => (
+          <div className="grid w-full grid-cols-4 gap-2">
+            {(['單選題', '多選題', '填空題', '簡答題'] as SingleQuestionType[]).map((type) => (
               <Button
                 key={type}
                 type="button"
@@ -186,7 +189,7 @@ export default function QuestionFormModal({
                 className={`w-full ${
                   questionType === type
                     ? 'bg-primary text-white dark:bg-primary dark:text-white'
-                    : 'text-gray-600 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
+                    : 'text-gray-600 dark:text-gray-800 dark:border-gray-700 dark:hover:bg-gray-300'
                 }`}
               >
                 {type}
@@ -218,33 +221,48 @@ export default function QuestionFormModal({
 
       {/* 表單區域 */}
       <div className="mt-4">
-        {mode === 'single' && questionType && (
-          <SingleQuestionForm
-            type={questionType as "單選題" | "填空題" | "簡答題"}
-            onChange={handleSingleQuestionSubmit}
-            defaultTags={lastUsedTags}
-            isPremium={isPremium}
-            initialData={
-              initialData && !['閱讀測驗', '克漏字'].includes(initialData.type)
-                ? initialData
-                : undefined
-            }
-          />
+        {mode === 'single' && (
+          questionType ? (
+            <SingleQuestionForm
+              key={`${key}-${JSON.stringify(initialData)}`}
+              type={questionType as "單選題" | "填空題" | "簡答題"}
+              onChange={handleSingleQuestionSubmit}
+              defaultTags={lastUsedTags}
+              isPremium={isPremium}
+              initialData={
+                initialData && !['閱讀測驗', '克漏字'].includes(initialData.type)
+                  ? initialData
+                  : undefined
+              }
+              allTags={allTags}
+            />
+          ) : (
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+              請先選擇題型
+            </div>
+          )
         )}
 
-        {mode === 'group' && groupType && (
-          <GroupQuestionForm
-            key={`${key}-group`}
-            type={groupType}
-            onChange={handleGroupQuestionSubmit}
-            defaultTags={lastUsedTags}
-            isPremium={isPremium}
-            initialData={
-              initialData && ['閱讀測驗', '克漏字'].includes(initialData.type)
-                ? initialData
-                : undefined
-            }
-          />
+        {mode === 'group' && (
+          groupType ? (
+            <GroupQuestionForm
+              key={`${key}-group-${JSON.stringify(initialData)}`}
+              type={groupType}
+              onChange={handleGroupQuestionSubmit}
+              defaultTags={lastUsedTags}
+              isPremium={isPremium}
+              initialData={
+                initialData && ['閱讀測驗', '克漏字'].includes(initialData.type)
+                  ? initialData
+                  : undefined
+              }
+              allTags={allTags}
+            />
+          ) : (
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+              請先選擇題型
+            </div>
+          )
         )}
       </div>
     </div>

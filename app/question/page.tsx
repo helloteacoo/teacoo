@@ -1,6 +1,6 @@
 "use client";
 import type { ChangeEvent } from 'react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Checkbox } from '../components/ui/checkbox';
@@ -75,13 +75,6 @@ export default function QuestionPage() {
     }
   }, []);
 
-  // 計算所有現有的標籤
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    questions.forEach(q => q.tags.forEach(tag => tags.add(tag)));
-    return Array.from(tags);
-  }, [questions]);
-
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // 修改 filters 的初始狀態，根據當前題目設置
@@ -95,50 +88,71 @@ export default function QuestionPage() {
       題組: true,
       閱讀測驗: true,
       克漏字: true,
-  };
-
-    // 根據初始題目設置題型和標籤的勾選狀態
-    const types = new Set<string>();
-    const tags = new Set<string>();
-
-    questions.forEach(q => {
-      types.add(q.type);
-      q.tags.forEach(tag => tags.add(tag));
-    });
-
-    // 設置標籤勾選狀態
-    tags.forEach(tag => {
-      initialFilters[tag] = true;
-    });
+    };
 
     return initialFilters;
   });
 
-  // 當題目改變時，更新 filters
-  useEffect(() => {
-    setFilters(prev => {
-      const next = { ...prev };
-      
-      // 保持所有題型為勾選狀態
-      next.單題 = true;
-      next.單選題 = true;
-      next.多選題 = true;
-      next.填空題 = true;
-      next.簡答題 = true;
-      next.題組 = true;
-      next.閱讀測驗 = true;
-      next.克漏字 = true;
-
-      // 更新標籤的勾選狀態
-      allTags.forEach(tag => {
-        if (!(tag in next)) {
-          next[tag] = true;
+  // 計算所有現有的標籤
+  const allTags = useMemo(() => {
+    const tagMap = new Map<string, { tag: string; createdAt: string }>();
+    
+    // 從問題中收集標籤
+    questions.forEach(q => {
+      q.tags.forEach(tag => {
+        if (!tagMap.has(tag)) {
+          tagMap.set(tag, {
+            tag,
+            createdAt: q.createdAt || q.updatedAt || new Date().toISOString()
+          });
         }
       });
+    });
 
+    // 加入所有在 filters 中的標籤
+    Object.keys(filters).forEach(key => {
+      if (!['單題', '單選題', '填空題', '簡答題', '題組', '閱讀測驗', '克漏字'].includes(key) && !tagMap.has(key)) {
+        tagMap.set(key, {
+          tag: key,
+          createdAt: new Date().toISOString()
+        });
+      }
+    });
+
+    // 轉換為陣列並按時間排序
+    return Array.from(tagMap.values())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(item => item.tag);
+  }, [questions, filters]);
+
+  const toggleFilter = useCallback((key: FilterKey) => {
+    setFilters(prev => {
+      const next = { ...prev };
+      if (key in next) {
+        next[key] = !next[key];
+      } else {
+        // 如果是新標籤，將其加入到 filters 中
+        next[key] = true;
+      }
       return next;
     });
-  }, [questions, allTags]);
+  }, []);
+
+  // 當有新標籤被加入時，更新所有相關組件
+  useEffect(() => {
+    const newTags = allTags.filter(tag => !(tag in filters));
+    if (newTags.length > 0) {
+      setFilters(prev => {
+        const next = { ...prev };
+        newTags.forEach(tag => {
+          if (!(tag in next)) {
+            next[tag] = true;
+          }
+        });
+        return next;
+      });
+    }
+  }, [questions]); // 只在 questions 改變時更新
 
   const hasType = (type: string) => {
     return questions.some((q: Question) => q.type === type);
@@ -172,10 +186,10 @@ export default function QuestionPage() {
         if (isSingleChoiceQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-            q.answer.toLowerCase().includes(lowerKeyword);
+            q.options[q.answer].toLowerCase().includes(lowerKeyword);
         } else if (isFillInQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.answers.some(ans => ans.toLowerCase().includes(lowerKeyword));
+            q.blanks.some((blank: string) => blank.toLowerCase().includes(lowerKeyword));
         } else if (isShortAnswerQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.answer.toLowerCase().includes(lowerKeyword);
@@ -279,10 +293,10 @@ export default function QuestionPage() {
         if (isSingleChoiceQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
-            q.answer.toLowerCase().includes(lowerKeyword);
+            q.options[q.answer].toLowerCase().includes(lowerKeyword);
         } else if (isFillInQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.answers.some((ans: string) => ans.toLowerCase().includes(lowerKeyword));
+            q.blanks.some((blank: string) => blank.toLowerCase().includes(lowerKeyword));
         } else if (isShortAnswerQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.answer.toLowerCase().includes(lowerKeyword);
@@ -316,48 +330,7 @@ export default function QuestionPage() {
     );
   };
 
-  const toggleFilter = (key: FilterKey) => {
-    setFilters(prev => {
-      const newValue = !prev[key];
-      const newFilters: Record<FilterKey, boolean> = { ...prev, [key]: newValue };
-
-      if (key === '單題') {
-        if (newValue) {
-          if (hasType('單選題')) newFilters['單選題'] = true;
-          if (hasType('多選題')) newFilters['多選題'] = true;
-          if (hasType('填空題')) newFilters['填空題'] = true;
-          if (hasType('簡答題')) newFilters['簡答題'] = true;
-        } else {
-          newFilters['單選題'] = false;
-          newFilters['多選題'] = false;
-          newFilters['填空題'] = false;
-          newFilters['簡答題'] = false;
-        }
-      }
-
-      if (key === '題組') {
-        if (newValue) {
-          if (hasType('閱讀測驗')) newFilters['閱讀測驗'] = true;
-          if (hasType('克漏字')) newFilters['克漏字'] = true;
-        } else {
-          newFilters['閱讀測驗'] = false;
-          newFilters['克漏字'] = false;
-        }
-      }
-
-      if (['單選題', '多選題', '填空題', '簡答題'].includes(key) && newValue) {
-        newFilters['單題'] = true;
-      }
-
-      if (['閱讀測驗', '克漏字'].includes(key) && newValue) {
-        newFilters['題組'] = true;
-      }
-
-      return newFilters;
-    });
-  };
-
-  const [isPremium] = useState(false); // 用戶訂閱狀態
+  const [isPremium] = useState(false); // 改回 false，預設為免費版
   const ITEMS_PER_PAGE = 25; // 每頁顯示的卡片數量
   const MAX_ITEMS = isPremium ? 1000 : 100; // 最大卡片數量限制
   const [currentPage, setCurrentPage] = useState(1);
@@ -451,6 +424,7 @@ export default function QuestionPage() {
           setSelectedQuestions={setSelectedQuestions}
           setQuestions={setQuestions}
           allTags={allTags}
+          isPremium={isPremium}
         />
 
         <main className="flex-1 p-4 lg:p-6 overflow-auto max-w-full">
@@ -480,7 +454,7 @@ export default function QuestionPage() {
               <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
                 <Input
                   placeholder="搜尋題目關鍵字..."
-                  className="w-[300px] flex-shrink-0 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                  className="w-[300px] placeholder:text-gray-400 dark:placeholder:text-gray-400"
                   value={keyword}
                   onChange={handleKeywordChange}
                 />
@@ -599,6 +573,9 @@ export default function QuestionPage() {
                             1. {(() => {
                               if (isReadingQuestion(q)) return q.article;
                               if (isClozeQuestion(q)) return q.article;
+                              if (isFillInQuestion(q)) {
+                                return q.content.replace(/\[\[.*?\]\]/g, '_____');
+                              }
                               return q.content;
                             })()}
                           </div>
@@ -616,7 +593,7 @@ export default function QuestionPage() {
                               ))}
                             </ul>
                             <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              🟢 正解：({String.fromCharCode(65 + q.options.indexOf(q.answer))}) {q.answer}
+                              🟢 正解：({String.fromCharCode(65 + q.answer)}) {q.options[q.answer]}
                             </div>
                             {q.explanation && (
                               <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
@@ -627,7 +604,7 @@ export default function QuestionPage() {
                         ) : isFillInQuestion(q) ? (
                           <>
                             <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              🟢 正解：{q.answers.join('、')}
+                              🟢 正解：{q.blanks.join('、')}
                             </div>
                             {q.explanation && (
                               <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
@@ -679,8 +656,7 @@ export default function QuestionPage() {
                             <ul className="list-decimal pl-5 text-sm mt-2 text-gray-800 dark:text-gray-300 ml-6">
                               {q.questions.map((sub: ClozeSubQuestion, index: number) => (
                                 <li key={sub.id} className="mb-2">
-                                  <div>空格 {index + 1}</div>
-                                  <ul className="list-none pl-5 mt-1">
+                                  <ul className="list-none pl-5">
                                     {sub.options.map((opt: string, i: number) => (
                                       <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
                                     ))}
@@ -761,6 +737,7 @@ export default function QuestionPage() {
         onSubmit={handleAddQuestion}
         defaultTags={[]}
         isPremium={isPremium}
+        allTags={allTags}
       />
 
       <AddQuestionModal
@@ -771,6 +748,7 @@ export default function QuestionPage() {
         isPremium={isPremium}
         initialData={editingQuestion}
         isEditMode
+        allTags={allTags}
       />
 
       <AIconvertModal
@@ -779,6 +757,7 @@ export default function QuestionPage() {
         onSubmit={handleAIConvert}
         defaultTags={[]}
         isPremium={isPremium}
+        allTags={allTags}
       />
     </div>
   );

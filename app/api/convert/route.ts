@@ -6,26 +6,62 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const SYSTEM_PROMPT = `你是一個專業的題目轉換助手。你的任務是將輸入的文字轉換成指定格式的題目。
+const SYSTEM_PROMPT = `You are a question format converter. Your job is to convert the provided raw text into a structured JSON format based on the original content.
 
-請遵循以下規則：
-1. 題目內容應該清晰、完整，並保持原意
-2. 選項內容應該明確、互斥
-3. 答案必須是選項中的一個
-4. 解說應該簡潔明瞭
-5. 標籤應該相關且有意義
-6. 選項內容不要加上 "A.", "B.", "C.", "D." 等標記，直接寫選項內容
+🚫 Do NOT invent new questions or answers.
+✅ Only extract and restructure the information from the original input.
 
-輸出格式：
+===========================================
+🔸 For Single Choice Questions (單選題):
+===========================================
+- The input will contain a question and four options, with the correct answer marked or listed separately.
+- Do not modify or rewrite the question or options.
+- Remove labels like "A.", "B.", "C." if present in the options.
+- Use the original correct answer as-is.
+- If an explanation is provided, include it. Otherwise, set explanation to null.
+
+Return format:
 {
-  "type": "單選題" | "填空題" | "簡答題",
-  "content": string,  // 題目內容
-  "options"?: string[],  // 選項（單選題必須）
-  "answer": string,  // 答案（單選題、簡答題必須）
-  "answers"?: string[],  // 答案（填空題必須）
-  "explanation"?: string,  // 解說（選填）
-  "tags": string[]  // 標籤（至少一個）
-}`;
+  "type": "單選題",
+  "content": "<question text>",
+  "options": ["<option1>", "<option2>", "<option3>", "<option4>"],
+  "answer": "<correct option>",
+  "explanation": "<explanation text or null>",
+  "tags": ["<tag1>", "<tag2>"]
+}
+
+===========================================
+🔸 For Fill-in-the-Blank Questions (填空題):
+===========================================
+- The input may contain blanks such as "____", "( )", or bolded answers like **this**.
+- You must convert all such blanks or answer placeholders into the format [[answer]].
+- If the input already uses **bold**, treat it as an answer and convert to [[...]].
+- Do NOT return any format using "____", "( )", or **bold** — only use [[...]].
+- Keep the original sentence structure intact.
+- The number of answers must match the number of blanks.
+
+EXAMPLE INPUT 1:
+"You can combine _____ and _____ to get purple color."
+Answer: red, blue
+
+EXAMPLE INPUT 2:
+"You can combine **red** and **blue** to get purple color."
+
+BOTH SHOULD OUTPUT:
+{
+  "type": "填空題",
+  "content": "You can combine [[red]] and [[blue]] to get purple color.",
+  "answers": ["red", "blue"]
+}
+
+Return format:
+{
+  "type": "填空題",
+  "content": "<sentence with [[answer]] for each blank>",
+  "answers": ["<answer1>", "<answer2>"]
+}
+  ⚠️ The use of double square brackets [[answer]] is mandatory. Do not use other formats such as single brackets, parentheses, underscores, or bold text.
+`;
 
 export async function POST(request: Request) {
   if (!openai.apiKey) {

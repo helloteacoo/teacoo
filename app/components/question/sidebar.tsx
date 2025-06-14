@@ -5,6 +5,9 @@ import ConfirmDeleteModal from '../modals/ConfirmDeleteModal';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import type { Question, ReadingQuestion, SubQuestion } from "../../types/question";
 import type { Dispatch, SetStateAction } from "react";
+import { Input } from '../ui/input';
+import TagFolderSection from './TagFolderSection';
+import type { TagsState } from '../../types/tag';
 
 export type FilterKey = string;
 
@@ -17,6 +20,7 @@ type Props = {
   setSelectedQuestions: (v: string[]) => void;
   setQuestions: Dispatch<SetStateAction<Question[]>>;
   allTags: string[];
+  isPremium?: boolean;
 };
 
 export default function Sidebar({
@@ -28,8 +32,28 @@ export default function Sidebar({
   setSelectedQuestions,
   setQuestions,
   allTags,
+  isPremium = false
 }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [tagsState, setTagsState] = useState<TagsState>(() => ({
+    folders: [],
+    unorganizedTags: allTags
+  }));
+
+  // 當 allTags 改變時，更新未分類標籤
+  React.useEffect(() => {
+    setTagsState(prev => {
+      // 獲取所有已在資料夾中的標籤
+      const tagsInFolders = new Set(prev.folders.flatMap(f => f.tags));
+      // 過濾出未在資料夾中的標籤
+      const newUnorganizedTags = allTags.filter(tag => !tagsInFolders.has(tag));
+      
+      return {
+        ...prev,
+        unorganizedTags: newUnorganizedTags
+      };
+    });
+  }, [allTags]);
 
   return (
     <div className={`
@@ -38,6 +62,7 @@ export default function Sidebar({
       bg-mainBg dark:bg-gray-900 shadow-[inset_-1px_0_0_rgba(0,0,0,0.08)] 
       dark:shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)]
       ${isCollapsed ? 'pr-0' : 'pr-6'} mr-4
+      h-full flex flex-col
     `}>
       {/* 收合按鈕 */}
       <button
@@ -52,7 +77,7 @@ export default function Sidebar({
         )}
       </button>
 
-      <div className={`p-4 ${isCollapsed ? 'hidden' : 'block'}`}>
+      <div className={`p-4 ${isCollapsed ? 'hidden' : 'block'} flex-1 overflow-y-auto`}>
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">題型</h3>
@@ -67,7 +92,7 @@ export default function Sidebar({
                   <span className="font-medium">單題</span>
                 </div>
                 <div className="ml-6 space-y-1 mt-1">
-                  {['單選題', '填空題', '簡答題'].map((key) => (
+                  {['單選題', '多選題', '填空題', '簡答題'].map((key) => (
                     <div key={key} className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
                       <Checkbox
                         checked={filters[key]}
@@ -106,20 +131,46 @@ export default function Sidebar({
           {/* 標籤區 */}
           <div>
             <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">標籤</h3>
-            <div className="flex flex-wrap gap-2">
-              {allTags.map((tag) => (
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <Input
+                  placeholder="輸入新標籤..."
+                  className="mr-2 dark:text-gray-400"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                      const newTag = e.currentTarget.value.trim();
+                      if (!allTags.includes(newTag)) {
+                        toggleFilter(newTag);
+                        e.currentTarget.value = '';
+                      }
+                    }
+                  }}
+                />
                 <Button
-                  key={tag}
-                  onClick={() => toggleFilter(tag)}
-                  className={`px-3 py-1 rounded-full transition-colors border-none focus:outline-none ${
-                    filters[tag]
-                      ? 'bg-primary text-white'
-                      : 'bg-blue-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-gray-700'
-                  }`}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const input = document.querySelector('input[placeholder="輸入新標籤..."]') as HTMLInputElement;
+                    if (input && input.value.trim()) {
+                      const newTag = input.value.trim();
+                      if (!allTags.includes(newTag)) {
+                        toggleFilter(newTag);
+                        input.value = '';
+                      }
+                    }
+                  }}
                 >
-                  {tag}
+                  新增
                 </Button>
-              ))}
+              </div>
+
+              <TagFolderSection
+                isPremium={isPremium}
+                tagsState={tagsState}
+                setTagsState={setTagsState}
+                filters={filters}
+                toggleFilter={toggleFilter}
+              />
             </div>
           </div>
         </div>

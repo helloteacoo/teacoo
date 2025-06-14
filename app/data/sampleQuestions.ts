@@ -18,27 +18,33 @@ export const sampleQuestions: Question[] = [
       '從檔案匯入',
       '使用命令列'
     ],
-    answer: '點擊「新增題目」按鈕',
+    answer: 0,
     tags: ['使用教學', '基礎功能'],
     explanation: '點擊「新增題目」按鈕，或是「AI出題」按鈕，即可開啟新增題目的表單。',
+    createdAt: '2024-03-20T10:00:00Z',
+    updatedAt: '2024-03-20T10:00:00Z'
   } as SingleChoiceQuestion,
 
   {
     id: 'sample-fill',
     type: '填空題',
     content: '在TeaCoo中，免費版用戶每個題目最多可以添加 ___ 個標籤，付費版用戶最多可以添加 ___ 個標籤。',
-    answers: ['2', '5'],
+    blanks: ['2', '5'],
     tags: ['使用教學', '權限說明'],
     explanation: '免費版用戶每題最多2個標籤，付費版用戶每題最多5個標籤。',
+    createdAt: '2024-03-20T10:00:00Z',
+    updatedAt: '2024-03-20T10:00:00Z'
   } as FillInQuestion,
 
   {
     id: 'sample-short',
     type: '簡答題',
     content: '請簡述TeaCoo的主要功能是什麼？',
-    answer: 'TeaCoo是一個題目管理系統，可以幫助使用者建立、管理和組織各種類型的題目。系統支援單選題、多選題、填空題、簡答題、閱讀測驗和克漏字等多種題型，並提供標籤功能來分類管理題目。',
+    answer: 'TeaCoo是一個題目管理系統，可以幫助使用者建立、管理和組織各種類型的題目。系統支援單選題、填空題、簡答題、閱讀測驗和克漏字等多種題型，並提供標籤功能來分類管理題目。',
     tags: ['使用教學', '系統介紹'],
     explanation: '這是TeaCoo系統的基本介紹，幫助新用戶快速了解系統功能。',
+    createdAt: '2024-03-20T10:00:00Z',
+    updatedAt: '2024-03-20T10:00:00Z'
   } as ShortAnswerQuestion,
 
   {
@@ -64,6 +70,8 @@ export const sampleQuestions: Question[] = [
     ],
     tags: ['使用教學', '進階功能'],
     explanation: '這篇文章介紹了TeaCoo的主要進階功能。',
+    createdAt: '2024-03-20T10:00:00Z',
+    updatedAt: '2024-03-20T10:00:00Z'
   } as ReadingQuestion,
 
   {
@@ -99,5 +107,9 @@ export const sampleQuestions: Question[] = [
     ],
     tags: ['使用教學', '基礎功能'],
     explanation: '這是一個關於TeaCoo基本使用方法的克漏字題目。',
-  } as ClozeQuestion
+    createdAt: '2024-03-20T10:00:00Z',
+    updatedAt: '2024-03-20T10:00:00Z'
+  } as ClozeQuestion,
+
+    
 ]; 

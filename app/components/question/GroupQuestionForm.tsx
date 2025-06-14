@@ -22,6 +22,7 @@ export interface GroupQuestionFormProps {
   defaultTags?: string[];
   isPremium?: boolean;
   initialData?: Question;
+  allTags: string[];
 }
 
 export default function GroupQuestionForm({
@@ -29,7 +30,8 @@ export default function GroupQuestionForm({
   onChange,
   defaultTags = [],
   isPremium = false,
-  initialData
+  initialData,
+  allTags
 }: GroupQuestionFormProps) {
   const [article, setArticle] = useState('');
   const [content, setContent] = useState('');
@@ -542,7 +544,10 @@ export default function GroupQuestionForm({
           onChange={setTags}
           defaultTags={defaultTags}
           className="mt-1.5"
-          maxTags={isPremium ? 5 : 2}
+          maxTags={4}
+          minTags={1}
+          allTags={allTags}
+          disabled={false}
         />
       </div>
 
@@ -550,17 +555,23 @@ export default function GroupQuestionForm({
         {showError && validateForm && (
           <span className="text-red-500">⚠️ {validateForm}</span>
         )}
-        <div 
-          onClick={() => {
+        <Button 
+          type="submit" 
+          disabled={!!validateForm}
+          className={validateForm ? 'cursor-not-allowed opacity-50' : ''}
+          onClick={(e) => {
+            e.preventDefault();
             if (validateForm) {
               setShowError(true);
+              // 3秒後自動隱藏錯誤訊息
+              setTimeout(() => setShowError(false), 3000);
+            } else {
+              handleSubmit();
             }
           }}
         >
-          <Button type="submit" disabled={!!validateForm}>
-            <span className="text-white dark:text-mainBg">💾儲存</span>
-          </Button>
-        </div>
+          <span className="text-white dark:text-mainBg">💾儲存</span>
+        </Button>
       </div>
     </form>
   );

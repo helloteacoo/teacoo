@@ -45,6 +45,7 @@ export interface AddQuestionModalProps {
   isPremium?: boolean;
   initialData?: Question | null;
   isEditMode?: boolean;
+  allTags: string[];
 }
 
 export default function AddQuestionModal({
@@ -54,7 +55,8 @@ export default function AddQuestionModal({
   defaultTags = [],
   isPremium = false,
   initialData = null,
-  isEditMode = false
+  isEditMode = false,
+  allTags
 }: AddQuestionModalProps) {
   const checkPermission = () => {
     const hasPermission = checkGroupQuestionLimit(isPremium);
@@ -81,6 +83,7 @@ export default function AddQuestionModal({
       isEditMode={isEditMode}
       checkGroupPermission={checkPermission}
       onGroupSubmitSuccess={incrementGroupQuestionCount}
+      allTags={allTags}
     />
   );
 } 
