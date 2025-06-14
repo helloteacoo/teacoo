@@ -15,12 +15,12 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ labelClass = '' }) 
 
   return (
     <Select value={language} onValueChange={handleLanguageChange}>
-      <SelectTrigger className={`w-[120px] bg-mainBg border-none shadow-none hover:bg-gray-100 dark:hover:bg-gray-700 ${labelClass}`}>
+      <SelectTrigger className={`w-[120px] bg-mainBg shadow-none hover:bg-gray-100 dark:hover:bg-gray-700 border-transparent ${labelClass}`}>
         <SelectValue>
           {language === 'zh-TW' ? '繁體中文' : 'English'}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="bg-mainBg border-none shadow-none">
+      <SelectContent className="bg-mainBg border border-input dark:border-gray-700">
         <SelectItem value="zh-TW">繁體中文</SelectItem>
         <SelectItem value="en">English</SelectItem>
       </SelectContent>
