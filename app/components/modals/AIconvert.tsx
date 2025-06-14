@@ -6,7 +6,13 @@ import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
 import QuestionFormModal from './QuestionFormModal';
 import { toast } from 'sonner';
-import type { Question, QuestionType } from '../../types/question';
+import type { 
+  Question, 
+  QuestionType, 
+  SingleChoiceQuestion, 
+  FillInQuestion, 
+  ShortAnswerQuestion 
+} from '../../types/question';
 import type { SingleQuestionType, GroupQuestionType } from './QuestionFormModal';
 import { v4 as uuidv4 } from 'uuid';
 import { Loader2 } from 'lucide-react';
@@ -79,10 +85,12 @@ export default function AIconvertModal({
 
   function aiResultToQuestion(result: AIResult): Question {
     const baseQuestion = {
-      id: uuidv4(),
-      content: result.content,
-      explanation: '',
-      tags: []
+      id: Math.random().toString(36).substring(7),
+      content: result.content || '',
+      explanation: result.explanation || '',
+      tags: result.tags || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     switch (result.type) {
@@ -98,9 +106,8 @@ export default function AIconvertModal({
           ...baseQuestion,
           type: '單選題',
           options: result.options,
-          answer: result.answer,
-          correctIndex: correctIndex
-        };
+          answer: correctIndex
+        } as SingleChoiceQuestion;
       }
       case '填空題': {
         let rawContent: string = result.content || '';
@@ -151,15 +158,15 @@ export default function AIconvertModal({
           ...baseQuestion,
           type: '填空題',
           content: rawContent,
-          answers: finalAnswers.length > 0 ? finalAnswers : answers
-        };
+          blanks: finalAnswers.length > 0 ? finalAnswers : answers
+        } as FillInQuestion;
       }
       case '簡答題':
         return {
           ...baseQuestion,
           type: '簡答題',
           answer: result.answer
-        };
+        } as ShortAnswerQuestion;
       default:
         throw new Error(`不支援的題型: ${result.type}`);
     }
