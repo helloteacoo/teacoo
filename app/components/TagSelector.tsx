@@ -121,7 +121,7 @@ export default function TagSelector({
                       toggleTag(tag);
                       setOpen(false);
                     }}
-                    className="dark:text-mainBg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    className="text-gray-800 dark:text-mainBg data-[selected=true]:bg-gray-100 data-[selected=true]:text-gray-900 dark:data-[selected=true]:bg-gray-700 dark:data-[selected=true]:text-white cursor-pointer"
                   >
                     <Check
                       className={cn(
