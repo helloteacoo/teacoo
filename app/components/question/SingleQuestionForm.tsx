@@ -648,7 +648,6 @@ export default function SingleQuestionForm({
         <TagSelector
           value={tags}
           onChange={setTags}
-          defaultTags={defaultTags}
           className="mt-1.5"
           maxTags={4}
           minTags={1}

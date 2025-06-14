@@ -10,6 +10,7 @@ import Sidebar from '../components/question/sidebar';
 import type { FilterKey } from '../components/question/sidebar';
 import AddQuestionModal from '../components/modals/AddQuestionModal';
 import AIconvertModal from '../components/modals/AIconvert';
+import { AIConvertModal } from '../components/ai/AIConvertModal';
 import type { 
   Question,
   SingleChoiceQuestion,
@@ -22,6 +23,8 @@ import type {
   QuestionType
 } from '../types/question';
 import { sampleQuestions } from '../data/sampleQuestions';
+import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'sonner';
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -399,16 +402,31 @@ export default function QuestionPage() {
     setShowAIModal(open);
   };
 
-  const handleAIConvert = (data: Question) => {
-    // 檢查是否超過題目數量限制
-    if (questions.length >= MAX_ITEMS) {
-      alert(isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！');
-      return;
-    }
+  const handleAIConvert = async (question: Question) => {
+    try {
+      // 檢查是否超過題目數量限制
+      if (questions.length >= MAX_ITEMS) {
+        toast.error(
+          isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！'
+        );
+        return;
+      }
 
-    // 新增題目時，將新題目加到陣列最前面
-    setQuestions(prev => [{ ...data, id: Math.random().toString(36).substring(7) }, ...prev]);
-    handleAIModalChange(false);
+      const newQuestion = {
+        ...question,
+        id: uuidv4(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // 新增題目時，將新題目加到陣列最前面
+      setQuestions(prev => [newQuestion, ...prev]);
+      handleAIModalChange(false);
+      toast.success('題目已成功匯入');
+    } catch (error) {
+      console.error('匯入失敗:', error);
+      toast.error('匯入失敗，請稍後再試');
+    }
   };
 
   return (
@@ -751,13 +769,11 @@ export default function QuestionPage() {
         allTags={allTags}
       />
 
-      <AIconvertModal
+      <AIConvertModal
         open={showAIModal}
         onOpenChange={handleAIModalChange}
-        onSubmit={handleAIConvert}
-        defaultTags={[]}
-        isPremium={isPremium}
-        allTags={allTags}
+        onImport={handleAIConvert}
+        availableTags={allTags}
       />
     </div>
   );

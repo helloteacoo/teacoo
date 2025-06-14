@@ -135,7 +135,7 @@ export default function Sidebar({
               <div className="flex items-center">
                 <Input
                   placeholder="輸入新標籤..."
-                  className="mr-2 dark:text-gray-400"
+                  className="mr-2 text-gray-400 dark:text-gray-400"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                       const newTag = e.currentTarget.value.trim();

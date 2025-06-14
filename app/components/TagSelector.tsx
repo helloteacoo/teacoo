@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Check } from 'lucide-react';
 import {
   Command,
@@ -8,79 +8,77 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "../../components/ui/command";
+} from "./ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "../../components/ui/popover";
+} from "./ui/popover";
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 
 type TagSelectorProps = {
   value: string[];
   onChange: (tags: string[]) => void;
-  defaultTags?: string[];
-  className?: string;
+  allTags: string[];
   maxTags?: number;
   minTags?: number;
-  allTags: string[];
   disabled?: boolean;
+  className?: string;
 };
 
-export default function TagSelector({ 
-  value, 
-  onChange, 
-  defaultTags = [], 
-  className = '', 
+export default function TagSelector({
+  value,
+  onChange,
+  allTags,
   maxTags = 4,
   minTags = 1,
-  allTags,
-  disabled = false
+  disabled = false,
+  className = '',
 }: TagSelectorProps) {
   const [open, setOpen] = useState(false);
 
-  // 只在組件初始化時設置預設標籤
-  useEffect(() => {
-    if (defaultTags.length > 0 && value.length === 0) {
-      const validDefaultTags = defaultTags.filter(tag => allTags.includes(tag)).slice(0, maxTags);
-      if (validDefaultTags.length > 0) {
-        onChange(validDefaultTags);
-      }
-    }
-  }, []); // 空依賴陣列，只在初始化時執行
+  const handleSelect = (selectedTag: string) => {
+    console.log('🏷️ 標籤選擇事件觸發:', selectedTag);
 
-  const toggleTag = (tag: string) => {
-    if (value.includes(tag)) {
-      // 移除標籤
-      const newTags = value.filter(t => t !== tag);
+    if (value.includes(selectedTag)) {
+      // 如果已經選擇了這個標籤，就移除它
+      console.log('⛔ 移除標籤:', selectedTag);
+      const newTags = value.filter(tag => tag !== selectedTag);
       if (newTags.length < minTags) {
-        alert(`每題至少需要 ${minTags} 個標籤`);
+        console.log('❌ 標籤數量不足，無法移除');
+        alert(`至少需要 ${minTags} 個標籤`);
         return;
       }
+      console.log('✅ 成功移除標籤，新標籤列表:', newTags);
       onChange(newTags);
     } else {
-      // 新增標籤
+      // 如果還沒選擇這個標籤，就添加它
       if (value.length >= maxTags) {
-        alert(`每題最多只能添加 ${maxTags} 個標籤`);
+        console.log('❌ 已達到最大標籤數量:', maxTags);
+        alert(`最多只能選擇 ${maxTags} 個標籤`);
         return;
       }
-      onChange([...value, tag]);
+      const newTags = [...value, selectedTag];
+      console.log('✅ 成功添加標籤，新標籤列表:', newTags);
+      onChange(newTags);
     }
+    setOpen(false);
   };
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={cn("space-y-2", className)}>
+      {/* 已選擇的標籤 */}
       <div className="flex flex-wrap gap-2">
         {value.map(tag => (
           <div
             key={tag}
-            className="inline-flex items-center gap-1 px-2 py-1 text-sm bg-secondary text-secondary-foreground rounded-md"
+            className="flex items-center gap-1 px-2 py-1 text-sm bg-secondary text-secondary-foreground rounded-md"
           >
             {tag}
             <button
               type="button"
-              onClick={() => toggleTag(tag)}
+              onClick={() => handleSelect(tag)}
               disabled={disabled}
               className="text-gray-500 hover:text-gray-700"
             >
@@ -89,7 +87,8 @@ export default function TagSelector({
           </div>
         ))}
       </div>
-      
+
+      {/* 標籤選擇器 */}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -107,30 +106,31 @@ export default function TagSelector({
             }
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 shadow-md dark:text-mainBg">
-          <Command className="bg-transparent">
-            <CommandInput placeholder="搜尋標籤..." className="bg-transparent dark:text-mainBg" />
-            <CommandEmpty className="dark:text-mainBg">找不到標籤</CommandEmpty>
-            <CommandGroup>
+        <PopoverContent className="w-full p-0 bg-white text-gray-400 dark:bg-gray-800 dark:text-mainBg">
+          <Command className="w-full">
+            <CommandInput 
+              placeholder="搜尋標籤..." 
+              className="border-none focus:ring-0 text-gray-400 dark:text-gray-400"
+            />
+            
+            <CommandGroup className="max-h-[200px] overflow-auto">
               {allTags
                 .filter(tag => !value.includes(tag))
                 .map(tag => (
-                  <CommandItem
+                  <button
                     key={tag}
-                    onSelect={() => {
-                      toggleTag(tag);
-                      setOpen(false);
-                    }}
-                    className="text-gray-800 dark:text-mainBg data-[selected=true]:bg-gray-100 data-[selected=true]:text-gray-900 dark:data-[selected=true]:bg-gray-700 dark:data-[selected=true]:text-white cursor-pointer"
+                    type="button"
+                    onClick={() => handleSelect(tag)}
+                    className="flex items-center w-full gap-2 px-3 py-2 text-sm text-left text-gray-800 dark:text-mainBg hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4",
+                        "h-4 w-4",
                         value.includes(tag) ? "opacity-100" : "opacity-0"
                       )}
                     />
                     {tag}
-                  </CommandItem>
+                  </button>
                 ))}
             </CommandGroup>
           </Command>
