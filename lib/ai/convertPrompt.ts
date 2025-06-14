@@ -42,27 +42,7 @@ export const CONVERT_SYSTEM_PROMPT = `你是一個考題格式專家，請將以
 如果答案包含多個選項（例如：A、B、D），請將題目視為多選題。
 請不要自動生成標籤，標籤將由使用者自行選擇。`;
 
-export const CONVERT_EXAMPLE = `輸入範例：
-關於 Teacoo，下列敘述何者為真？
-(A) 其實單選題可以當成是非題來使用，簡答題也可以用來出翻譯
-(B) 新增題目時，不一定要輸入"解釋"也沒關係
-(C) 可以利用這個平台派送趣味又有互動性的課堂遊戲
-(D) 在新增題目時加上的標籤，都會出現在篩選區
-答案：A、B、D
-
-輸出範例：
-{
-  "type": "多選題",
-  "content": "關於 Teacoo，下列敘述何者為真？",
-  "options": [
-    "其實單選題可以當成是非題來使用，簡答題也可以用來出翻譯",
-    "新增題目時，不一定要輸入"解釋"也沒關係",
-    "可以利用這個平台派送趣味又有互動性的課堂遊戲",
-    "在新增題目時加上的標籤，都會出現在篩選區"
-  ],
-  "answers": [0, 1, 3],
-  "explanation": ""
-}`;
+export const CONVERT_EXAMPLE = '';
 
 export async function convertQuestionsWithAI(rawText: string): Promise<Question[]> {
   try {
@@ -101,7 +81,8 @@ export async function convertQuestionsWithAI(rawText: string): Promise<Question[
           q.answer || 0
       }),
       ...(q.type === '多選題' && {
-        answers: q.answers || []
+        options: q.options || [],
+        answers: Array.isArray(q.answers) ? q.answers : []
       }),
       ...(q.type === '填空題' && {
         blanks: q.blanks || []
@@ -113,9 +94,9 @@ export async function convertQuestionsWithAI(rawText: string): Promise<Question[
         article: q.article || '',
         questions: (q.questions || []).map((subQ: any) => ({
           id: uuidv4(),
-          content: subQ.content,
-          options: subQ.options,
-          answer: subQ.answer,
+          content: subQ.content || '',
+          options: Array.isArray(subQ.options) ? subQ.options : ['', '', '', ''],
+          answer: typeof subQ.answer === 'string' ? subQ.answer : '',
           explanation: subQ.explanation || ''
         }))
       })

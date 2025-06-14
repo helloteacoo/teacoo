@@ -9,7 +9,6 @@ import ConfirmDeleteModal from '../components/modals/ConfirmDeleteModal';
 import Sidebar from '../components/question/sidebar';
 import type { FilterKey } from '../components/question/sidebar';
 import AddQuestionModal from '../components/modals/AddQuestionModal';
-import AIconvertModal from '../components/modals/AIconvert';
 import { AIConvertModal } from '../components/ai/AIConvertModal';
 import type { 
   Question,
@@ -65,7 +64,27 @@ export default function QuestionPage() {
   const [showAIModal, setShowAIModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isFirstLogin, setIsFirstLogin] = useState(true);
-  const [questions, setQuestions] = useState<Question[]>(sampleQuestions);
+  
+  // 初始化題目列表，優先使用 localStorage 中的題目
+  const [questions, setQuestions] = useState<Question[]>(() => {
+    // 嘗試從 localStorage 讀取題目
+    const savedQuestions = localStorage.getItem('questions');
+    if (savedQuestions) {
+      try {
+        const parsed = JSON.parse(savedQuestions);
+        // 檢查是否已經包含範例題目
+        const hasSampleQuestions = parsed.some((q: Question) => q.id.startsWith('sample-'));
+        // 如果沒有範例題目，則添加
+        return hasSampleQuestions ? parsed : [...parsed, ...sampleQuestions];
+      } catch (error) {
+        console.error('解析已保存題目失敗:', error);
+        return sampleQuestions;
+      }
+    }
+    // 如果沒有已保存的題目，使用範例題目
+    return sampleQuestions;
+  });
+
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
 
   useEffect(() => {
@@ -339,6 +358,12 @@ export default function QuestionPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const paginatedQuestions = useMemo(() => {
+    // 每次題目列表更新時，如果當前頁碼大於最大頁數，自動調整到最後一頁
+    const maxPage = Math.ceil(filteredQuestions.length / ITEMS_PER_PAGE);
+    if (currentPage > maxPage && maxPage > 0) {
+      setCurrentPage(maxPage);
+    }
+
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
     return filteredQuestions.slice(startIndex, endIndex);
@@ -348,6 +373,8 @@ export default function QuestionPage() {
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
+    // 滾動到頁面頂部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const [lastUsedTags, setLastUsedTags] = useState<string[]>([]);
@@ -419,9 +446,17 @@ export default function QuestionPage() {
         updatedAt: new Date().toISOString(),
       };
 
-      // 新增題目時，將新題目加到陣列最前面
-      setQuestions(prev => [newQuestion, ...prev]);
-      handleAIModalChange(false);
+      // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
+      setQuestions(prev => {
+        const updatedQuestions = [newQuestion, ...prev];
+        // 立即儲存到 localStorage
+        localStorage.setItem('questions', JSON.stringify(updatedQuestions));
+        return updatedQuestions;
+      });
+
+      // 確保新題目會出現在第一頁
+      setCurrentPage(1);
+
       toast.success('題目已成功匯入');
     } catch (error) {
       console.error('匯入失敗:', error);

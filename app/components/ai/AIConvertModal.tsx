@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,7 @@ import {
 } from '@/app/components/ui/dialog';
 import type { Question } from '@/app/types/question';
 import { TextareaInputPanel } from './TextareaInputPanel';
-import { QuestionPreviewCard } from './QuestionPreviewCard';
+import { EditableQuestionPreviewCard } from './EditableQuestionPreviewCard';
 import TagSelector from '../TagSelector';
 import { toast } from 'sonner';
 import { Button } from "@/app/components/ui/button";
@@ -23,7 +23,8 @@ interface Props {
 export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: Props) {
   const [input, setInput] = useState('');
   const [isConverting, setIsConverting] = useState(false);
-  const [convertedQuestion, setConvertedQuestion] = useState<Question | null>(null);
+  const [convertedQuestions, setConvertedQuestions] = useState<Question[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const handleConvert = async (text: string) => {
@@ -34,8 +35,9 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
 
     setIsConverting(true);
     try {
-      const question = await convertToQuestion(text);
-      setConvertedQuestion(question);
+      const questions = await convertToQuestion(text);
+      setConvertedQuestions(Array.isArray(questions) ? questions : [questions]);
+      setCurrentIndex(0);
     } catch (error) {
       toast.error('轉換失敗', {
         description: error instanceof Error ? error.message : "請檢查輸入格式是否正確",
@@ -45,74 +47,88 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
     }
   };
 
-  const handleImport = () => {
-    if (!convertedQuestion || selectedTags.length === 0) return;
-    
-    // 加入選擇的標籤
+  const handleImport = (question: Question) => {
+    // 確保題目有正確的標籤
     const questionWithTags = {
-      ...convertedQuestion,
-      tags: selectedTags,
+      ...question,
+      tags: selectedTags
     };
     
+    // 呼叫父組件的 onImport
     onImport(questionWithTags);
-    setInput('');
-    setConvertedQuestion(null);
-    setSelectedTags([]);
-    onOpenChange(false);
+
+    // 如果還有下一題，自動前進到下一題
+    if (currentIndex < convertedQuestions.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      // 如果是最後一題，清空並關閉視窗
+      setInput('');
+      setConvertedQuestions([]);
+      setCurrentIndex(0);
+      setSelectedTags([]);
+      onOpenChange(false);
+    }
   };
+
+  const handlePrevious = () => {
+    setCurrentIndex(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex(prev => Math.min(convertedQuestions.length - 1, prev + 1));
+  };
+
+  const handleSkip = () => {
+    if (currentIndex < convertedQuestions.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      // 如果是最後一題，清空並關閉視窗
+      setInput('');
+      setConvertedQuestions([]);
+      setCurrentIndex(0);
+      onOpenChange(false);
+    }
+  };
+
+  // 當 modal 關閉時清除所有資訊
+  useEffect(() => {
+    if (!open) {
+      setInput('');
+      setConvertedQuestions([]);
+      setCurrentIndex(0);
+      setSelectedTags([]);
+      setIsConverting(false);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl">
+      <DialogContent className="max-w-[90vw] w-[1400px] bg-mainBg dark:bg-gray-800">
         <DialogHeader>
           <DialogTitle>AI 題目轉換</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-8 h-[calc(80vh-8rem)]">
+        <div className="grid grid-cols-2 gap-8 h-[calc(90vh-6rem)]">
           <div className="h-full overflow-hidden">
             <TextareaInputPanel
               value={input}
               onChange={setInput}
               onConvert={handleConvert}
               isConverting={isConverting}
+              isOpen={open}
             />
           </div>
           <div className="h-full overflow-y-auto">
-            {convertedQuestion ? (
-              <div className="space-y-4">
-                <QuestionPreviewCard
-                  question={convertedQuestion}
-                  currentIndex={0}
-                  totalQuestions={1}
-                  onPrevious={() => {}}
-                  onNext={() => {}}
-                  onImport={handleImport}
-                  onSkip={() => {}}
-                  importDisabled={selectedTags.length === 0}
-                />
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">選擇標籤</label>
-                  <TagSelector
-                    value={selectedTags}
-                    onChange={setSelectedTags}
-                    allTags={availableTags}
-                    maxTags={4}
-                    minTags={1}
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => onOpenChange(false)}>
-                    取消
-                  </Button>
-                  <Button 
-                    onClick={handleImport}
-                    disabled={selectedTags.length === 0}
-                  >
-                    匯入
-                  </Button>
-                </div>
-              </div>
+            {convertedQuestions.length > 0 ? (
+              <EditableQuestionPreviewCard
+                question={convertedQuestions[currentIndex]}
+                currentIndex={currentIndex}
+                totalQuestions={convertedQuestions.length}
+                availableTags={availableTags}
+                onPrevious={handlePrevious}
+                onNext={handleNext}
+                onImport={handleImport}
+                onSkip={handleSkip}
+              />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">
                 尚未轉換，請貼上題目後點選「轉換」
