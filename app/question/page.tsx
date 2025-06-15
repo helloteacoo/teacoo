@@ -10,6 +10,7 @@ import Sidebar from '../components/question/sidebar';
 import type { FilterKey } from '../components/question/sidebar';
 import AddQuestionModal from '../components/modals/AddQuestionModal';
 import { AIConvertModal } from '../components/ai/AIConvertModal';
+import AssignmentModal from '../components/modals/AssignmentModal';
 import type { 
   Question,
   SingleChoiceQuestion,
@@ -63,6 +64,7 @@ export default function QuestionPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isFirstLogin, setIsFirstLogin] = useState(true);
   const [isClient, setIsClient] = useState(false);
@@ -480,6 +482,10 @@ export default function QuestionPage() {
     }
   };
 
+  const handleAssignmentModalChange = (open: boolean) => {
+    setShowAssignmentModal(open);
+  };
+
   // 如果還在伺服器端，返回 null 或載入中的狀態
   if (!isClient) {
     return <div className="h-screen flex items-center justify-center">載入中...</div>;
@@ -519,8 +525,15 @@ export default function QuestionPage() {
                 >
                   ➕ 新增題目
                 </Button>
+                
+                <Button 
+                  onClick={() => handleAssignmentModalChange(true)}
+                  className="text-gray-200"
+                  disabled={selectedQuestions.length === 0}
+                >
+                  📤 派發作業
+                </Button>
                 <Button className="text-gray-200">🧪 自我練習</Button>
-                <Button className="text-gray-200">📤 派發作業</Button>
                 <Button className="text-gray-300">📄 匯出題目</Button>
               </div>
 
@@ -600,7 +613,13 @@ export default function QuestionPage() {
                     ➕ 新增題目
                   </Button>
                   <Button className="whitespace-nowrap text-gray-200">🧪 自我練習</Button>
-                  <Button className="whitespace-nowrap text-gray-200">📤 派發作業</Button>
+                  <Button 
+                    onClick={() => handleAssignmentModalChange(true)}
+                    className="whitespace-nowrap text-gray-200"
+                    disabled={selectedQuestions.length === 0}
+                  >
+                    📤 派發作業
+                  </Button>
                   <Button className="whitespace-nowrap text-gray-300">📄 匯出題目</Button>
                 </div>
               </div>
@@ -830,6 +849,13 @@ export default function QuestionPage() {
         onOpenChange={handleAIModalChange}
         onImport={handleAIConvert}
         availableTags={allTags}
+      />
+
+      <AssignmentModal
+        open={showAssignmentModal}
+        onOpenChange={handleAssignmentModalChange}
+        selectedQuestions={selectedQuestions.map(id => questions.find(q => q.id === id)).filter(Boolean) as Question[]}
+        isPremium={isPremium}
       />
     </div>
   );
