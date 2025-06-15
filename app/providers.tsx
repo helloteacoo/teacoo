@@ -1,7 +1,7 @@
 'use client';
 
 import { ThemeProvider } from './contexts/ThemeContext';
-import { SessionProvider } from 'next-auth/react';
+import { AuthProvider } from '@/lib/contexts/auth';
 import { useState, useEffect } from 'react';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -11,13 +11,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <>
-      <SessionProvider>
-        <ThemeProvider>{children}</ThemeProvider>
-      </SessionProvider>
-      {mounted && <div id="toaster" />}
-    </>
+    <AuthProvider>
+      <ThemeProvider>
+        {children}
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

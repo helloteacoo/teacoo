@@ -42,15 +42,9 @@ export default function AssignmentModal({
   
   const [isMounted, setIsMounted] = useState(false);
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState<Date>();
-  const [hour, setHour] = useState("23");
-  const [minute, setMinute] = useState("59");
-  const [noDeadline, setNoDeadline] = useState(true);
   const [targetType, setTargetType] = useState<'none' | 'list'>('none');
   const [hideTimer, setHideTimer] = useState(true);
   const [showTimer, setShowTimer] = useState(false);
-  const [randomQuestionOrder, setRandomQuestionOrder] = useState(false);
-  const [randomOptionOrder, setRandomOptionOrder] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showCreateListModal, setShowCreateListModal] = useState(false);
   const [shortUrl, setShortUrl] = useState('');
@@ -65,15 +59,9 @@ export default function AssignmentModal({
     if (!open) {
       // 重置表單
       setTitle('');
-      setDate(undefined);
-      setHour("23");
-      setMinute("59");
-      setNoDeadline(true);
       setTargetType('none');
       setHideTimer(true);
       setShowTimer(false);
-      setRandomQuestionOrder(false);
-      setRandomOptionOrder(false);
       setSelectedListId('');
     }
   }, [open]);
@@ -84,22 +72,13 @@ export default function AssignmentModal({
       return;
     }
 
-    let deadline = null;
-    if (!noDeadline && date) {
-      deadline = new Date(date);
-      deadline.setHours(parseInt(hour), parseInt(minute));
-    }
-
     // TODO: 實作派發作業的邏輯
     const assignmentData = {
       title,
-      deadline,
       targetType,
       targetListId: targetType === 'list' ? selectedListId : null,
       hideTimer,
       showTimer,
-      randomQuestionOrder,
-      randomOptionOrder,
       selectedQuestions
     };
 
@@ -160,103 +139,6 @@ export default function AssignmentModal({
               />
             </div>
 
-            {/* 截止時間 */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="noDeadline"
-                  checked={noDeadline}
-                  onCheckedChange={(checked) => setNoDeadline(checked as boolean)}
-                />
-                <Label htmlFor="noDeadline" className="text-gray-700 dark:text-gray-300">
-                  不指定截止時間
-                </Label>
-              </div>
-              
-              {!noDeadline && (
-                <div className="flex items-center space-x-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-[180px] justify-start text-left font-normal bg-white dark:bg-gray-700",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP", { locale: zhTW }) : "選擇截止日期"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-white dark:bg-gray-700 border dark:border-gray-600" align="start">
-                      <DayPicker
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                        className="p-3"
-                        showOutsideDays={false}
-                        classNames={{
-                          months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                          month: "space-y-4",
-                          caption: "flex justify-center pt-1 relative items-center",
-                          caption_label: "text-sm font-medium text-gray-900 dark:text-gray-100",
-                          nav: "flex items-center absolute left-0 right-0 justify-center",
-                          nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors flex items-center justify-center",
-                          nav_button_previous: "absolute -translate-x-[150%]",
-                          nav_button_next: "absolute translate-x-[150%]",
-                          table: "w-full border-collapse space-y-1",
-                          head_row: "flex",
-                          head_cell: "text-gray-500 dark:text-gray-400 rounded-md w-9 font-normal text-[0.8rem]",
-                          row: "flex w-full mt-2",
-                          cell: "text-center text-sm relative p-0 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 focus-within:relative focus-within:z-20 transition-colors",
-                          day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors",
-                          day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground dark:text-white",
-                          day_today: "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100",
-                          day_outside: "text-gray-400 dark:text-gray-500 opacity-50",
-                          day_disabled: "text-gray-400 dark:text-gray-500 opacity-50 hover:bg-transparent",
-                          day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
-                          day_hidden: "invisible",
-                        }}
-                        formatters={{ 
-                          formatCaption: (date) => format(date, "yyyy年 MM月", { locale: zhTW })
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-
-                  <div className="flex items-center space-x-1">
-                    <ClockIcon className="h-4 w-4 text-gray-500" />
-                    <Select value={hour} onValueChange={setHour}>
-                      <SelectTrigger className="w-[70px] h-8 bg-white dark:bg-gray-700">
-                        <SelectValue placeholder="時" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-gray-700">
-                        {Array.from({length: 24}, (_, i) => 
-                          <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                            {i.toString().padStart(2, '0')}
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <span className="text-gray-500">:</span>
-                    <Select value={minute} onValueChange={setMinute}>
-                      <SelectTrigger className="w-[70px] h-8 bg-white dark:bg-gray-700">
-                        <SelectValue placeholder="分" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-gray-700">
-                        {Array.from({length: 60}, (_, i) => 
-                          <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                            {i.toString().padStart(2, '0')}
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* 指定對象 */}
             <div className="space-y-4">
               <Label className="text-gray-700 dark:text-gray-300">指定對象</Label>
@@ -289,8 +171,7 @@ export default function AssignmentModal({
                       </Select>
                       <Button
                         onClick={() => setShowCreateListModal(true)}
-                        variant="outline"
-                        className="whitespace-nowrap text-sm h-8 px-2 bg-primary text-white hover:bg-primary/90"
+                        className="text-sm h-8 px-2 bg-primary text-mainBg hover:bg-primary/90"
                       >
                         ➕ 建立
                       </Button>
@@ -329,39 +210,6 @@ export default function AssignmentModal({
                   </Label>
                 </div>
               </RadioGroup>
-            </div>
-
-            {/* 隨機設定 */}
-            <div className="space-y-4">
-              <Label className="text-gray-700 dark:text-gray-300">隨機設定</Label>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="randomQuestionOrder"
-                    checked={randomQuestionOrder}
-                    onCheckedChange={(checked) => setRandomQuestionOrder(checked as boolean)}
-                  />
-                  <Label 
-                    htmlFor="randomQuestionOrder" 
-                    className="text-gray-700 dark:text-gray-300"
-                  >
-                    題目順序隨機
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="randomOptionOrder"
-                    checked={randomOptionOrder}
-                    onCheckedChange={(checked) => setRandomOptionOrder(checked as boolean)}
-                  />
-                  <Label 
-                    htmlFor="randomOptionOrder" 
-                    className="text-gray-700 dark:text-gray-300"
-                  >
-                    選項順序隨機（限選擇題）
-                  </Label>
-                </div>
-              </div>
             </div>
 
             {/* 已選擇題目數量和派發按鈕 */}

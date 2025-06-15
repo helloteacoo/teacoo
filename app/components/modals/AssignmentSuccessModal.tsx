@@ -56,7 +56,6 @@ export default function AssignmentSuccessModal({
             </Button>
             <Button
               onClick={handlePreview}
-              variant="outline"
               className="text-mainBg bg-primary hover:bg-primary/90 dark:text-mainBg dark:bg-primary dark:hover:bg-primary/90"
             >
               👁️ 開啟預覽

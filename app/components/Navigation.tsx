@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation'; // 用於判斷當前路由
-import { useSession } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/contexts/auth';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
@@ -14,16 +14,29 @@ const DEFAULT_AVATAR = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { data: session } = useSession();
+  const { user, loading, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // 用小寫路徑符合你的 app router
   const navItems = [
     { name: '我的題庫', href: '/question' },
     { name: '答題結果', href: '/result' },
     { name: '設定', href: '/settings' }
   ];
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/login');
+    } catch (error) {
+      console.error('登出時發生錯誤:', error);
+    }
+  };
+
+  if (loading) {
+    return <div>載入中...</div>;
+  }
 
   return (
     <nav className="sticky top-0 z-30 bg-mainBg shadow-lg dark:bg-gray-800">
@@ -76,24 +89,39 @@ export default function Navigation() {
                 <MoonIcon className="h-5 w-5" />
               )}
             </Button>
-            <button 
-              className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-150"
-              title={session?.user?.name || '使用者'}
-            >
-              <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gray-200">
-                <Image
-                  src={session?.user?.image || DEFAULT_AVATAR}
-                  alt={`${session?.user?.name || '使用者'} 的頭像`}
-                  fill
-                  sizes="32px"
-                  className="object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = DEFAULT_AVATAR;
-                  }}
-                />
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <button 
+                  className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-150"
+                  title={user.displayName || '使用者'}
+                >
+                  <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gray-200">
+                    <Image
+                      src={user.photoURL || DEFAULT_AVATAR}
+                      alt={`${user.displayName || '使用者'} 的頭像`}
+                      fill
+                      sizes="32px"
+                      className="object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = DEFAULT_AVATAR;
+                      }}
+                    />
+                  </div>
+                </button>
+                <Button
+                  variant="ghost"
+                  onClick={handleSignOut}
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  登出
+                </Button>
               </div>
-            </button>
+            ) : (
+              <Link href="/login">
+                <Button variant="default">登入</Button>
+              </Link>
+            )}
           </div>
 
           {/* 手機版選單按鈕 */}
@@ -127,24 +155,33 @@ export default function Navigation() {
         {/* 手機版展開選單 */}
         {isMenuOpen && (
           <div className="lg:hidden pb-4">
-            <div className="flex items-center space-x-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-              <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gray-200">
-                <Image
-                  src={session?.user?.image || DEFAULT_AVATAR}
-                  alt={`${session?.user?.name || '使用者'} 的頭像`}
-                  fill
-                  sizes="32px"
-                  className="object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = DEFAULT_AVATAR;
-                  }}
-                />
+            {user && (
+              <div className="flex items-center space-x-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gray-200">
+                  <Image
+                    src={user.photoURL || DEFAULT_AVATAR}
+                    alt={`${user.displayName || '使用者'} 的頭像`}
+                    fill
+                    sizes="32px"
+                    className="object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = DEFAULT_AVATAR;
+                    }}
+                  />
+                </div>
+                <span className="text-gray-700 dark:text-gray-300">
+                  {user.displayName || '使用者'}
+                </span>
+                <Button
+                  variant="ghost"
+                  onClick={handleSignOut}
+                  className="ml-auto text-gray-700 dark:text-gray-300"
+                >
+                  登出
+                </Button>
               </div>
-              <span className="text-gray-700 dark:text-gray-300">
-                {session?.user?.name || '使用者'}
-              </span>
-            </div>
+            )}
             <div className="space-y-1 px-3 pt-3">
               {navItems.map((item) => (
                 <Link
@@ -161,6 +198,11 @@ export default function Navigation() {
                   {item.name}
                 </Link>
               ))}
+              {!user && (
+                <Link href="/login" className="block px-3 py-2">
+                  <Button variant="default" className="w-full">登入</Button>
+                </Link>
+              )}
               <div className="mt-4 px-3">
                 <LanguageSwitcher labelClass="text-gray-700 dark:text-gray-300" />
               </div>

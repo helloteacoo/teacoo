@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { auth } from '@/auth';
+import { auth } from '@/lib/firebase';
 import { Question, MultipleChoiceQuestion, ReadingQuestion } from '@/app/types/question';
 import { v4 as uuidv4 } from 'uuid';
 
