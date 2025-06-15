@@ -154,7 +154,7 @@ export default function QuestionPage() {
 
     // 加入所有在 filters 中的標籤
     Object.keys(filters).forEach(key => {
-      if (!['單題', '單選題', '填空題', '簡答題', '題組', '閱讀測驗', '克漏字'].includes(key) && !tagMap.has(key)) {
+      if (!['單題', '單選題', '多選題', '填空題', '簡答題', '題組', '閱讀測驗', '克漏字'].includes(key) && !tagMap.has(key)) {
         tagMap.set(key, {
           tag: key,
           createdAt: new Date().toISOString()
@@ -201,7 +201,11 @@ export default function QuestionPage() {
     return questions.some((q: Question) => q.type === type);
   };
 
-  const [collapsedCards, setCollapsedCards] = useState<string[]>([]);
+  const [collapsedCards, setCollapsedCards] = useState<string[]>(() => {
+    // 初始化時，將所有題目 ID 加入摺疊列表
+    return questions.map(q => q.id);
+  });
+
   const toggleCollapse = (id: string) => {
     setCollapsedCards(prev =>
       prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
@@ -317,30 +321,12 @@ export default function QuestionPage() {
 
     return questions.filter((q: Question) => {
       // 檢查是否符合題型條件
-      let matchesTypes = false;
+      const matchesType = selectedTypes.length === 0 || selectedTypes.includes(q.type);
       
-      // 如果勾選了「題組」但沒有勾選任何單題類型
-      if (filters.題組 && !filters.單題) {
-        // 只顯示閱讀測驗和克漏字類型的題目
-        matchesTypes = q.type === '閱讀測驗' || q.type === '克漏字';
-      }
-      // 如果勾選了「單題」但沒有勾選題組
-      else if (filters.單題 && !filters.題組) {
-        // 只顯示單題類型的題目
-        matchesTypes = ['單選題', '多選題', '填空題', '簡答題'].includes(q.type);
-      }
-      // 如果同時勾選了題組和單題，或者選擇了特定的題型
-      else {
-        matchesTypes = selectedTypes.length === 0 || selectedTypes.includes(q.type);
-      }
-
       // 檢查是否符合標籤條件
       const matchesTags = selectedTags.length === 0 || q.tags.some(tag => selectedTags.includes(tag));
       
-      // 必須同時符合題型和標籤條件
-      const matchesTypeOrTag = matchesTypes && matchesTags;
-      
-      // 如果有搜尋關鍵字，還需要符合關鍵字條件
+      // 檢查是否符合關鍵字條件
       const matchesKeyword = lowerKeyword === '' || (() => {
         if (isSingleChoiceQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
@@ -378,8 +364,8 @@ export default function QuestionPage() {
         return false;
       })();
 
-      // 只要符合題型或標籤其中一個條件，且符合關鍵字條件就顯示
-      return matchesTypeOrTag && matchesKeyword;
+      // 只要符合題型或標籤其中一個條件，且符合關鍵字條件，就顯示題目
+      return (matchesType || matchesTags) && matchesKeyword;
     });
   }, [questions, filters, keyword, allTags]);
 
@@ -427,8 +413,13 @@ export default function QuestionPage() {
     // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
     setQuestions(prev => {
       console.log('🔍 現有題目數量:', prev.length);
-      const updatedQuestions = [{ ...data, id: Math.random().toString(36).substring(7) }, ...prev];
+      const newQuestion = { ...data, id: Math.random().toString(36).substring(7) };
+      const updatedQuestions = [newQuestion, ...prev];
       console.log('🔍 更新後題目數量:', updatedQuestions.length);
+
+      // 將新題目設為摺疊狀態
+      setCollapsedCards(prevCollapsed => [...prevCollapsed, newQuestion.id]);
+
       // 立即儲存到 localStorage
       try {
         safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
@@ -556,6 +547,8 @@ export default function QuestionPage() {
       // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
       setQuestions(prev => {
         const updatedQuestions = [processedQuestion, ...prev];
+        // 將新題目設為摺疊狀態
+        setCollapsedCards(prevCollapsed => [...prevCollapsed, processedQuestion.id]);
         // 立即儲存到 localStorage
         try {
           safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
@@ -584,6 +577,24 @@ export default function QuestionPage() {
     setShowAssignmentModal(open);
   };
 
+  const handleDeleteTag = (tagToDelete: string) => {
+    // 從所有題目中移除該標籤
+    setQuestions(prevQuestions => 
+      prevQuestions.map(question => ({
+        ...question,
+        tags: question.tags.filter(tag => tag !== tagToDelete)
+      }))
+    );
+
+    // 從篩選器中移除該標籤
+    setFilters(prevFilters => {
+      const { [tagToDelete]: _, ...rest } = prevFilters;
+      return rest;
+    });
+
+    toast.success(`已刪除標籤：${tagToDelete}`);
+  };
+
   // 如果還在伺服器端，返回 null 或載入中的狀態
   if (!isClient) {
     return <div className="h-screen flex items-center justify-center">載入中...</div>;
@@ -603,6 +614,7 @@ export default function QuestionPage() {
           setQuestions={setQuestions}
           allTags={allTags}
           isPremium={isPremium}
+          onDeleteTag={handleDeleteTag}
         />
 
         <main className="flex-1 p-2 lg:p-6 overflow-auto max-w-full">
@@ -749,7 +761,7 @@ export default function QuestionPage() {
                           <div className="text-sm text-gray-700 dark:text-gray-400">
                             {q.type} ｜ {q.tags.join(', ')}
                           </div>
-                          <div className="font-medium mt-1 text-gray-800 dark:text-gray-300">
+                          <div className={`font-medium mt-1 text-gray-800 dark:text-gray-300 ${isCollapsed ? 'line-clamp-1' : ''}`}>
                             1. {(() => {
                               if (isReadingQuestion(q)) return q.article;
                               if (isClozeQuestion(q)) return q.article;

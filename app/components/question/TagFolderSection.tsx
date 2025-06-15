@@ -11,6 +11,7 @@ interface TagFolderSectionProps {
   setTagsState: (state: TagsState) => void;
   filters: Record<FilterKey, boolean>;
   toggleFilter: (key: FilterKey) => void;
+  onDeleteTag?: (tag: string) => void;
 }
 
 export default function TagFolderSection({
@@ -18,7 +19,8 @@ export default function TagFolderSection({
   tagsState,
   setTagsState,
   filters,
-  toggleFilter
+  toggleFilter,
+  onDeleteTag
 }: TagFolderSectionProps) {
   const [draggedTag, setDraggedTag] = useState<string | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
@@ -124,20 +126,32 @@ export default function TagFolderSection({
         </div>
         
         {/* 免費版的標籤顯示 */}
-        <div className="flex flex-wrap gap-2">
-          {tagsState.unorganizedTags.map(tag => (
-            <div
-              key={tag}
-              className={`group flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors cursor-pointer ${
-                filters[tag]
-                  ? 'bg-primary text-white'
-                  : 'bg-blue-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-200 dark:hover:bg-gray-700'
-              }`}
-              onClick={() => toggleFilter(tag)}
-            >
-              {tag}
-            </div>
-          ))}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">標籤</h4>
+          <div className="flex flex-wrap gap-2">
+            {tagsState.unorganizedTags.map(tag => (
+              <div
+                key={tag}
+                className={`group flex items-center gap-1 px-3 py-1 rounded-full text-xs transition-colors cursor-pointer ${
+                  filters[tag]
+                    ? 'bg-primary text-white'
+                    : 'bg-blue-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-200 dark:hover:bg-gray-700'
+                }`}
+                onClick={() => toggleFilter(tag)}
+              >
+                {tag}
+                <button
+                  className="text-gray-400 dark:text-gray-400 hover:text-mainBg dark:hover:text-mainBg ml-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteTag?.(tag);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -201,65 +215,58 @@ export default function TagFolderSection({
             onDragOver={handleDragOver}
             onDrop={() => handleDrop(folder.id)}
           >
-            <div
-              className="flex items-center justify-between p-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-t-lg"
-              onClick={() => toggleFolder(folder.id)}
-            >
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-2">
+              <div
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => toggleFolder(folder.id)}
+              >
                 {folder.isOpen ? (
                   <ChevronDown className="w-4 h-4" />
                 ) : (
                   <ChevronRight className="w-4 h-4" />
                 )}
                 <Folder className="w-4 h-4" />
-                <span className="text-sm font-medium">{folder.name}</span>
-                <span className="text-xs text-gray-500">({folder.tags.length})</span>
+                <span className="text-xs">{folder.name}</span>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="opacity-0 group-hover:opacity-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteFolder(folder.id);
-                }}
+                className="h-6 w-6 p-0"
+                onClick={() => deleteFolder(folder.id)}
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
+
             {folder.isOpen && (
-              <div className="p-2 space-y-1 border-t dark:border-gray-700">
-                {folder.tags.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-                    將標籤拖曳至此
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {folder.tags.map(tag => (
-                      <div
-                        key={tag}
-                        className={`group flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors ${
-                          filters[tag]
-                            ? 'bg-primary text-white'
-                            : 'bg-blue-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-200 dark:hover:bg-gray-700'
-                        }`}
+              <div className="p-2 pt-0">
+                <div className="flex flex-wrap gap-2">
+                  {folder.tags.map(tag => (
+                    <div
+                      key={tag}
+                      className={`group flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors cursor-pointer ${
+                        filters[tag]
+                          ? 'bg-primary text-white'
+                          : 'bg-blue-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-200 dark:hover:bg-gray-700'
+                      }`}
+                      draggable
+                      onDragStart={() => handleDragStart(tag)}
+                      onClick={() => toggleFilter(tag)}
+                    >
+                      {tag}
+                      <button
+                        className="text-gray-400 dark:text-gray-400 hover:text-mainBg dark:hover:text-mainBg ml-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteTag?.(tag);
+                          removeTagFromFolder(folder.id, tag);
+                        }}
                       >
-                        <span
-                          onClick={() => toggleFilter(tag)}
-                          className="cursor-pointer"
-                        >
-                          {tag}
-                        </span>
-                        <button
-                          onClick={() => removeTagFromFolder(folder.id, tag)}
-                          className="opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
