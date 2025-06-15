@@ -130,6 +130,7 @@ export function EditableQuestionPreviewCard({
 }: Props) {
   const [editedQuestion, setEditedQuestion] = useState<Question>(sanitizeQuestion(initialQuestion) || initialQuestion);
   const [selectedTags, setSelectedTags] = useState<string[]>(editedQuestion.tags || []);
+  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     const sanitized = sanitizeQuestion(initialQuestion);
@@ -156,7 +157,24 @@ export function EditableQuestionPreviewCard({
     }
   };
 
-  const handleImport = () => {
+  // 驗證標籤數量
+  const validateTags = () => {
+    if (selectedTags.length === 0) {
+      return '請至少選擇一個標籤';
+    }
+    if (selectedTags.length > 4) {
+      return '最多只能選擇四個標籤';
+    }
+    return '';
+  };
+
+  const handleImportClick = () => {
+    const tagError = validateTags();
+    if (tagError) {
+      setShowError(true);
+      setTimeout(() => setShowError(false), 3000);
+      return;
+    }
     onImport({ ...editedQuestion, tags: selectedTags });
   };
 
@@ -302,36 +320,33 @@ export function EditableQuestionPreviewCard({
   const renderReadingTestEditor = (q: ReadingQuestion) => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">文章標題</label>
-        <Input
-          value={q.content}
-          onChange={(e) => setEditedQuestion({ ...q, content: e.target.value } as ReadingQuestion)}
-          placeholder="請輸入文章標題..."
-        />
-      </div>
-      <div>
         <label className="block text-sm font-medium mb-1">文章內容</label>
         <Textarea
           value={q.article}
           onChange={(e) => setEditedQuestion({ ...q, article: e.target.value } as ReadingQuestion)}
           placeholder="請輸入文章內容..."
           rows={5}
+          className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
         />
       </div>
       <div>
         <label className="block text-sm font-medium mb-2">子題目</label>
         <div className="space-y-4">
           {q.questions.map((subQ, index) => (
-            <div key={index} className="border p-4 rounded-lg">
-              <div className="mb-2">
-                <Input
+            <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 space-y-4">
+              <div>
+                <Label className="text-gray-700 dark:text-mainBg">題目 {index + 1}</Label>
+                <Textarea
                   value={subQ.content}
                   onChange={(e) => {
                     const newQuestions = [...q.questions];
                     newQuestions[index] = { ...subQ, content: e.target.value };
-                    setEditedQuestion({ ...q, questions: newQuestions } as ReadingQuestion);
+                    setEditedQuestion({
+                      ...q,
+                      questions: newQuestions
+                    } as ReadingQuestion);
                   }}
-                  placeholder={`子題目 ${index + 1}`}
+                  className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
                 />
               </div>
               <div className="space-y-2">
@@ -390,27 +405,6 @@ export function EditableQuestionPreviewCard({
               </div>
             </div>
           ))}
-          <Button
-            onClick={() => {
-              const newQuestions = [
-                ...(editedQuestion as ReadingQuestion).questions,
-                {
-                  id: '',
-                  content: '',
-                  options: ['', '', '', ''],
-                  answer: 'A',
-                  explanation: ''
-                }
-              ];
-              setEditedQuestion({
-                ...editedQuestion,
-                questions: newQuestions
-              } as ReadingQuestion);
-            }}
-            className="w-full bg-mainBg dark:bg-white text-gray-700 dark:text-gray-800 border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
-          >
-            新增子題目
-          </Button>
         </div>
       </div>
     </div>
@@ -436,8 +430,7 @@ export function EditableQuestionPreviewCard({
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center py-1 mb-1 flex-shrink-0 dark:border-gray-300">
-
-      <h3 className="font-medium mb-2 text-gray-800 dark:text-mainBg">預覽與編輯</h3>
+        <h3 className="font-medium mb-2 text-gray-800 dark:text-mainBg">預覽與編輯</h3>
         <div className="flex items-center space-x-4">
           <Select value={editedQuestion.type} onValueChange={handleTypeChange}>
             <SelectTrigger className="w-[140px] h-8 bg-mainBg dark:bg-default text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-300">
@@ -462,16 +455,101 @@ export function EditableQuestionPreviewCard({
       </div>
 
       <Card className="flex-1 bg-mainBg dark:bg-default border border-gray-300 dark:border-gray-600 overflow-hidden">
-        <CardContent className="h-[calc(90vh-12rem)] overflow-y-auto p-6">
+        <CardContent className="h-full lg:h-[calc(90vh-12rem)] overflow-y-auto p-6">
           <div className="space-y-6">
-            <div>
-              <Label className="text-gray-700 dark:text-mainBg">題目內容</Label>
+            {editedQuestion.type === '閱讀測驗' ? (
+              <div className="space-y-4">
+                <Textarea
+                  value={editedQuestion.article}
+                  onChange={(e) => setEditedQuestion({ ...editedQuestion, article: e.target.value } as ReadingQuestion)}
+                  placeholder="請輸入文章內容..."
+                  rows={5}
+                  className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">子題目</label>
+                  <div className="space-y-4">
+                    {(editedQuestion as ReadingQuestion).questions.map((subQ, index) => (
+                      <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 space-y-4">
+                        <div>
+                          <Label className="text-gray-700 dark:text-mainBg">題目 {index + 1}</Label>
+                          <Textarea
+                            value={subQ.content}
+                            onChange={(e) => {
+                              const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
+                              newQuestions[index] = { ...subQ, content: e.target.value };
+                              setEditedQuestion({
+                                ...editedQuestion,
+                                questions: newQuestions
+                              } as ReadingQuestion);
+                            }}
+                            className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-gray-700 dark:text-mainBg">選項</Label>
+                          <div className="space-y-2 mt-2">
+                            {subQ.options.map((option, optIndex) => (
+                              <div key={optIndex} className="flex items-center gap-2">
+                                <RadioGroup
+                                  value={subQ.answer}
+                                  onValueChange={(value) => {
+                                    const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
+                                    newQuestions[index] = { ...subQ, answer: value };
+                                    setEditedQuestion({
+                                      ...editedQuestion,
+                                      questions: newQuestions
+                                    } as ReadingQuestion);
+                                  }}
+                                >
+                                  <RadioGroupItem value={option} />
+                                </RadioGroup>
+                                <Input
+                                  value={option}
+                                  onChange={(e) => {
+                                    const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
+                                    const newOptions = [...subQ.options];
+                                    newOptions[optIndex] = e.target.value;
+                                    newQuestions[index] = { ...subQ, options: newOptions };
+                                    setEditedQuestion({
+                                      ...editedQuestion,
+                                      questions: newQuestions
+                                    } as ReadingQuestion);
+                                  }}
+                                  className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-gray-700 dark:text-mainBg">解釋</Label>
+                          <Textarea
+                            value={subQ.explanation}
+                            onChange={(e) => {
+                              const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
+                              newQuestions[index] = { ...subQ, explanation: e.target.value };
+                              setEditedQuestion({
+                                ...editedQuestion,
+                                questions: newQuestions
+                              } as ReadingQuestion);
+                            }}
+                            className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
               <Textarea
                 value={editedQuestion.content}
                 onChange={(e) => setEditedQuestion({ ...editedQuestion, content: e.target.value })}
-                className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                placeholder="請輸入題目內容..."
               />
-            </div>
+            )}
 
             {editedQuestion.type === '單選題' && (
               <div>
@@ -582,125 +660,6 @@ export function EditableQuestionPreviewCard({
               </div>
             )}
 
-            {editedQuestion.type === '閱讀測驗' && (
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-700 dark:text-mainBg">文章內容</Label>
-                  <Textarea
-                    value={(editedQuestion as ReadingQuestion).article}
-                    onChange={(e) =>
-                      setEditedQuestion({
-                        ...editedQuestion,
-                        article: e.target.value
-                      } as ReadingQuestion)
-                    }
-                    className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
-                    rows={6}
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-700 dark:text-mainBg">子題目</Label>
-                  <div className="space-y-4 mt-2">
-                    {(editedQuestion as ReadingQuestion).questions.map((subQ, index) => (
-                      <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 space-y-4">
-                        <div>
-                          <Label className="text-gray-700 dark:text-mainBg">題目 {index + 1}</Label>
-                          <Textarea
-                            value={subQ.content}
-                            onChange={(e) => {
-                              const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
-                              newQuestions[index] = { ...subQ, content: e.target.value };
-                              setEditedQuestion({
-                                ...editedQuestion,
-                                questions: newQuestions
-                              } as ReadingQuestion);
-                            }}
-                            className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
-                          />
-                        </div>
-
-                        <div>
-                          <Label className="text-gray-700 dark:text-mainBg">選項</Label>
-                          <div className="space-y-2 mt-2">
-                            {subQ.options.map((option, optIndex) => (
-                              <div key={optIndex} className="flex items-center gap-2">
-                                <RadioGroup
-                                  value={subQ.answer}
-                                  onValueChange={(value) => {
-                                    const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
-                                    newQuestions[index] = { ...subQ, answer: value };
-                                    setEditedQuestion({
-                                      ...editedQuestion,
-                                      questions: newQuestions
-                                    } as ReadingQuestion);
-                                  }}
-                                >
-                                  <RadioGroupItem value={option} />
-                                </RadioGroup>
-                                <Input
-                                  value={option}
-                                  onChange={(e) => {
-                                    const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
-                                    const newOptions = [...subQ.options];
-                                    newOptions[optIndex] = e.target.value;
-                                    newQuestions[index] = { ...subQ, options: newOptions };
-                                    setEditedQuestion({
-                                      ...editedQuestion,
-                                      questions: newQuestions
-                                    } as ReadingQuestion);
-                                  }}
-                                  className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label className="text-gray-700 dark:text-mainBg">解釋</Label>
-                          <Textarea
-                            value={subQ.explanation}
-                            onChange={(e) => {
-                              const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
-                              newQuestions[index] = { ...subQ, explanation: e.target.value };
-                              setEditedQuestion({
-                                ...editedQuestion,
-                                questions: newQuestions
-                              } as ReadingQuestion);
-                            }}
-                            className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
-                          />
-                        </div>
-                      </div>
-                    ))}
-
-                    <Button
-                      onClick={() => {
-                        const newQuestions = [
-                          ...(editedQuestion as ReadingQuestion).questions,
-                          {
-                            id: '',
-                            content: '',
-                            options: ['', '', '', ''],
-                            answer: '',
-                            explanation: ''
-                          }
-                        ];
-                        setEditedQuestion({
-                          ...editedQuestion,
-                          questions: newQuestions
-                        } as ReadingQuestion);
-                      }}
-                      className="w-full bg-mainBg dark:bg-white text-gray-700 dark:text-gray-800 border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
-                    >
-                      新增子題目
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div>
               <Label className="text-gray-700 dark:text-mainBg">解析</Label>
               <Textarea
@@ -737,7 +696,6 @@ export function EditableQuestionPreviewCard({
             disabled={currentIndex === 0}
             className="bg-mainBg dark:bg-white text-gray-700 dark:text-gray-800 border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
           >
-           
             ←
           </Button>
           <Button
@@ -747,15 +705,29 @@ export function EditableQuestionPreviewCard({
             className="bg-mainBg dark:bg-white text-gray-700 dark:text-gray-800 border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
           >
             →
-            
           </Button>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-4">
+          {showError && validateTags() && (
+            <span className="text-red-500 animate-fadeIn text-sm">
+              ⚠️ {validateTags()}
+            </span>
+          )}
           <Button
-            onClick={handleImport}
-            className="bg-primary hover:bg-primary/90 text-white"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              const tagError = validateTags();
+              if (tagError) {
+                setShowError(true);
+                setTimeout(() => setShowError(false), 3000);
+                return;
+              }
+              handleImportClick();
+            }}
+            className={`bg-primary hover:bg-primary/90 text-white transition ${validateTags() ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            ➕ 匯入
+            💾儲存
           </Button>
         </div>
       </div>

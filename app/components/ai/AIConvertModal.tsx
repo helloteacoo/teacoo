@@ -12,6 +12,7 @@ import TagSelector from '../TagSelector';
 import { toast } from 'sonner';
 import { Button } from "@/app/components/ui/button";
 import { convertToQuestion } from "@/app/lib/ai/convertQuestion";
+import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
   open: boolean;
@@ -48,25 +49,33 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
   };
 
   const handleImport = (question: Question) => {
-    // 確保題目有正確的標籤
-    const questionWithTags = {
-      ...question,
-      tags: selectedTags
-    };
-    
-    // 呼叫父組件的 onImport
-    onImport(questionWithTags);
+    try {
+      // 確保題目有正確的標籤和必要的欄位
+      const questionWithMetadata = {
+        ...question,
+        id: uuidv4(), // 生成新的唯一ID
+        tags: question.tags || selectedTags, // 使用已有的標籤或選擇的標籤
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // 呼叫父組件的 onImport
+      onImport(questionWithMetadata);
 
-    // 如果還有下一題，自動前進到下一題
-    if (currentIndex < convertedQuestions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      // 如果是最後一題，清空並關閉視窗
-      setInput('');
-      setConvertedQuestions([]);
-      setCurrentIndex(0);
-      setSelectedTags([]);
-      onOpenChange(false);
+      // 如果還有下一題，自動前進到下一題
+      if (currentIndex < convertedQuestions.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        // 如果是最後一題，清空並關閉視窗
+        setInput('');
+        setConvertedQuestions([]);
+        setCurrentIndex(0);
+        setSelectedTags([]);
+        onOpenChange(false);
+      }
+    } catch (error) {
+      console.error('匯入失敗:', error);
+      toast.error('匯入失敗，請稍後再試');
     }
   };
 
@@ -107,8 +116,8 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
         <DialogHeader>
           <DialogTitle>AI 題目轉換</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-8 h-[calc(90vh-6rem)]">
-          <div className="h-full overflow-hidden">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-8 h-auto lg:h-[calc(90vh-6rem)]">
+          <div className="h-[35vh] lg:h-full overflow-hidden">
             <TextareaInputPanel
               value={input}
               onChange={setInput}
@@ -117,7 +126,7 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
               isOpen={open}
             />
           </div>
-          <div className="h-full overflow-y-auto">
+          <div className="h-[50vh] lg:h-full overflow-y-auto">
             {convertedQuestions.length > 0 ? (
               <EditableQuestionPreviewCard
                 question={convertedQuestions[currentIndex]}
@@ -131,7 +140,7 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
               />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">
-                尚未轉換，請貼上題目後點選「轉換」
+                請貼上題目後點選「轉換」
               </div>
             )}
           </div>

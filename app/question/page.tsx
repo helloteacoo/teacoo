@@ -453,25 +453,27 @@ export default function QuestionPage() {
         return;
       }
 
-      const newQuestion = {
-        ...question,
-        id: uuidv4(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
       // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
       setQuestions(prev => {
-        const updatedQuestions = [newQuestion, ...prev];
+        const updatedQuestions = [question, ...prev];
         // 立即儲存到 localStorage
-        safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
+        try {
+          safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
+          toast.success('題目已成功匯入');
+        } catch (error) {
+          console.error('儲存到 localStorage 失敗:', error);
+          toast.error('儲存失敗，請確保瀏覽器有足夠的儲存空間');
+          return prev; // 如果儲存失敗，不更新狀態
+        }
         return updatedQuestions;
       });
 
       // 確保新題目會出現在第一頁
       setCurrentPage(1);
 
-      toast.success('題目已成功匯入');
+      // 關閉 AI 轉換視窗
+      setShowAIModal(false);
+
     } catch (error) {
       console.error('匯入失敗:', error);
       toast.error('匯入失敗，請稍後再試');

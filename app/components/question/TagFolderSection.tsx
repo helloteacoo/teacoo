@@ -128,7 +128,7 @@ export default function TagFolderSection({
           {tagsState.unorganizedTags.map(tag => (
             <div
               key={tag}
-              className={`group flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors ${
+              className={`group flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors cursor-pointer ${
                 filters[tag]
                   ? 'bg-primary text-white'
                   : 'bg-blue-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-200 dark:hover:bg-gray-700'

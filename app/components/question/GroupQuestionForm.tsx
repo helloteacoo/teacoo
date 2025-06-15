@@ -195,11 +195,6 @@ export default function GroupQuestionForm({
   };
 
   const validateForm = useMemo(() => {
-    // 共同條件：至少一個標籤
-    if (tags.length === 0) {
-      return '請至少選擇一個標籤';
-    }
-
     // 文章內容不可為空
     if (!article.trim()) {
       return '請輸入文章內容';
@@ -253,6 +248,11 @@ export default function GroupQuestionForm({
           return `請為第 ${i + 1} 個空格選擇正確答案`;
         }
       }
+    }
+
+    // 共同條件：至少一個標籤
+    if (tags.length === 0) {
+      return '請至少選擇一個標籤';
     }
 
     return ''; // 通過所有驗證

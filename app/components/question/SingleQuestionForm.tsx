@@ -210,11 +210,6 @@ export default function SingleQuestionForm({
       return '請輸入題目內容';
     }
 
-    // 共同條件：至少一個標籤
-    if (tags.length === 0) {
-      return '請至少選擇一個標籤';
-    }
-
     switch (type) {
       case '單選題': {
         // 檢查至少有 A 和 B 兩個選項
@@ -266,6 +261,11 @@ export default function SingleQuestionForm({
         }
         break;
       }
+    }
+
+    // 共同條件：至少一個標籤
+    if (tags.length === 0) {
+      return '請至少選擇一個標籤';
     }
 
     return ''; // 通過所有驗證
