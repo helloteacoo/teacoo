@@ -61,9 +61,23 @@ function sanitizeQuestion(raw: any): Question | null {
           ? raw.options
           : ['', '', '', ''];
         
-        const answers = Array.isArray(raw.answers) 
+        let answers = Array.isArray(raw.answers) 
           ? raw.answers.filter((i: number) => i >= 0 && i < options.length)
           : [];
+
+        // 確保答案是數字陣列
+        answers = answers.map((ans: any) => {
+          if (typeof ans === 'number') return ans;
+          if (typeof ans === 'string') {
+            // 如果是字母（A, B, C...），轉換為數字
+            if (/^[A-Z]$/.test(ans)) {
+              return ans.charCodeAt(0) - 65;
+            }
+            // 如果是數字字串，轉換為數字
+            return parseInt(ans, 10);
+          }
+          return 0;
+        }).filter((num: number) => !isNaN(num) && num >= 0 && num < options.length);
 
         console.log('🔍 處理多選題:', {
           原始選項: raw.options,

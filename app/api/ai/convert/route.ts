@@ -190,54 +190,69 @@ export async function POST(request: Request) {
         );
       }
 
-      const now = new Date().toISOString();
-
       // 確保回應是陣列
       const rawQuestions = Array.isArray(parsedResult) ? parsedResult : 
                           Array.isArray(parsedResult.questions) ? parsedResult.questions : 
                           [parsedResult];
 
-      if (!rawQuestions.length) {
-        return NextResponse.json(
-          { error: '無法從文字中提取題目' },
-          { status: 400 }
-        );
-      }
-
-      console.log('🔍 處理前的題目:', rawQuestions);
-
-      // 添加必要欄位並確保多選題有正確的選項
-      const questions = rawQuestions.map((q: Record<string, any>) => {
-        console.log('🔍 處理題目:', q);
+      // 處理每個題目
+      const processedQuestions = rawQuestions.map((q: any) => {
+        const now = new Date().toISOString();
         const baseQuestion = {
-          ...q,
           id: uuidv4(),
           createdAt: now,
           updatedAt: now,
-          tags: q.tags || [],
-          explanation: q.explanation || '',
+          tags: [],
+          explanation: q.explanation || ''
         };
 
         // 特別處理多選題
         if (q.type === '多選題') {
-          console.log('🔍 處理多選題選項:', {
-            原始選項: q.options,
-            原始答案: q.answers
+          console.log('處理多選題原始資料:', q);
+          const options = Array.isArray(q.options) ? q.options : ['', '', '', ''];
+          let answers = Array.isArray(q.answers) ? q.answers : [];
+
+          // 處理答案格式
+          answers = answers
+            .map((ans: any) => {
+              if (typeof ans === 'number') return ans;
+              if (typeof ans === 'string') {
+                // 如果是字母（A, B, C...），轉換為數字
+                if (/^[A-Z]$/.test(ans)) {
+                  return ans.charCodeAt(0) - 65;
+                }
+                // 如果是數字字串，轉換為數字
+                const num = parseInt(ans, 10);
+                return isNaN(num) ? -1 : num;
+              }
+              return -1;
+            })
+            .filter((index: number) => index >= 0 && index < options.length);
+
+          // 如果沒有有效答案，設置預設值
+          if (answers.length === 0) {
+            answers = [0];
+          }
+
+          console.log('處理後的多選題資料:', {
+            options,
+            answers: answers.sort((a: number, b: number) => a - b)
           });
+
           return {
             ...baseQuestion,
-            type: '多選題' as const,
-            options: Array.isArray(q.options) ? q.options : [],
-            answers: Array.isArray(q.answers) ? q.answers : []
-          } as MultipleChoiceQuestion;
+            type: '多選題',
+            content: q.content || '',
+            options,
+            answers: answers.sort((a: number, b: number) => a - b)
+          };
         }
 
-        return baseQuestion as Question;
+        // 處理其他題型...
+        return q;
       });
 
-      console.log('🔍 最終題目:', questions);
-
-      return NextResponse.json({ questions });
+      return NextResponse.json({ questions: processedQuestions });
     } catch (error) {
       console.error('❌ OpenAI API 錯誤:', error);
       return NextResponse.json(

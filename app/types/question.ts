@@ -85,7 +85,7 @@ export interface BaseFormData {
 }
 
 export interface SingleQuestionFormData extends BaseFormData {
-  type: '單選題' | '填空題' | '簡答題';
+  type: '單選題' | '多選題' | '填空題' | '簡答題';
   options?: string[];
   answer?: string;
 }

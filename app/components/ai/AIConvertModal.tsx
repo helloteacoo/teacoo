@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/app/components/ui/dialog';
-import type { Question } from '@/app/types/question';
+import type { Question, MultipleChoiceQuestion } from '@/app/types/question';
 import { TextareaInputPanel } from './TextareaInputPanel';
 import { EditableQuestionPreviewCard } from './EditableQuestionPreviewCard';
 import TagSelector from '../TagSelector';
@@ -50,11 +50,23 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
 
   const handleImport = (question: Question) => {
     try {
-      // 確保題目有正確的標籤和必要的欄位
+      let processedQuestion = { ...question };
+      
+      // 特別處理多選題的資料結構
+      if (processedQuestion.type === '多選題') {
+        const multipleChoiceQuestion = processedQuestion as MultipleChoiceQuestion;
+        if (!Array.isArray(multipleChoiceQuestion.answers)) {
+          multipleChoiceQuestion.answers = [];
+        }
+        if (!Array.isArray(multipleChoiceQuestion.options)) {
+          multipleChoiceQuestion.options = [];
+        }
+      }
+      
       const questionWithMetadata = {
-        ...question,
-        id: uuidv4(), // 生成新的唯一ID
-        tags: question.tags || selectedTags, // 使用已有的標籤或選擇的標籤
+        ...processedQuestion,
+        id: uuidv4(),
+        tags: processedQuestion.tags || selectedTags,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };

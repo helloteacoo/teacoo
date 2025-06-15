@@ -20,7 +20,8 @@ import type {
   ClozeQuestion,
   SubQuestion,
   ClozeSubQuestion,
-  QuestionType
+  QuestionType,
+  MultipleChoiceQuestion
 } from '../types/question';
 import { sampleQuestions } from '../data/sampleQuestions';
 import { v4 as uuidv4 } from 'uuid';
@@ -38,6 +39,10 @@ interface ButtonProps {
 // Type Guards
 function isSingleChoiceQuestion(q: Question): q is SingleChoiceQuestion {
   return q.type === '單選題';
+}
+
+function isMultipleChoiceQuestion(q: Question): q is MultipleChoiceQuestion {
+  return q.type === '多選題';
 }
 
 function isFillInQuestion(q: Question): q is FillInQuestion {
@@ -225,6 +230,13 @@ export default function QuestionPage() {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
             q.options[q.answer].toLowerCase().includes(lowerKeyword);
+        } else if (isMultipleChoiceQuestion(q)) {
+          const multipleChoiceQ = q as MultipleChoiceQuestion;
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            multipleChoiceQ.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
+            multipleChoiceQ.answers.some(answerIndex => 
+              multipleChoiceQ.options[answerIndex].toLowerCase().includes(lowerKeyword)
+            );
         } else if (isFillInQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.blanks.some((blank: string) => blank.toLowerCase().includes(lowerKeyword));
@@ -261,7 +273,7 @@ export default function QuestionPage() {
       if (matchedTypes.has('閱讀測驗') || matchedTypes.has('克漏字')) {
         matchedTypes.add('題組');
       }
-      if (['單選題', '填空題', '簡答題'].some(t => matchedTypes.has(t))) {
+      if (['單選題', '多選題', '填空題', '簡答題'].some(t => matchedTypes.has(t))) {
         matchedTypes.add('單題');
       }
 
@@ -293,13 +305,15 @@ export default function QuestionPage() {
       .map(([key]) => key);
 
     const selectedTypes = Object.entries(filters)
-      .filter(([key, value]) => value && ['單選題', '填空題', '簡答題', '閱讀測驗', '克漏字'].includes(key))
+      .filter(([key, value]) => value && ['單選題', '多選題', '填空題', '簡答題', '閱讀測驗', '克漏字'].includes(key))
       .map(([key]) => key);
 
     const lowerKeyword = keyword.trim().toLowerCase();
 
-    // 如果沒有選擇任何題型或標籤，則不顯示任何題目
-    if (selectedTypes.length === 0 && selectedTags.length === 0) return [];
+    // 如果沒有選擇任何題型和標籤，且沒有搜尋關鍵字，則顯示所有題目
+    if (selectedTypes.length === 0 && selectedTags.length === 0 && lowerKeyword === '') {
+      return questions;
+    }
 
     return questions.filter((q: Question) => {
       // 檢查是否符合題型條件
@@ -313,7 +327,7 @@ export default function QuestionPage() {
       // 如果勾選了「單題」但沒有勾選題組
       else if (filters.單題 && !filters.題組) {
         // 只顯示單題類型的題目
-        matchesTypes = ['單選題', '填空題', '簡答題'].includes(q.type);
+        matchesTypes = ['單選題', '多選題', '填空題', '簡答題'].includes(q.type);
       }
       // 如果同時勾選了題組和單題，或者選擇了特定的題型
       else {
@@ -332,6 +346,13 @@ export default function QuestionPage() {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
             q.options[q.answer].toLowerCase().includes(lowerKeyword);
+        } else if (isMultipleChoiceQuestion(q)) {
+          const multipleChoiceQ = q as MultipleChoiceQuestion;
+          return q.content.toLowerCase().includes(lowerKeyword) ||
+            multipleChoiceQ.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
+            multipleChoiceQ.answers.some(answerIndex => 
+              multipleChoiceQ.options[answerIndex].toLowerCase().includes(lowerKeyword)
+            );
         } else if (isFillInQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
             q.blanks.some((blank: string) => blank.toLowerCase().includes(lowerKeyword));
@@ -396,24 +417,80 @@ export default function QuestionPage() {
   const [lastUsedTags, setLastUsedTags] = useState<string[]>([]);
 
   const handleAddQuestion = (data: Question) => {
+    console.log('🔍 新增題目:', data);
     // 檢查是否超過題目數量限制
     if (questions.length >= MAX_ITEMS) {
       alert(isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！');
       return;
     }
 
-    // 新增題目時，將新題目加到陣列最前面
-    setQuestions(prev => [{ ...data, id: Math.random().toString(36).substring(7) }, ...prev]);
+    // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
+    setQuestions(prev => {
+      console.log('🔍 現有題目數量:', prev.length);
+      const updatedQuestions = [{ ...data, id: Math.random().toString(36).substring(7) }, ...prev];
+      console.log('🔍 更新後題目數量:', updatedQuestions.length);
+      // 立即儲存到 localStorage
+      try {
+        safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
+        console.log('🔍 題目已成功儲存到 localStorage');
+        toast.success('題目已成功儲存');
+      } catch (error) {
+        console.error('儲存到 localStorage 失敗:', error);
+        toast.error('儲存失敗，請確保瀏覽器有足夠的儲存空間');
+        return prev; // 如果儲存失敗，不更新狀態
+      }
+      return updatedQuestions;
+    });
     handleModalChange(false);
   };
+
+  // 每當題目列表更新時，自動保存到 localStorage
+  useEffect(() => {
+    if (!isClient) return;
+    try {
+      safeLocalStorage.setItem('questions', JSON.stringify(questions));
+      console.log('🔍 題目已自動保存到 localStorage，當前題目數量:', questions.length);
+    } catch (error) {
+      console.error('自動保存到 localStorage 失敗:', error);
+    }
+  }, [questions, isClient]);
 
   const handleModalChange = (open: boolean) => {
     setShowAddModal(open);
   };
 
+  const handleEditQuestion = (data: Question) => {
+    setQuestions((prev: Question[]) => {
+      const updatedQuestions = prev.map(q => q.id === editingQuestion?.id ? { ...data, id: q.id } : q);
+      // 立即儲存到 localStorage
+      try {
+        safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
+        toast.success('題目已成功更新');
+      } catch (error) {
+        console.error('儲存到 localStorage 失敗:', error);
+        toast.error('儲存失敗，請確保瀏覽器有足夠的儲存空間');
+        return prev; // 如果儲存失敗，不更新狀態
+      }
+      return updatedQuestions;
+    });
+    setShowEditModal(false);
+    setEditingQuestion(null);
+  };
+
   const handleDeleteQuestions = () => {
-    const updatedQuestions = questions.filter(q => !selectedQuestions.includes(q.id));
-    setQuestions(updatedQuestions);
+    setQuestions(prev => {
+      const updatedQuestions = prev.filter(q => !selectedQuestions.includes(q.id));
+      // 立即儲存到 localStorage
+      try {
+        safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
+        toast.success('題目已成功刪除');
+      } catch (error) {
+        console.error('儲存到 localStorage 失敗:', error);
+        toast.error('刪除失敗，請確保瀏覽器有足夠的儲存空間');
+        return prev; // 如果儲存失敗，不更新狀態
+      }
+      return updatedQuestions;
+    });
     setShowDeleteConfirm(false);
     setSelectedQuestions([]);
   };
@@ -426,14 +503,6 @@ export default function QuestionPage() {
         : [q.id]
     );
     setSelectedQuestions(filteredIds);
-  };
-
-  const handleEditQuestion = (data: Question) => {
-    setQuestions(prev => 
-      prev.map(q => q.id === editingQuestion?.id ? { ...data, id: q.id } : q)
-    );
-    setShowEditModal(false);
-    setEditingQuestion(null);
   };
 
   const handleEditClick = (question: Question) => {
@@ -455,9 +524,38 @@ export default function QuestionPage() {
         return;
       }
 
+      // 特別處理多選題
+      let processedQuestion = { ...question };
+      if (processedQuestion.type === '多選題') {
+        const multipleChoiceQuestion = processedQuestion as MultipleChoiceQuestion;
+        // 確保 options 和 answers 是陣列
+        if (!Array.isArray(multipleChoiceQuestion.options) || multipleChoiceQuestion.options.length === 0) {
+          multipleChoiceQuestion.options = ['', '', '', ''];
+        }
+        if (!Array.isArray(multipleChoiceQuestion.answers) || multipleChoiceQuestion.answers.length === 0) {
+          multipleChoiceQuestion.answers = [0];
+        }
+        // 過濾無效的答案索引並排序
+        multipleChoiceQuestion.answers = multipleChoiceQuestion.answers
+          .filter(index => index >= 0 && index < multipleChoiceQuestion.options.length)
+          .sort((a, b) => a - b);
+
+        // 如果過濾後答案陣列為空，設置預設值
+        if (multipleChoiceQuestion.answers.length === 0) {
+          multipleChoiceQuestion.answers = [0];
+        }
+
+        console.log('處理多選題:', {
+          原始題目: question,
+          處理後題目: multipleChoiceQuestion
+        });
+
+        processedQuestion = multipleChoiceQuestion;
+      }
+
       // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
       setQuestions(prev => {
-        const updatedQuestions = [question, ...prev];
+        const updatedQuestions = [processedQuestion, ...prev];
         // 立即儲存到 localStorage
         try {
           safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
@@ -507,60 +605,54 @@ export default function QuestionPage() {
           isPremium={isPremium}
         />
 
-        <main className="flex-1 p-4 lg:p-6 overflow-auto max-w-full">
-          <div className="sticky top-0 z-10 bg-mainBg dark:bg-gray-900 pb-2 border-b border-transparent overflow-hidden">
+        <main className="flex-1 p-2 lg:p-6 overflow-auto max-w-full">
+          <div className="sticky top-[-6px] z-10 bg-mainBg dark:bg-gray-900 pb-2 border-b border-transparent overflow-hidden">
             {/* 桌面版/平板橫放布局 (lg 以上) */}
             <div className="hidden sm:flex sm:flex-col gap-4 mb-4">
               {/* 第一行：功能按鈕 */}
               <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
                 <Button 
                   onClick={() => handleAIModalChange(true)}
-                  className="text-gray-200"
+                  className="text-gray-200 h-8 px-3 text-sm"
                 >
                   🤖 AI匯入
-                </Button>
-                <Button 
-                  onClick={() => handleModalChange(true)}
-                  className="text-gray-200"
-                >
-                  ➕ 新增題目
                 </Button>
                 
                 <Button 
                   onClick={() => handleAssignmentModalChange(true)}
-                  className="text-gray-200"
+                  className="text-gray-200 h-8 px-3 text-sm"
                   disabled={selectedQuestions.length === 0}
                 >
                   📤 派發作業
                 </Button>
-                <Button className="text-gray-200">🧪 自我練習</Button>
-                <Button className="text-gray-300">📄 匯出題目</Button>
+                <Button className="text-gray-200 h-8 px-3 text-sm">🧪 自我練習</Button>
+                <Button className="text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
               </div>
 
               {/* 第二行：搜尋和選擇按鈕 */}
               <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
                 <Input
                   placeholder="搜尋題目關鍵字..."
-                  className="w-[300px] placeholder:text-gray-400 dark:placeholder:text-gray-400"
+                  className="w-[300px] placeholder:text-gray-400 dark:placeholder:text-gray-400 h-8 text-sm"
                   value={keyword}
                   onChange={handleKeywordChange}
                 />
                 <Button
                   onClick={handleSelectAll}
-                  className="text-gray-200"
+                  className="text-gray-200 h-8 px-3 text-sm"
                 >
                   ✅ 全選
                 </Button>
                 <Button 
                   onClick={() => setSelectedQuestions([])} 
-                  className="text-gray-300"
+                  className="text-gray-300 h-8 px-3 text-sm"
                 >
                   ⬜️ 取消
                 </Button>
                 <Button
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={selectedQuestions.length === 0}
-                  className="text-gray-200"
+                  className="text-gray-200 h-8 px-3 text-sm"
                 >
                   🗑️ 刪除
                 </Button>
@@ -571,7 +663,7 @@ export default function QuestionPage() {
             <div className="sm:hidden space-y-4 mb-4">
               <Input
                 placeholder="搜尋題目關鍵字..."
-                className="w-full placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full placeholder:text-gray-400 dark:placeholder:text-gray-500 h-8 text-sm"
                 value={keyword}
                 onChange={handleKeywordChange}
               />
@@ -579,20 +671,20 @@ export default function QuestionPage() {
                 <div className="flex gap-2 min-w-min">
                   <Button
                     onClick={handleSelectAll}
-                    className="whitespace-nowrap text-gray-200"
+                    className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
                   >
                     ✅ 全部勾選
                   </Button>
                   <Button 
                     onClick={() => setSelectedQuestions([])} 
-                    className="whitespace-nowrap text-gray-300"
+                    className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm"
                   >
                     ⬜️ 全部取消
                   </Button>
                   <Button
                     onClick={() => setShowDeleteConfirm(true)}
                     disabled={selectedQuestions.length === 0}
-                    className="whitespace-nowrap text-gray-200"
+                    className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
                   >
                     🗑️ 刪除題目
                   </Button>
@@ -602,25 +694,20 @@ export default function QuestionPage() {
                 <div className="flex gap-2 min-w-min">
                   <Button 
                     onClick={() => handleAIModalChange(true)}
-                    className="whitespace-nowrap text-gray-200"
+                    className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
                   >
                     🤖 AI匯入
                   </Button>
-                  <Button 
-                    onClick={() => handleModalChange(true)}
-                    className="whitespace-nowrap text-gray-200"
-                  >
-                    ➕ 新增題目
-                  </Button>
-                  <Button className="whitespace-nowrap text-gray-200">🧪 自我練習</Button>
+                  
+                  <Button className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm">🧪 自我練習</Button>
                   <Button 
                     onClick={() => handleAssignmentModalChange(true)}
-                    className="whitespace-nowrap text-gray-200"
+                    className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
                     disabled={selectedQuestions.length === 0}
                   >
                     📤 派發作業
                   </Button>
-                  <Button className="whitespace-nowrap text-gray-300">📄 匯出題目</Button>
+                  <Button className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
                 </div>
               </div>
             </div>
@@ -687,6 +774,26 @@ export default function QuestionPage() {
                             </ul>
                             <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
                               🟢 正解：({String.fromCharCode(65 + q.answer)}) {q.options[q.answer]}
+                            </div>
+                            {q.explanation && (
+                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
+                                💡 解釋：{q.explanation}
+                              </div>
+                            )}
+                          </>
+                        ) : isMultipleChoiceQuestion(q) ? (
+                          <>
+                            <ul className="list-none pl-5 text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
+                              {q.options.map((opt: string, i: number) => (
+                                <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
+                              ))}
+                            </ul>
+                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
+                              🟢 正解：
+                              {q.answers
+                                .sort((a, b) => a - b)
+                                .map(index => `(${String.fromCharCode(65 + index)}) ${q.options[index]}`)
+                                .join('、')}
                             </div>
                             {q.explanation && (
                               <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
@@ -785,7 +892,7 @@ export default function QuestionPage() {
             <Button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="text-gray-200"
+              className="text-gray-200 h-8 w-8 p-0 text-sm"
             >
               ←
             </Button>
@@ -796,7 +903,7 @@ export default function QuestionPage() {
                   key={pageNum}
                   onClick={() => handlePageChange(pageNum)}
                   variant={currentPage === pageNum ? "default" : "outline"}
-                  className={`w-8 h-8 p-0 ${
+                  className={`w-8 h-8 p-0 text-sm ${
                     currentPage === pageNum
                       ? "bg-primary text-white"
                       : "text-gray-600 dark:text-gray-400"
@@ -810,7 +917,7 @@ export default function QuestionPage() {
             <Button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="text-gray-200"
+              className="text-gray-200 h-8 w-8 p-0 text-sm"
             >
               →
             </Button>
