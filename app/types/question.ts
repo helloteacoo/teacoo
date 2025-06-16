@@ -14,6 +14,7 @@ export interface BaseQuestion {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  isSample?: boolean;
 }
 
 export interface SingleChoiceQuestion extends BaseQuestion {
