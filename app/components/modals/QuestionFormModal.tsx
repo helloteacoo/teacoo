@@ -40,8 +40,8 @@ export interface QuestionFormModalProps {
   onModeChange?: (mode: 'single' | 'group') => void;
   onQuestionTypeChange?: (type: SingleQuestionType | GroupQuestionType | undefined) => void;
   onGroupTypeChange?: (type: GroupQuestionType) => void;
-  checkGroupPermission?: () => boolean;
-  onGroupSubmitSuccess?: () => void;
+  checkGroupPermission?: () => Promise<boolean>;
+  onGroupSubmitSuccess?: (question: Question) => Promise<void>;
   allTags: string[];
 }
 
@@ -61,7 +61,7 @@ export default function QuestionFormModal({
   onModeChange,
   onQuestionTypeChange,
   onGroupTypeChange,
-  checkGroupPermission = () => true,
+  checkGroupPermission = async () => true,
   onGroupSubmitSuccess,
   allTags
 }: QuestionFormModalProps) {
@@ -83,7 +83,6 @@ export default function QuestionFormModal({
   // 當 initialData 改變時，更新表單狀態
   useEffect(() => {
     if (isEditMode && !initialData) {
-      console.log('🧪 QuestionFormModal - 等待初始資料...');
       return;
     }
 
@@ -137,20 +136,14 @@ export default function QuestionFormModal({
     onModeChange?.(newMode);
   };
 
-  // 如果是編輯模式但沒有初始資料，不要渲染
-  if (isEditMode && (initialData === null || initialData === undefined)) {
-    console.log('🧪 QuestionFormModal - 等待初始資料...');
-    return null;
-  }
-
   const handleQuestionTypeChange = (type: SingleQuestionType | GroupQuestionType | undefined) => {
     setQuestionType(type as SingleQuestionType);
     setGroupType(type as GroupQuestionType);
     onQuestionTypeChange?.(type);
   };
 
-  const handleGroupTypeChange = (type: GroupQuestionType) => {
-    if (!checkGroupPermission()) {
+  const handleGroupTypeChange = async (type: GroupQuestionType) => {
+    if (!(await checkGroupPermission())) {
       return;
     }
     setGroupType(type);
@@ -162,10 +155,12 @@ export default function QuestionFormModal({
     setLastUsedTags(data.tags);
   };
 
-  const handleGroupQuestionSubmit = (data: Question) => {
+  const handleGroupQuestionSubmit = async (data: Question) => {
     onSubmit(data);
     setLastUsedTags(data.tags);
-    onGroupSubmitSuccess?.();
+    if (onGroupSubmitSuccess) {
+      await onGroupSubmitSuccess(data);
+    }
   };
 
   const content = (

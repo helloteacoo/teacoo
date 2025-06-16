@@ -10,7 +10,6 @@ import Sidebar from '../components/question/sidebar';
 import type { FilterKey } from '../components/question/sidebar';
 import AddQuestionModal from '../components/modals/AddQuestionModal';
 import { AIConvertModal } from '../components/ai/AIConvertModal';
-import AssignmentModal from '../components/modals/AssignmentModal';
 import type { 
   Question,
   SingleChoiceQuestion,
@@ -27,6 +26,8 @@ import { sampleQuestions } from '../data/sampleQuestions';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import { safeLocalStorage } from '@/lib/utils/storage';
+import AssignQuizModal from '../components/AssignQuiz/AssignQuizModal';
+import { getAllQuestions, addQuestion, updateQuestion, deleteQuestion, searchQuestions, getQuestionsByTags } from '@/app/lib/firebase/questions';
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -66,46 +67,176 @@ function isGroupQuestion(q: Question): q is ReadingQuestion | ClozeQuestion {
 }
 
 export default function QuestionPage() {
+  const [isClient, setIsClient] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
-  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  const [keyword, setKeyword] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isPremium] = useState(false); // 預設為免費版
   const [isFirstLogin, setIsFirstLogin] = useState(true);
-  const [isClient, setIsClient] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [deleteMode, setDeleteMode] = useState<'single' | 'batch'>('single');
+
+  const ITEMS_PER_PAGE = 25; // 每頁顯示的卡片數量
+  const MAX_ITEMS = isPremium ? 1000 : 100; // 最大卡片數量限制
+
   // 設置 client-side 標記
   useEffect(() => {
     setIsClient(true);
   }, []);
-  
-  // 初始化題目列表，優先使用 localStorage 中的題目
-  const [questions, setQuestions] = useState<Question[]>(() => {
-    // 在伺服器端返回範例題目
-    if (typeof window === 'undefined') {
-      return sampleQuestions;
-    }
-    
-    // 嘗試從 localStorage 讀取題目
-    const savedQuestions = safeLocalStorage.getItem('questions');
-    if (savedQuestions) {
-      try {
-        const parsed = JSON.parse(savedQuestions);
-        // 檢查是否已經包含範例題目
-        const hasSampleQuestions = parsed.some((q: Question) => q.id.startsWith('sample-'));
-        // 如果沒有範例題目，則添加
-        return hasSampleQuestions ? parsed : [...parsed, ...sampleQuestions];
-      } catch (error) {
-        console.error('解析已保存題目失敗:', error);
-        return sampleQuestions;
+
+  // 初始化題目列表
+  const [questions, setQuestions] = useState<Question[]>([]);
+
+  // 載入題目
+  // 載入題目（只在首次使用時寫入 sample）
+useEffect(() => {
+  const loadQuestions = async () => {
+    try {
+      setIsLoading(true);
+      const firebaseQuestions = await getAllQuestions();
+
+      const hasSeenSample = safeLocalStorage.getItem('hasLoadedSampleQuestions');
+
+      if (!hasSeenSample) {
+        const existingQuestions = await getAllQuestions();
+        const existingContents = new Set(existingQuestions.map(q => q.content));
+      
+        await Promise.all(
+          sampleQuestions
+            .filter((q) => !existingContents.has(q.content)) // 避免重複
+            .map(async (q) => {
+              const { id, ...rest } = q;
+              await addQuestion({ ...rest, isSample: true }); // ✅ 可選加上 isSample 標記
+            })
+        );
+      
+        safeLocalStorage.setItem('hasLoadedSampleQuestions', 'true');
       }
+      
+
+      const updatedQuestions = await getAllQuestions();
+      setQuestions(updatedQuestions);
+    } catch (error) {
+      console.error('載入題目失敗:', error);
+      toast.error('載入題目失敗');
+      setQuestions([]);
+    } finally {
+      setIsLoading(false);
     }
-    // 如果沒有已保存的題目，使用範例題目
-    return sampleQuestions;
-  });
+  };
 
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  if (isClient) {
+    loadQuestions();
+  }
+}, [isClient]);
 
+  // 處理新增題目
+  const handleAddQuestion = async (newQuestion: Omit<Question, 'id'>) => {
+    try {
+      const id = await addQuestion(newQuestion);
+      // 只用 Firestore 文件 id，不再於內容欄位存 id
+      const question = { ...newQuestion, id } as Question;
+      setQuestions(prev => [...prev, question]);
+      toast.success('新增題目成功');
+      return question;
+    } catch (error) {
+      console.error('新增題目失敗:', error);
+      toast.error('新增題目失敗');
+      throw error;
+    }
+  };
+
+  // 處理更新題目
+  const handleUpdateQuestion = async (id: string, updatedQuestion: Partial<Question>) => {
+    try {
+      await updateQuestion(id, updatedQuestion);
+      setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...updatedQuestion } as Question : q));
+      toast.success('更新題目成功');
+    } catch (error) {
+      console.error('更新題目失敗:', error);
+      toast.error('更新題目失敗');
+    }
+  };
+
+  // 處理刪除題目
+  const handleDeleteQuestion = async (id: string) => {
+    try {
+      await deleteQuestion(id);
+      setQuestions(prev => prev.filter(q => q.id !== id));
+      toast.success('刪除題目成功');
+    } catch (error) {
+      console.error('刪除題目失敗:', error);
+      toast.error('刪除題目失敗');
+    }
+  };
+
+  // 處理批量刪除題目
+  const handleBatchDelete = async () => {
+    try {
+      console.log('刪除這些文件 id:', selectedQuestionIds);
+      await Promise.all(selectedQuestionIds.map(id => deleteQuestion(id)));
+      const firebaseQuestions = await getAllQuestions();
+      setQuestions(firebaseQuestions);
+      setSelectedQuestionIds([]);
+      toast.success('批量刪除成功');
+    } catch (error) {
+      console.error('批量刪除失敗:', error);
+      toast.error('批量刪除失敗');
+    }
+  };
+
+  // 處理搜尋題目
+  const handleSearch = async (searchKeyword: string) => {
+    try {
+      if (!searchKeyword.trim()) {
+        const allQuestions = await getAllQuestions();
+        setQuestions(allQuestions);
+        return;
+      }
+      const searchResults = await searchQuestions(searchKeyword);
+      setQuestions(searchResults);
+    } catch (error) {
+      console.error('搜尋題目失敗:', error);
+      toast.error('搜尋題目失敗');
+    }
+  };
+
+  // 處理標籤篩選
+  const handleTagFilter = async (tags: string[]) => {
+    try {
+      if (tags.length === 0) {
+        const allQuestions = await getAllQuestions();
+        setQuestions(allQuestions);
+        return;
+      }
+      const filteredQuestions = await getQuestionsByTags(tags);
+      setQuestions(filteredQuestions);
+    } catch (error) {
+      console.error('篩選題目失敗:', error);
+      toast.error('篩選題目失敗');
+    }
+  };
+
+  // 初始化摺疊狀態（預設全部摺疊）
+  const [collapsedCards, setCollapsedCards] = useState<string[]>([]);
+  useEffect(() => {
+    if (questions.length > 0) {
+      setCollapsedCards(questions.map(q => q.id));
+    }
+  }, [questions]);
+
+  // 根據選中的 ID 獲取完整的 Question 物件
+  const selectedQuestions = useMemo(() => {
+    return questions.filter(q => selectedQuestionIds.includes(q.id));
+  }, [questions, selectedQuestionIds]);
+
+  // 在伺服器端返回範例題目
   useEffect(() => {
     if (!isClient) return;
     
@@ -117,8 +248,6 @@ export default function QuestionPage() {
       setIsFirstLogin(false);
     }
   }, [isClient]);
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // 修改 filters 的初始狀態，根據當前題目設置
   const [filters, setFilters] = useState<Record<FilterKey, boolean>>(() => {
@@ -201,18 +330,11 @@ export default function QuestionPage() {
     return questions.some((q: Question) => q.type === type);
   };
 
-  const [collapsedCards, setCollapsedCards] = useState<string[]>(() => {
-    // 初始化時，將所有題目 ID 加入摺疊列表
-    return questions.map(q => q.id);
-  });
-
   const toggleCollapse = (id: string) => {
     setCollapsedCards(prev =>
       prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
     );
   };
-
-  const [keyword, setKeyword] = useState('');
 
   const handleKeywordChange = (e: ChangeEvent<HTMLInputElement>) => {
     setKeyword(e.target.value);
@@ -370,15 +492,10 @@ export default function QuestionPage() {
   }, [questions, filters, keyword, allTags]);
 
   const toggleSelection = (id: string) => {
-    setSelectedQuestions((prev) =>
-      prev.includes(id) ? prev.filter((q) => q !== id) : [...prev, id]
+    setSelectedQuestionIds(prev =>
+      prev.includes(id) ? prev.filter(qid => qid !== id) : [...prev, id]
     );
   };
-
-  const [isPremium] = useState(false); // 改回 false，預設為免費版
-  const ITEMS_PER_PAGE = 25; // 每頁顯示的卡片數量
-  const MAX_ITEMS = isPremium ? 1000 : 100; // 最大卡片數量限制
-  const [currentPage, setCurrentPage] = useState(1);
 
   const paginatedQuestions = useMemo(() => {
     // 每次題目列表更新時，如果當前頁碼大於最大頁數，自動調整到最後一頁
@@ -402,103 +519,39 @@ export default function QuestionPage() {
 
   const [lastUsedTags, setLastUsedTags] = useState<string[]>([]);
 
-  const handleAddQuestion = (data: Question) => {
-    console.log('🔍 新增題目:', data);
-    // 檢查是否超過題目數量限制
-    if (questions.length >= MAX_ITEMS) {
-      alert(isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！');
-      return;
-    }
-
-    // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
-    setQuestions(prev => {
-      console.log('🔍 現有題目數量:', prev.length);
-      const newQuestion = { ...data, id: Math.random().toString(36).substring(7) };
-      const updatedQuestions = [newQuestion, ...prev];
-      console.log('🔍 更新後題目數量:', updatedQuestions.length);
-
-      // 將新題目設為摺疊狀態
-      setCollapsedCards(prevCollapsed => [...prevCollapsed, newQuestion.id]);
-
-      // 立即儲存到 localStorage
-      try {
-        safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
-        console.log('🔍 題目已成功儲存到 localStorage');
-        toast.success('題目已成功儲存');
-      } catch (error) {
-        console.error('儲存到 localStorage 失敗:', error);
-        toast.error('儲存失敗，請確保瀏覽器有足夠的儲存空間');
-        return prev; // 如果儲存失敗，不更新狀態
-      }
-      return updatedQuestions;
-    });
-    handleModalChange(false);
-  };
-
-  // 每當題目列表更新時，自動保存到 localStorage
-  useEffect(() => {
-    if (!isClient) return;
+  const handleEditQuestion = async (data: Question) => {
     try {
-      safeLocalStorage.setItem('questions', JSON.stringify(questions));
-      console.log('🔍 題目已自動保存到 localStorage，當前題目數量:', questions.length);
+      await handleUpdateQuestion(data.id, data);
+      setShowEditModal(false);
+      setEditingQuestion(null);
     } catch (error) {
-      console.error('自動保存到 localStorage 失敗:', error);
+      console.error('編輯題目失敗:', error);
+      toast.error('編輯題目失敗');
     }
-  }, [questions, isClient]);
-
-  const handleModalChange = (open: boolean) => {
-    setShowAddModal(open);
   };
 
-  const handleEditQuestion = (data: Question) => {
-    setQuestions((prev: Question[]) => {
-      const updatedQuestions = prev.map(q => q.id === editingQuestion?.id ? { ...data, id: q.id } : q);
-      // 立即儲存到 localStorage
-      try {
-        safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
-        toast.success('題目已成功更新');
-      } catch (error) {
-        console.error('儲存到 localStorage 失敗:', error);
-        toast.error('儲存失敗，請確保瀏覽器有足夠的儲存空間');
-        return prev; // 如果儲存失敗，不更新狀態
-      }
-      return updatedQuestions;
-    });
-    setShowEditModal(false);
-    setEditingQuestion(null);
+  const handleDeleteQuestions = async () => {
+    try {
+      await handleBatchDelete();
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      console.error('刪除題目失敗:', error);
+      toast.error('刪除題目失敗');
+    }
   };
 
-  const handleDeleteQuestions = () => {
-    setQuestions(prev => {
-      const updatedQuestions = prev.filter(q => !selectedQuestions.includes(q.id));
-      // 立即儲存到 localStorage
-      try {
-        safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
-        toast.success('題目已成功刪除');
-      } catch (error) {
-        console.error('儲存到 localStorage 失敗:', error);
-        toast.error('刪除失敗，請確保瀏覽器有足夠的儲存空間');
-        return prev; // 如果儲存失敗，不更新狀態
-      }
-      return updatedQuestions;
-    });
-    setShowDeleteConfirm(false);
-    setSelectedQuestions([]);
-  };
-
-  // 在全選按鈕的點擊處理函數中，只選擇符合篩選條件的題目
   const handleSelectAll = () => {
-    const filteredIds = filteredQuestions.flatMap((q: Question) => 
-      isGroupQuestion(q)
-        ? [q.id, ...q.questions.map(subQ => subQ.id)]
-        : [q.id]
-    );
-    setSelectedQuestions(filteredIds);
+    const filteredIds = filteredQuestions.map(q => q.id);
+    if (selectedQuestionIds.length === filteredIds.length) {
+      setSelectedQuestionIds([]);
+    } else {
+      setSelectedQuestionIds(filteredIds);
+    }
   };
 
   const handleEditClick = (question: Question) => {
     setEditingQuestion(question);
-    setTimeout(() => setShowEditModal(true), 0);
+    setShowEditModal(true);
   };
 
   const handleAIModalChange = (open: boolean) => {
@@ -536,45 +589,35 @@ export default function QuestionPage() {
           multipleChoiceQuestion.answers = [0];
         }
 
-        console.log('處理多選題:', {
-          原始題目: question,
-          處理後題目: multipleChoiceQuestion
-        });
-
         processedQuestion = multipleChoiceQuestion;
       }
 
+      // 新增題目到 Firestore
+      const id = await addQuestion(processedQuestion);
+      // 只用 Firestore 文件 id，不再於內容欄位存 id
+      const questionWithId = { ...processedQuestion, id };
+
       // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
       setQuestions(prev => {
-        const updatedQuestions = [processedQuestion, ...prev];
-        // 將新題目設為摺疊狀態
-        setCollapsedCards(prevCollapsed => [...prevCollapsed, processedQuestion.id]);
-        // 立即儲存到 localStorage
+        const updatedQuestions = [questionWithId, ...prev];
+        setCollapsedCards(prevCollapsed => [...prevCollapsed, questionWithId.id]);
         try {
           safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
           toast.success('題目已成功匯入');
         } catch (error) {
           console.error('儲存到 localStorage 失敗:', error);
           toast.error('儲存失敗，請確保瀏覽器有足夠的儲存空間');
-          return prev; // 如果儲存失敗，不更新狀態
+          return prev;
         }
         return updatedQuestions;
       });
 
-      // 確保新題目會出現在第一頁
       setCurrentPage(1);
-
-      // 關閉 AI 轉換視窗
       setShowAIModal(false);
-
     } catch (error) {
       console.error('匯入失敗:', error);
       toast.error('匯入失敗，請稍後再試');
     }
-  };
-
-  const handleAssignmentModalChange = (open: boolean) => {
-    setShowAssignmentModal(open);
   };
 
   const handleDeleteTag = (tagToDelete: string) => {
@@ -595,9 +638,31 @@ export default function QuestionPage() {
     toast.success(`已刪除標籤：${tagToDelete}`);
   };
 
+  const handleAssignQuestions = () => {
+    if (selectedQuestionIds.length === 0) {
+      toast.error('請先選擇要派發的題目');
+      return;
+    }
+    setShowAssignModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      if (deleteMode === 'single' && editingQuestion) {
+        await handleDeleteQuestion(editingQuestion.id);
+      } else if (deleteMode === 'batch' || (selectedQuestionIds.length > 0 && !editingQuestion)) {
+        // 如果是 batch mode 或者有選中的題目但沒有編輯中的題目，就執行批量刪除
+        await handleBatchDelete();
+      }
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      toast.error('刪除題目失敗');
+    }
+  };
+
   // 如果還在伺服器端，返回 null 或載入中的狀態
   if (!isClient) {
-    return <div className="h-screen flex items-center justify-center">載入中...</div>;
+    return null;
   }
 
   return (
@@ -609,8 +674,8 @@ export default function QuestionPage() {
           toggleFilter={toggleFilter}
           showDeleteConfirm={showDeleteConfirm}
           setShowDeleteConfirm={setShowDeleteConfirm}
-          selectedQuestions={selectedQuestions}
-          setSelectedQuestions={setSelectedQuestions}
+          selectedQuestions={selectedQuestionIds}
+          setSelectedQuestions={setSelectedQuestionIds}
           setQuestions={setQuestions}
           allTags={allTags}
           isPremium={isPremium}
@@ -629,11 +694,10 @@ export default function QuestionPage() {
                 >
                   🤖 AI匯入
                 </Button>
-                
-                <Button 
-                  onClick={() => handleAssignmentModalChange(true)}
-                  className="text-gray-200 h-8 px-3 text-sm"
-                  disabled={selectedQuestions.length === 0}
+                <Button
+                  onClick={handleAssignQuestions}
+                  disabled={selectedQuestionIds.length === 0}
+                  title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '派發選中的題目'}
                 >
                   📤 派發作業
                 </Button>
@@ -656,14 +720,17 @@ export default function QuestionPage() {
                   ✅ 全選
                 </Button>
                 <Button 
-                  onClick={() => setSelectedQuestions([])} 
+                  onClick={() => setSelectedQuestionIds([])} 
                   className="text-gray-300 h-8 px-3 text-sm"
                 >
                   ⬜️ 取消
                 </Button>
                 <Button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={selectedQuestions.length === 0}
+                  onClick={() => {
+                    setDeleteMode('batch');
+                    setShowDeleteConfirm(true);
+                  }}
+                  disabled={selectedQuestionIds.length === 0}
                   className="text-gray-200 h-8 px-3 text-sm"
                 >
                   🗑️ 刪除
@@ -688,14 +755,17 @@ export default function QuestionPage() {
                     ✅ 全部勾選
                   </Button>
                   <Button 
-                    onClick={() => setSelectedQuestions([])} 
+                    onClick={() => setSelectedQuestionIds([])} 
                     className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm"
                   >
                     ⬜️ 全部取消
                   </Button>
                   <Button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    disabled={selectedQuestions.length === 0}
+                    onClick={() => {
+                      setDeleteMode('batch');
+                      setShowDeleteConfirm(true);
+                    }}
+                    disabled={selectedQuestionIds.length === 0}
                     className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
                   >
                     🗑️ 刪除題目
@@ -710,15 +780,14 @@ export default function QuestionPage() {
                   >
                     🤖 AI匯入
                   </Button>
-                  
-                  <Button className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm">🧪 自我練習</Button>
-                  <Button 
-                    onClick={() => handleAssignmentModalChange(true)}
-                    className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
-                    disabled={selectedQuestions.length === 0}
+                  <Button
+                    onClick={handleAssignQuestions}
+                    disabled={selectedQuestionIds.length === 0}
+                    title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '派發選中的題目'}
                   >
                     📤 派發作業
                   </Button>
+                  <Button className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm">🧪 自我練習</Button>
                   <Button className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
                 </div>
               </div>
@@ -751,7 +820,7 @@ export default function QuestionPage() {
                       <div className="flex">
                         <div className="w-[24px]">
                           <Checkbox
-                            checked={selectedQuestions.includes(q.id)}
+                            checked={selectedQuestionIds.includes(q.id)}
                             onCheckedChange={() => toggleSelection(q.id)}
                             className="mt-[2px]"
                             onClick={e => e.stopPropagation()}
@@ -940,12 +1009,12 @@ export default function QuestionPage() {
       <ConfirmDeleteModal
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        onConfirm={handleDeleteQuestions}
+        onConfirm={handleDeleteConfirm}
       />
 
       <AddQuestionModal
         open={showAddModal}
-        onOpenChange={handleModalChange}
+        onOpenChange={setShowAddModal}
         onSubmit={handleAddQuestion}
         defaultTags={[]}
         isPremium={isPremium}
@@ -970,11 +1039,10 @@ export default function QuestionPage() {
         availableTags={allTags}
       />
 
-      <AssignmentModal
-        open={showAssignmentModal}
-        onOpenChange={handleAssignmentModalChange}
-        selectedQuestions={selectedQuestions.map(id => questions.find(q => q.id === id)).filter(Boolean) as Question[]}
-        isPremium={isPremium}
+      <AssignQuizModal
+        open={showAssignModal}
+        onOpenChange={(open) => setShowAssignModal(open)}
+        selectedQuestions={selectedQuestions}
       />
     </div>
   );
