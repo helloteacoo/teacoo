@@ -199,7 +199,7 @@ export default function SingleQuestionForm({
                     setOptions(newOptions);
                   }}
                   placeholder={`選項 ${index + 1}${index < 2 ? ' (必填)' : ''}`}
-                  className="placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
+                  className="placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                 />
               </div>
             ))}
@@ -233,7 +233,7 @@ export default function SingleQuestionForm({
                     setOptions(newOptions);
                   }}
                   placeholder={`選項 ${index + 1}${index < 3 ? ' (必填)' : ''}`}
-                  className="placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
+                  className="placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                 />
               </div>
             ))}
@@ -266,7 +266,7 @@ export default function SingleQuestionForm({
                       setBlanks(newBlanks);
                     }}
                     placeholder="請輸入答案..."
-                    className="flex-1 dark:bg-white dark:text-gray-800 dark:border-gray-300"
+                    className="flex-1 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                   />
                   <Button
                     type="button"
@@ -299,7 +299,7 @@ export default function SingleQuestionForm({
               value={shortAnswer}
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setShortAnswer(e.target.value)}
               placeholder="請輸入答案"
-              className="mt-1.5 placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
+              className="mt-1.5 placeholder:text-gray-400 hover:bg-primary/80 dark:text-gray-800 dark:border-gray-700"
               required
             />
           </div>
@@ -402,7 +402,7 @@ export default function SingleQuestionForm({
           value={content}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
           placeholder={type === '填空題' ? '請輸入題目內容...' : '請輸入題目內容...'}
-          className="mt-1.5 placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
+          className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
           required
         />
       </div>
@@ -415,7 +415,7 @@ export default function SingleQuestionForm({
           value={explanation}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setExplanation(e.target.value)}
           placeholder="請輸入解說..."
-          className="mt-1.5 placeholder:text-gray-400 dark:bg-white dark:text-gray-800 dark:border-gray-300"
+          className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
         />
       </div>
 

@@ -1,5 +1,4 @@
 import type { Question } from '@/app/types/question';
-import { v4 as uuidv4 } from 'uuid';
 
 export const CONVERT_SYSTEM_PROMPT = `你是一個考題格式專家，請將以下原始文字轉換成題目資料。請使用 JSON 格式，不要解釋。
 
@@ -68,7 +67,6 @@ export async function convertQuestionsWithAI(rawText: string): Promise<Question[
     // 確保每個題目都有必要的欄位
     return data.questions.map((q: any) => ({
       ...q,
-      id: uuidv4(),
       createdAt: now,
       updatedAt: now,
       tags: q.tags || [],
@@ -93,7 +91,6 @@ export async function convertQuestionsWithAI(rawText: string): Promise<Question[
       ...(q.type === '閱讀測驗' && {
         article: q.article || '',
         questions: (q.questions || []).map((subQ: any) => ({
-          id: uuidv4(),
           content: subQ.content || '',
           options: Array.isArray(subQ.options) ? subQ.options : ['', '', '', ''],
           answer: typeof subQ.answer === 'string' ? subQ.answer : '',

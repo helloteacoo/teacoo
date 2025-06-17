@@ -11,13 +11,13 @@ import { EditableQuestionPreviewCard } from './EditableQuestionPreviewCard';
 import TagSelector from '../TagSelector';
 import { toast } from 'sonner';
 import { Button } from "@/app/components/ui/button";
-import { convertToQuestion } from "@/app/lib/ai/convertQuestion";
+import { convertQuestionsWithAI } from "@/app/lib/ai/convertPrompt";
 import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImport: (question: Question) => void;
+  onImport: (questions: Question[]) => void;
   availableTags: string[];
 }
 
@@ -26,7 +26,6 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
   const [isConverting, setIsConverting] = useState(false);
   const [convertedQuestions, setConvertedQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const handleConvert = async (text: string) => {
     if (!text.trim()) {
@@ -36,8 +35,8 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
 
     setIsConverting(true);
     try {
-      const questions = await convertToQuestion(text);
-      setConvertedQuestions(Array.isArray(questions) ? questions : [questions]);
+      const questions = await convertQuestionsWithAI(text);
+      setConvertedQuestions(questions);
       setCurrentIndex(0);
     } catch (error) {
       toast.error('轉換失敗', {
@@ -48,67 +47,25 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
     }
   };
 
-  const handleImport = (question: Question) => {
-    try {
-      let processedQuestion = { ...question };
-      
-      // 特別處理多選題的資料結構
-      if (processedQuestion.type === '多選題') {
-        const multipleChoiceQuestion = processedQuestion as MultipleChoiceQuestion;
-        if (!Array.isArray(multipleChoiceQuestion.answers)) {
-          multipleChoiceQuestion.answers = [];
-        }
-        if (!Array.isArray(multipleChoiceQuestion.options)) {
-          multipleChoiceQuestion.options = [];
-        }
-      }
-      
-      const questionWithMetadata = {
-        ...processedQuestion,
-        id: uuidv4(),
-        tags: processedQuestion.tags || selectedTags,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      // 呼叫父組件的 onImport
-      onImport(questionWithMetadata);
-
-      // 如果還有下一題，自動前進到下一題
-      if (currentIndex < convertedQuestions.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-      } else {
-        // 如果是最後一題，清空並關閉視窗
-        setInput('');
-        setConvertedQuestions([]);
-        setCurrentIndex(0);
-        setSelectedTags([]);
-        onOpenChange(false);
-      }
-    } catch (error) {
-      console.error('匯入失敗:', error);
-      toast.error('匯入失敗，請稍後再試');
-    }
-  };
-
   const handlePrevious = () => {
-    setCurrentIndex(prev => Math.max(0, prev - 1));
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => Math.min(convertedQuestions.length - 1, prev + 1));
+    if (currentIndex < convertedQuestions.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handleImport = (questions: Question[]) => {
+    onImport(questions);
+    onOpenChange(false);
   };
 
   const handleSkip = () => {
-    if (currentIndex < convertedQuestions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      // 如果是最後一題，清空並關閉視窗
-      setInput('');
-      setConvertedQuestions([]);
-      setCurrentIndex(0);
-      onOpenChange(false);
-    }
+    handleNext();
   };
 
   // 當 modal 關閉時清除所有資訊
@@ -117,7 +74,6 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
       setInput('');
       setConvertedQuestions([]);
       setCurrentIndex(0);
-      setSelectedTags([]);
       setIsConverting(false);
     }
   }, [open]);
@@ -142,6 +98,7 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
             {convertedQuestions.length > 0 ? (
               <EditableQuestionPreviewCard
                 question={convertedQuestions[currentIndex]}
+                questions={convertedQuestions}
                 currentIndex={currentIndex}
                 totalQuestions={convertedQuestions.length}
                 availableTags={availableTags}

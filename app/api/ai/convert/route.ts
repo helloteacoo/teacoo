@@ -157,102 +157,95 @@ export async function POST(request: Request) {
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-4-turbo-preview",
-        response_format: { type: "json_object" },
         messages: [
-          {
-            role: "system",
-            content: systemPrompt || '請將輸入的文字轉換成結構化的題目格式。'
-          },
-          {
-            role: "user",
-            content: `請轉換以下題目：\n${text}`
-          }
-        ]
+          { role: "system", content: systemPrompt },
+          { role: "user", content: text }
+        ],
+        temperature: 0.2,
+        response_format: { type: "json_object" }
       });
 
       const result = completion.choices[0].message.content;
       if (!result) {
-        throw new Error('OpenAI 回應為空');
+        throw new Error('無法轉換題目');
       }
 
       console.log('🔍 OpenAI 原始回應:', result);
 
       // 解析 JSON 回應
-      let parsedResult;
+      let data;
       try {
-        parsedResult = JSON.parse(result);
-        console.log('🔍 解析後的回應:', parsedResult);
+        data = JSON.parse(result);
+        console.log('🔍 解析後的回應:', data);
       } catch (error) {
         console.error('❌ JSON 解析錯誤:', error);
-        return NextResponse.json(
-          { error: 'AI 回應格式錯誤' },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: '題目格式錯誤' }, { status: 400 });
       }
 
-      // 確保回應是陣列
-      const rawQuestions = Array.isArray(parsedResult) ? parsedResult : 
-                          Array.isArray(parsedResult.questions) ? parsedResult.questions : 
-                          [parsedResult];
+      // 確保回傳的是題目陣列
+      if (!data.questions || !Array.isArray(data.questions)) {
+        throw new Error('回傳格式錯誤');
+      }
 
-      // 處理每個題目
-      const processedQuestions = rawQuestions.map((q: any) => {
-        const now = new Date().toISOString();
-        const baseQuestion = {
-          id: uuidv4(),
-          createdAt: now,
-          updatedAt: now,
-          tags: [],
-          explanation: q.explanation || ''
-        };
-
-        // 特別處理多選題
-        if (q.type === '多選題') {
-          console.log('處理多選題原始資料:', q);
-          const options = Array.isArray(q.options) ? q.options : ['', '', '', ''];
-          let answers = Array.isArray(q.answers) ? q.answers : [];
-
-          // 處理答案格式
-          answers = answers
-            .map((ans: any) => {
-              if (typeof ans === 'number') return ans;
-              if (typeof ans === 'string') {
-                // 如果是字母（A, B, C...），轉換為數字
-                if (/^[A-Z]$/.test(ans)) {
-                  return ans.charCodeAt(0) - 65;
-                }
-                // 如果是數字字串，轉換為數字
-                const num = parseInt(ans, 10);
-                return isNaN(num) ? -1 : num;
-              }
-              return -1;
-            })
-            .filter((index: number) => index >= 0 && index < options.length);
-
-          // 如果沒有有效答案，設置預設值
-          if (answers.length === 0) {
-            answers = [0];
-          }
-
-          console.log('處理後的多選題資料:', {
-            options,
-            answers: answers.sort((a: number, b: number) => a - b)
-          });
-
-          return {
-            ...baseQuestion,
-            type: '多選題',
-            content: q.content || '',
-            options,
-            answers: answers.sort((a: number, b: number) => a - b)
-          };
+      // 驗證每個題目的格式
+      data.questions.forEach((q: any, index: number) => {
+        if (!q.type || !q.content) {
+          throw new Error(`第 ${index + 1} 題格式錯誤`);
         }
 
-        // 處理其他題型...
-        return q;
+        // 根據題型驗證必要欄位
+        switch (q.type) {
+          case '單選題':
+            if (!Array.isArray(q.options) || typeof q.answer !== 'number') {
+              throw new Error(`第 ${index + 1} 題（單選題）格式錯誤`);
+            }
+            break;
+          case '多選題':
+            if (!Array.isArray(q.options) || !Array.isArray(q.answers)) {
+              throw new Error(`第 ${index + 1} 題（多選題）格式錯誤`);
+            }
+            break;
+          case '填空題':
+            if (!Array.isArray(q.blanks)) {
+              throw new Error(`第 ${index + 1} 題（填空題）格式錯誤`);
+            }
+            break;
+          case '簡答題':
+            if (typeof q.answer !== 'string') {
+              throw new Error(`第 ${index + 1} 題（簡答題）格式錯誤`);
+            }
+            break;
+          case '閱讀測驗':
+            if (!q.article || !Array.isArray(q.questions)) {
+              throw new Error(`第 ${index + 1} 題（閱讀測驗）格式錯誤`);
+            }
+            break;
+          case '克漏字':
+            if (!q.content || !Array.isArray(q.questions)) {
+              throw new Error(`第 ${index + 1} 題（克漏字）格式錯誤`);
+            }
+            // 檢查每個子題目
+            q.questions.forEach((subQ: any, subIndex: number) => {
+              // 確保每個空格都有剛好 4 個選項
+              if (!Array.isArray(subQ.options) || subQ.options.length !== 4) {
+                throw new Error(`第 ${index + 1} 題第 ${subIndex + 1} 個空格必須有 4 個選項`);
+              }
+              // 確保答案是 0-3 的數字
+              if (typeof subQ.answer !== 'number' || subQ.answer < 0 || subQ.answer > 3) {
+                throw new Error(`第 ${index + 1} 題第 ${subIndex + 1} 個空格的答案必須是 0-3 的數字`);
+              }
+              // 確保沒有 content 欄位
+              if ('content' in subQ) {
+                throw new Error(`第 ${index + 1} 題第 ${subIndex + 1} 個空格不應該有題目內容`);
+              }
+            });
+            break;
+          default:
+            throw new Error(`第 ${index + 1} 題題型不支援`);
+        }
       });
 
-      return NextResponse.json({ questions: processedQuestions });
+      return NextResponse.json(data);
     } catch (error) {
       console.error('❌ OpenAI API 錯誤:', error);
       return NextResponse.json(

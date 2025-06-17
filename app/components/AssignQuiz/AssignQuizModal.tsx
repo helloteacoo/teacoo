@@ -17,9 +17,9 @@ interface AssignQuizModalProps {
 function AssignQuizContent() {
   const { state } = useAssignQuiz();
   return (
-    <div className="space-y-4">
-      <DialogHeader>
-        <DialogTitle>
+    <div className="space-y-3">
+      <DialogHeader className="pb-2">
+        <DialogTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100">
           {state.step === 'completed' ? '派發成功' : '派發作業'}
         </DialogTitle>
       </DialogHeader>
@@ -44,7 +44,7 @@ function AssignQuizModalContent({ open, onOpenChange }: { open: boolean; onOpenC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-cardBg dark:bg-gray-800">
+      <DialogContent className="max-w-[85vw] sm:max-w-md bg-mainBg dark:bg-gray-900 dark:text-mainBg p-4 sm:p-6 rounded-xl border border-gray-300 dark:border-gray-700">
         <AssignQuizContent />
       </DialogContent>
     </Dialog>

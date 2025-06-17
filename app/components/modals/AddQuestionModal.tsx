@@ -21,7 +21,7 @@ const checkGroupQuestionLimit = async (isPremium: boolean): Promise<boolean> => 
 
   const querySnapshot = await getDocs(q);
   const count = querySnapshot.size;
-
+  
   // 免費版限制每天1組
   return count < 1;
 };
@@ -60,10 +60,10 @@ export default function AddQuestionModal({
   const checkPermission = async () => {
     try {
       const hasPermission = await checkGroupQuestionLimit(isPremium);
-      if (!hasPermission) {
-        alert('免費版每天只能新增1組題目（閱讀測驗或克漏字）。升級至付費版即可無限新增！');
-      }
-      return hasPermission;
+    if (!hasPermission) {
+      alert('免費版每天只能新增1組題目（閱讀測驗或克漏字）。升級至付費版即可無限新增！');
+    }
+    return hasPermission;
     } catch (error) {
       console.error('檢查權限失敗:', error);
       alert('檢查權限失敗，請稍後再試');

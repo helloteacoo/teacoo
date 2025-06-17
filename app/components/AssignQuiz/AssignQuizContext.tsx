@@ -149,9 +149,12 @@ export function AssignQuizProvider({
   
       await setDoc(quizRef, {
         title: state.data.title,
-        settings: state.data.settings,
-        questionIds, // ✅ 正確使用 Firebase doc.id
+        questionIds,
         createdAt: Timestamp.now(),
+        settings: {
+          showTimer: state.data.settings.showTimer,
+          targetList: state.data.settings.targetList || [], // 確保寫入名單
+        }
       });
   
       dispatch({ type: 'SET_ID', payload: quizId });

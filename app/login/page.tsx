@@ -203,7 +203,7 @@ export default function LoginPage() {
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   required
                   placeholder="請輸入您的電子郵件"
-                  className="placeholder:text-gray-400"
+                  className="placeholder:text-gray-400 text-gray-900"
                 />
               </div>
 
@@ -218,7 +218,7 @@ export default function LoginPage() {
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   required
                   placeholder="請輸入您的密碼"
-                  className="placeholder:text-gray-400"
+                  className="placeholder:text-gray-400 text-gray-900"
                 />
               </div>
             </div>

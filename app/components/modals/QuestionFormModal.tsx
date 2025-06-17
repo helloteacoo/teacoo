@@ -166,7 +166,6 @@ export default function QuestionFormModal({
   const content = (
     <div className="space-y-4">
       <div className="space-y-4">
-        <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">{title}</h2>
         {!isEditMode && (
           <div className="grid w-full grid-cols-2">
             <div className="flex items-center space-x-2">

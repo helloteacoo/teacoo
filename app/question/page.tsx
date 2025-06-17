@@ -10,6 +10,8 @@ import Sidebar from '../components/question/sidebar';
 import type { FilterKey } from '../components/question/sidebar';
 import AddQuestionModal from '../components/modals/AddQuestionModal';
 import { AIConvertModal } from '../components/ai/AIConvertModal';
+import TopbarButtons from '../components/question/TopbarButtons';
+import QuestionCards from '../components/question/QuestionCards';
 import type { 
   Question,
   SingleChoiceQuestion,
@@ -81,73 +83,68 @@ export default function QuestionPage() {
   const [isFirstLogin, setIsFirstLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteMode, setDeleteMode] = useState<'single' | 'batch'>('single');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [collapsedCards, setCollapsedCards] = useState<string[]>([]);
 
   const ITEMS_PER_PAGE = 25; // 每頁顯示的卡片數量
   const MAX_ITEMS = isPremium ? 1000 : 100; // 最大卡片數量限制
-
+  
   // 設置 client-side 標記
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // 初始化題目列表
-  const [questions, setQuestions] = useState<Question[]>([]);
-
+  
   // 載入題目
-  // 載入題目（只在首次使用時寫入 sample）
-useEffect(() => {
-  const loadQuestions = async () => {
-    try {
-      setIsLoading(true);
-      const firebaseQuestions = await getAllQuestions();
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        setIsLoading(true);
+        const firebaseQuestions = await getAllQuestions();
 
-      const hasSeenSample = safeLocalStorage.getItem('hasLoadedSampleQuestions');
+        const hasSeenSample = safeLocalStorage.getItem('hasLoadedSampleQuestions');
 
-      if (!hasSeenSample) {
-        const existingQuestions = await getAllQuestions();
-        const existingContents = new Set(existingQuestions.map(q => q.content));
-      
-        await Promise.all(
-          sampleQuestions
-            .filter((q) => !existingContents.has(q.content)) // 避免重複
-            .map(async (q) => {
-              const { id, ...rest } = q;
-              await addQuestion({ ...rest, isSample: true }); // ✅ 可選加上 isSample 標記
-            })
-        );
-      
-        safeLocalStorage.setItem('hasLoadedSampleQuestions', 'true');
+        if (!hasSeenSample) {
+          const existingQuestions = await getAllQuestions();
+          const existingContents = new Set(existingQuestions.map(q => q.content));
+        
+          await Promise.all(
+            sampleQuestions
+              .filter((q) => !existingContents.has(q.content)) // 避免重複
+              .map(async (q) => {
+                const { id, ...rest } = q;
+                await addQuestion(rest); // 移除 isSample 標記，因為 Question 型別中沒有這個欄位
+              })
+          );
+        
+          safeLocalStorage.setItem('hasLoadedSampleQuestions', 'true');
+        }
+        
+
+        const updatedQuestions = await getAllQuestions();
+        setQuestions(updatedQuestions);
+      } catch (error) {
+        console.error('載入題目失敗:', error);
+        
+        setQuestions([]);
+      } finally {
+        setIsLoading(false);
       }
-      
+    };
 
-      const updatedQuestions = await getAllQuestions();
-      setQuestions(updatedQuestions);
-    } catch (error) {
-      console.error('載入題目失敗:', error);
-      toast.error('載入題目失敗');
-      setQuestions([]);
-    } finally {
-      setIsLoading(false);
+    if (isClient) {
+      loadQuestions();
     }
-  };
-
-  if (isClient) {
-    loadQuestions();
-  }
-}, [isClient]);
+  }, [isClient]);
 
   // 處理新增題目
   const handleAddQuestion = async (newQuestion: Omit<Question, 'id'>) => {
     try {
       const id = await addQuestion(newQuestion);
-      // 只用 Firestore 文件 id，不再於內容欄位存 id
       const question = { ...newQuestion, id } as Question;
-      setQuestions(prev => [...prev, question]);
-      toast.success('新增題目成功');
+      setQuestions(prev => [question, ...prev]); // 新題目加到最前面
       return question;
-    } catch (error) {
+      } catch (error) {
       console.error('新增題目失敗:', error);
-      toast.error('新增題目失敗');
       throw error;
     }
   };
@@ -157,10 +154,10 @@ useEffect(() => {
     try {
       await updateQuestion(id, updatedQuestion);
       setQuestions(prev => prev.map(q => q.id === id ? { ...q, ...updatedQuestion } as Question : q));
-      toast.success('更新題目成功');
+      
     } catch (error) {
       console.error('更新題目失敗:', error);
-      toast.error('更新題目失敗');
+      
     }
   };
 
@@ -169,25 +166,35 @@ useEffect(() => {
     try {
       await deleteQuestion(id);
       setQuestions(prev => prev.filter(q => q.id !== id));
-      toast.success('刪除題目成功');
+      toast.success('題目已刪除');
     } catch (error) {
       console.error('刪除題目失敗:', error);
-      toast.error('刪除題目失敗');
+      toast.error('刪除題目失敗，請稍後再試');
     }
   };
 
   // 處理批量刪除題目
   const handleBatchDelete = async () => {
     try {
-      console.log('刪除這些文件 id:', selectedQuestionIds);
-      await Promise.all(selectedQuestionIds.map(id => deleteQuestion(id)));
-      const firebaseQuestions = await getAllQuestions();
-      setQuestions(firebaseQuestions);
-      setSelectedQuestionIds([]);
-      toast.success('批量刪除成功');
+      if (selectedQuestionIds.length === 0) {
+        toast.error('請先選擇要刪除的題目');
+        return;
+      }
+
+      // 逐一刪除選中的題目
+      for (const id of selectedQuestionIds) {
+        await deleteQuestion(id);
+      }
+
+      // 更新本地狀態
+      setQuestions(prev => prev.filter(q => !q.id || !selectedQuestionIds.includes(q.id)));
+      setSelectedQuestionIds([]); // 清空選中的題目
+      setShowDeleteConfirm(false);
+      
+      toast.success(`已成功刪除 ${selectedQuestionIds.length} 個題目`);
     } catch (error) {
       console.error('批量刪除失敗:', error);
-      toast.error('批量刪除失敗');
+      toast.error('刪除失敗，請稍後再試');
     }
   };
 
@@ -203,7 +210,7 @@ useEffect(() => {
       setQuestions(searchResults);
     } catch (error) {
       console.error('搜尋題目失敗:', error);
-      toast.error('搜尋題目失敗');
+      
     }
   };
 
@@ -219,21 +226,21 @@ useEffect(() => {
       setQuestions(filteredQuestions);
     } catch (error) {
       console.error('篩選題目失敗:', error);
-      toast.error('篩選題目失敗');
+      
     }
   };
 
   // 初始化摺疊狀態（預設全部摺疊）
-  const [collapsedCards, setCollapsedCards] = useState<string[]>([]);
   useEffect(() => {
     if (questions.length > 0) {
-      setCollapsedCards(questions.map(q => q.id));
+      const validIds = questions.map(q => q.id).filter((id): id is string => id !== undefined);
+      setCollapsedCards(validIds);
     }
   }, [questions]);
 
   // 根據選中的 ID 獲取完整的 Question 物件
   const selectedQuestions = useMemo(() => {
-    return questions.filter(q => selectedQuestionIds.includes(q.id));
+    return questions.filter(q => q.id && selectedQuestionIds.includes(q.id));
   }, [questions, selectedQuestionIds]);
 
   // 在伺服器端返回範例題目
@@ -379,10 +386,9 @@ useEffect(() => {
             );
         } else if (isClozeQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.article.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some((sub: ClozeSubQuestion) =>
+            q.questions.some(sub =>
               sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-              sub.answer.toLowerCase().includes(lowerKeyword)
+              sub.options[sub.answer].toLowerCase().includes(lowerKeyword)
             );
         }
         return false;
@@ -477,10 +483,9 @@ useEffect(() => {
             );
         } else if (isClozeQuestion(q)) {
           return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.article.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some((sub: ClozeSubQuestion) =>
-              sub.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
-              sub.answer.toLowerCase().includes(lowerKeyword)
+            q.questions.some(sub =>
+              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
+              sub.options[sub.answer].toLowerCase().includes(lowerKeyword)
             );
         }
         return false;
@@ -521,12 +526,16 @@ useEffect(() => {
 
   const handleEditQuestion = async (data: Question) => {
     try {
+      if (!data.id) {
+        toast.error('題目 ID 不存在');
+      return;
+    }
       await handleUpdateQuestion(data.id, data);
       setShowEditModal(false);
       setEditingQuestion(null);
-    } catch (error) {
+      } catch (error) {
       console.error('編輯題目失敗:', error);
-      toast.error('編輯題目失敗');
+      
     }
   };
 
@@ -534,18 +543,21 @@ useEffect(() => {
     try {
       await handleBatchDelete();
       setShowDeleteConfirm(false);
-    } catch (error) {
+      } catch (error) {
       console.error('刪除題目失敗:', error);
-      toast.error('刪除題目失敗');
+      
     }
   };
 
   const handleSelectAll = () => {
-    const filteredIds = filteredQuestions.map(q => q.id);
-    if (selectedQuestionIds.length === filteredIds.length) {
+    const validIds = filteredQuestions
+      .map(q => q.id)
+      .filter((id): id is string => id !== undefined);
+    
+    if (selectedQuestionIds.length === validIds.length) {
       setSelectedQuestionIds([]);
     } else {
-      setSelectedQuestionIds(filteredIds);
+      setSelectedQuestionIds(validIds);
     }
   };
 
@@ -558,62 +570,24 @@ useEffect(() => {
     setShowAIModal(open);
   };
 
-  const handleAIConvert = async (question: Question) => {
+  const handleImportQuestions = async (questions: Question[]) => {
     try {
-      // 檢查是否超過題目數量限制
-      if (questions.length >= MAX_ITEMS) {
-        toast.error(
-          isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！'
-        );
-        return;
-      }
+      // 為每個題目添加必要的欄位
+      const processedQuestions = questions.map(question => ({
+        ...question,
+        id: uuidv4(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }));
 
-      // 特別處理多選題
-      let processedQuestion = { ...question };
-      if (processedQuestion.type === '多選題') {
-        const multipleChoiceQuestion = processedQuestion as MultipleChoiceQuestion;
-        // 確保 options 和 answers 是陣列
-        if (!Array.isArray(multipleChoiceQuestion.options) || multipleChoiceQuestion.options.length === 0) {
-          multipleChoiceQuestion.options = ['', '', '', ''];
-        }
-        if (!Array.isArray(multipleChoiceQuestion.answers) || multipleChoiceQuestion.answers.length === 0) {
-          multipleChoiceQuestion.answers = [0];
-        }
-        // 過濾無效的答案索引並排序
-        multipleChoiceQuestion.answers = multipleChoiceQuestion.answers
-          .filter(index => index >= 0 && index < multipleChoiceQuestion.options.length)
-          .sort((a, b) => a - b);
-
-        // 如果過濾後答案陣列為空，設置預設值
-        if (multipleChoiceQuestion.answers.length === 0) {
-          multipleChoiceQuestion.answers = [0];
-        }
-
-        processedQuestion = multipleChoiceQuestion;
-      }
-
-      // 新增題目到 Firestore
-      const id = await addQuestion(processedQuestion);
-      // 只用 Firestore 文件 id，不再於內容欄位存 id
-      const questionWithId = { ...processedQuestion, id };
-
-      // 新增題目時，將新題目加到陣列最前面，並確保狀態更新
-      setQuestions(prev => {
-        const updatedQuestions = [questionWithId, ...prev];
-        setCollapsedCards(prevCollapsed => [...prevCollapsed, questionWithId.id]);
-        try {
-          safeLocalStorage.setItem('questions', JSON.stringify(updatedQuestions));
-          toast.success('題目已成功匯入');
-        } catch (error) {
-          console.error('儲存到 localStorage 失敗:', error);
-          toast.error('儲存失敗，請確保瀏覽器有足夠的儲存空間');
-          return prev;
-        }
-        return updatedQuestions;
-      });
-
-      setCurrentPage(1);
-      setShowAIModal(false);
+      // 批次新增題目
+      await Promise.all(processedQuestions.map(q => addQuestion(q)));
+      
+      // 更新題目列表
+      const updatedQuestions = await getAllQuestions();
+      setQuestions(updatedQuestions);
+      
+      toast.success('題目匯入成功');
     } catch (error) {
       console.error('匯入失敗:', error);
       toast.error('匯入失敗，請稍後再試');
@@ -648,15 +622,16 @@ useEffect(() => {
 
   const handleDeleteConfirm = async () => {
     try {
-      if (deleteMode === 'single' && editingQuestion) {
+      if (deleteMode === 'single' && editingQuestion?.id) {
         await handleDeleteQuestion(editingQuestion.id);
-      } else if (deleteMode === 'batch' || (selectedQuestionIds.length > 0 && !editingQuestion)) {
-        // 如果是 batch mode 或者有選中的題目但沒有編輯中的題目，就執行批量刪除
+        setShowDeleteConfirm(false);
+        setEditingQuestion(null);
+      } else if (deleteMode === 'batch' && selectedQuestionIds.length > 0) {
         await handleBatchDelete();
       }
-      setShowDeleteConfirm(false);
     } catch (error) {
-      toast.error('刪除題目失敗');
+      console.error('刪除失敗:', error);
+      toast.error('刪除失敗，請稍後再試');
     }
   };
 
@@ -683,290 +658,30 @@ useEffect(() => {
         />
 
         <main className="flex-1 p-2 lg:p-6 overflow-auto max-w-full">
-          <div className="sticky top-[-6px] z-10 bg-mainBg dark:bg-gray-900 pb-2 border-b border-transparent overflow-hidden">
-            {/* 桌面版/平板橫放布局 (lg 以上) */}
-            <div className="hidden sm:flex sm:flex-col gap-4 mb-4">
-              {/* 第一行：功能按鈕 */}
-              <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
-                <Button 
-                  onClick={() => handleAIModalChange(true)}
-                  className="text-gray-200 h-8 px-3 text-sm"
-                >
-                  🤖 AI匯入
-                </Button>
-                <Button
-                  onClick={handleAssignQuestions}
-                  disabled={selectedQuestionIds.length === 0}
-                  title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '派發選中的題目'}
-                >
-                  📤 派發作業
-                </Button>
-                <Button className="text-gray-200 h-8 px-3 text-sm">🧪 自我練習</Button>
-                <Button className="text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
-              </div>
+          <TopbarButtons
+            onAIModalChange={handleAIModalChange}
+            onAssignQuestions={handleAssignQuestions}
+            selectedQuestionIds={selectedQuestionIds}
+            keyword={keyword}
+            onKeywordChange={handleKeywordChange}
+            onSelectAll={handleSelectAll}
+            onClearSelection={() => setSelectedQuestionIds([])}
+            onShowDeleteConfirm={() => {
+              setDeleteMode('batch');
+              setShowDeleteConfirm(true);
+            }}
+          />
 
-              {/* 第二行：搜尋和選擇按鈕 */}
-              <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
-                <Input
-                  placeholder="搜尋題目關鍵字..."
-                  className="w-[300px] placeholder:text-gray-400 dark:placeholder:text-gray-400 h-8 text-sm"
-                  value={keyword}
-                  onChange={handleKeywordChange}
-                />
-                <Button
-                  onClick={handleSelectAll}
-                  className="text-gray-200 h-8 px-3 text-sm"
-                >
-                  ✅ 全選
-                </Button>
-                <Button 
-                  onClick={() => setSelectedQuestionIds([])} 
-                  className="text-gray-300 h-8 px-3 text-sm"
-                >
-                  ⬜️ 取消
-                </Button>
-                <Button
-                  onClick={() => {
-                    setDeleteMode('batch');
-                    setShowDeleteConfirm(true);
-                  }}
-                  disabled={selectedQuestionIds.length === 0}
-                  className="text-gray-200 h-8 px-3 text-sm"
-                >
-                  🗑️ 刪除
-                </Button>
-              </div>
-            </div>
-
-            {/* 手機版直立布局 (sm 以下) */}
-            <div className="sm:hidden space-y-4 mb-4">
-              <Input
-                placeholder="搜尋題目關鍵字..."
-                className="w-full placeholder:text-gray-400 dark:placeholder:text-gray-500 h-8 text-sm"
-                value={keyword}
-                onChange={handleKeywordChange}
-              />
-              <div className="overflow-x-auto pb-2 hide-scrollbar">
-                <div className="flex gap-2 min-w-min">
-                  <Button
-                    onClick={handleSelectAll}
-                    className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
-                  >
-                    ✅ 全部勾選
-                  </Button>
-                  <Button 
-                    onClick={() => setSelectedQuestionIds([])} 
-                    className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm"
-                  >
-                    ⬜️ 全部取消
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setDeleteMode('batch');
-                      setShowDeleteConfirm(true);
-                    }}
-                    disabled={selectedQuestionIds.length === 0}
-                    className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
-                  >
-                    🗑️ 刪除題目
-                  </Button>
-                </div>
-              </div>
-              <div className="overflow-x-auto pb-2 hide-scrollbar">
-                <div className="flex gap-2 min-w-min">
-                  <Button 
-                    onClick={() => handleAIModalChange(true)}
-                    className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
-                  >
-                    🤖 AI匯入
-                  </Button>
-                  <Button
-                    onClick={handleAssignQuestions}
-                    disabled={selectedQuestionIds.length === 0}
-                    title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '派發選中的題目'}
-                  >
-                    📤 派發作業
-                  </Button>
-                  <Button className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm">🧪 自我練習</Button>
-                  <Button className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-y-auto h-[calc(100vh-64px-72px-40px)] pr-2 space-y-4">
-            {questions.length > MAX_ITEMS && (
-              <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg mb-4">
-                <p className="text-yellow-800 dark:text-yellow-200">
-                  {isPremium ? '您已達到付費版本的1000題上限' : '您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！'}
-                </p>
-              </div>
-            )}
-            
-            {paginatedQuestions.map((q: Question) => {
-              const isCollapsed = collapsedCards.includes(q.id);
-              return (
-                <div key={q.id} className="relative p-4 bg-cardBg dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg">
-                  <Button
-                    onClick={() => handleEditClick(q)}
-                    className="absolute top-3 right-3 bg-transparent hover:bg-transparent text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 p-0 h-auto shadow-none"
-                    title="編輯"
-                    variant="ghost"
-                  >
-                    ✏️
-                  </Button>
-                  <div className="flex-1">
-                    <div onClick={() => toggleCollapse(q.id)} className="cursor-pointer">
-                      <div className="flex">
-                        <div className="w-[24px]">
-                          <Checkbox
-                            checked={selectedQuestionIds.includes(q.id)}
-                            onCheckedChange={() => toggleSelection(q.id)}
-                            className="mt-[2px]"
-                            onClick={e => e.stopPropagation()}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm text-gray-700 dark:text-gray-400">
-                            {q.type} ｜ {q.tags.join(', ')}
-                          </div>
-                          <div className={`font-medium mt-1 text-gray-800 dark:text-gray-300 ${isCollapsed ? 'line-clamp-1' : ''}`}>
-                            1. {(() => {
-                              if (isReadingQuestion(q)) return q.article;
-                              if (isClozeQuestion(q)) return q.article;
-                              if (isFillInQuestion(q)) {
-                                return q.content.replace(/\[\[.*?\]\]/g, '_____');
-                              }
-                              return q.content;
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {!isCollapsed && (
-                      <>
-                        {isSingleChoiceQuestion(q) ? (
-                          <>
-                            <ul className="list-none pl-5 text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.options.map((opt: string, i: number) => (
-                                <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
-                              ))}
-                            </ul>
-                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              🟢 正解：({String.fromCharCode(65 + q.answer)}) {q.options[q.answer]}
-                            </div>
-                            {q.explanation && (
-                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                                💡 解釋：{q.explanation}
-                              </div>
-                            )}
-                          </>
-                        ) : isMultipleChoiceQuestion(q) ? (
-                          <>
-                            <ul className="list-none pl-5 text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.options.map((opt: string, i: number) => (
-                                <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
-                              ))}
-                            </ul>
-                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              🟢 正解：
-                              {q.answers
-                                .sort((a, b) => a - b)
-                                .map(index => `(${String.fromCharCode(65 + index)}) ${q.options[index]}`)
-                                .join('、')}
-                            </div>
-                            {q.explanation && (
-                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                                💡 解釋：{q.explanation}
-                              </div>
-                            )}
-                          </>
-                        ) : isFillInQuestion(q) ? (
-                          <>
-                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              🟢 正解：{q.blanks.join('、')}
-                            </div>
-                            {q.explanation && (
-                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                                💡 解釋：{q.explanation}
-                              </div>
-                            )}
-                          </>
-                        ) : isShortAnswerQuestion(q) ? (
-                          <>
-                            <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                              🟢 正解：{q.answer}
-                            </div>
-                            {q.explanation && (
-                              <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                                💡 解釋：{q.explanation}
-                              </div>
-                            )}
-                          </>
-                        ) : isReadingQuestion(q) ? (
-                          <>
-                            <ul className="list-decimal pl-5 text-sm mt-2 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.questions.map((sub: SubQuestion) => (
-                                <li key={sub.id} className="mb-2">
-                                  {sub.content}
-                                  <ul className="list-none pl-5 mt-1">
-                                    {sub.options.map((opt: string, i: number) => (
-                                      <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
-                                    ))}
-                                  </ul>
-                                  <div className="text-sm mt-1">
-                                    🟢 正解：({String.fromCharCode(65 + sub.options.indexOf(sub.answer))}) {sub.answer}
-                                  </div>
-                                  {sub.explanation && (
-                                    <div className="text-sm mt-1 text-gray-600 dark:text-gray-400">
-                                      💡 解釋：{sub.explanation}
-                                    </div>
-                                  )}
-                                </li>
-                              ))}
-                            </ul>
-                            {q.explanation && (
-                              <div className="text-sm mt-2 text-gray-600 dark:text-gray-400 ml-6">
-                                💡 整體解釋：{q.explanation}
-                              </div>
-                            )}
-                          </>
-                        ) : isClozeQuestion(q) && (
-                          <>
-                            <ul className="list-decimal pl-5 text-sm mt-2 text-gray-800 dark:text-gray-300 ml-6">
-                              {q.questions.map((sub: ClozeSubQuestion, index: number) => (
-                                <li key={sub.id} className="mb-2">
-                                  <ul className="list-none pl-5">
-                                    {sub.options.map((opt: string, i: number) => (
-                                      <li key={i}>({String.fromCharCode(65 + i)}) {opt}</li>
-                                    ))}
-                                  </ul>
-                                  <div className="text-sm mt-1">
-                                    🟢 正解：({String.fromCharCode(65 + sub.options.indexOf(sub.answer))}) {sub.answer}
-                                  </div>
-                                  {sub.explanation && (
-                                    <div className="text-sm mt-1 text-gray-600 dark:text-gray-400">
-                                      💡 解釋：{sub.explanation}
-                                    </div>
-                                  )}
-                                </li>
-                              ))}
-                            </ul>
-                            {q.explanation && (
-                              <div className="text-sm mt-2 text-gray-600 dark:text-gray-400 ml-6">
-                                💡 整體解釋：{q.explanation}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <QuestionCards
+            questions={paginatedQuestions}
+            selectedQuestionIds={selectedQuestionIds}
+            collapsedCards={collapsedCards}
+            onToggleCollapse={toggleCollapse}
+            onToggleSelection={toggleSelection}
+            onEditClick={handleEditClick}
+            MAX_ITEMS={MAX_ITEMS}
+            isPremium={isPremium}
+          />
 
           {/* 分頁控制區 */}
           <div className="flex justify-center items-center gap-2 mt-4 pb-4">
@@ -1035,7 +750,7 @@ useEffect(() => {
       <AIConvertModal
         open={showAIModal}
         onOpenChange={handleAIModalChange}
-        onImport={handleAIConvert}
+        onImport={handleImportQuestions}
         availableTags={allTags}
       />
 

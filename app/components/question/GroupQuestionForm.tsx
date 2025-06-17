@@ -68,23 +68,26 @@ export default function GroupQuestionForm({
         setQuestions(formattedQuestions);
       } else {
         const data = initialData as ClozeQuestion;
-        setArticle(data.article);
+        setArticle(data.content);
         setContent(data.content || '');
         setExplanation(data.explanation || '');
         setTags(data.tags);
 
         const formattedQuestions = data.questions.map((q, qIndex) => {
-          const answerIndex = q.options.findIndex(opt => opt === q.answer);
+          const answerIndex = q.answer;
           console.log(`🔍 克漏字第 ${qIndex + 1} 題初始化:`, {
             answer: q.answer,
             options: q.options,
             answerIndex,
-            selectedOptionId: answerIndex >= 0 ? String(answerIndex) : ''
+            selectedOptionId: String(answerIndex)
           });
           return {
-            ...q,
-            selectedOptionId: answerIndex >= 0 ? String(answerIndex) : ''
-          };
+            id: `temp-${qIndex}`,
+            options: q.options,
+            answer: q.options[answerIndex],
+            selectedOptionId: String(answerIndex),
+            explanation: ''
+          } as ClozeSubQuestion;
         });
         setQuestions(formattedQuestions);
       }
@@ -103,18 +106,24 @@ export default function GroupQuestionForm({
   }, [type, defaultTags, initialData]);
 
   const extractBlanks = useCallback((text: string) => {
-    const matches = text.match(/\[\[(\d+)\]\]/g) || [];
-    return matches.map(match => ({
-      id: Math.random().toString(36).substring(7),
+    // 支援多種空格標記格式
+    const matches = text.match(/(?:\[\[(\d+)\]\])|(?:【(\d+)】)|(?:__(\d+)__)/g) || [];
+    return matches.map(() => ({
       options: ['', '', '', ''],
       answer: '',
       selectedOptionId: '',
-    }));
+      content: '',
+      explanation: ''
+    })) as (SubQuestion | ClozeSubQuestion)[];
   }, []);
 
   const validateBlanks = useCallback((text: string) => {
-    const matches = text.match(/\[\[(\d+)\]\]/g) || [];
-    const numbers = matches.map(match => parseInt(match.match(/\d+/)?.[0] || '0'));
+    // 支援多種空格標記格式
+    const matches = text.match(/(?:\[\[(\d+)\]\])|(?:【(\d+)】)|(?:__(\d+)__)/g) || [];
+    const numbers = matches.map(match => {
+      const num = match.match(/\d+/);
+      return num ? parseInt(num[0]) : 0;
+    });
     
     // 檢查是否有重複的編號
     const uniqueNumbers = new Set(numbers);
@@ -182,11 +191,12 @@ export default function GroupQuestionForm({
     setQuestions([
       ...questions,
       {
-        id: Math.random().toString(36).substring(7),
         content: '',
         options: ['', '', '', ''],
         answer: '',
-      },
+        explanation: '',
+        selectedOptionId: ''
+      } as (SubQuestion | ClozeSubQuestion)
     ]);
   };
 
@@ -300,7 +310,7 @@ export default function GroupQuestionForm({
     } else if (type === '克漏字') {
       const blanks = extractBlanks(article);
       if (blanks.length === 0) {
-        alert('請在文章中使用 [[1]], [[2]]... 標記空格處');
+        alert('請在文章中使用 __1__, __2__... 標記空格處');
         return;
       }
 
@@ -326,20 +336,17 @@ export default function GroupQuestionForm({
       return;
     }
 
-    const baseData = {
-      id: Math.random().toString(36).substring(7),
-      type,
-      content: type === '克漏字' ? '' : content,
-      article,
-      explanation,
-      tags,
-    };
-
     let questionData: Question;
-
     if (type === '閱讀測驗') {
       questionData = {
-        ...baseData,
+        id: initialData?.id || '',
+        createdAt: initialData?.createdAt || new Date().toISOString(),
+        updatedAt: initialData?.updatedAt || new Date().toISOString(),
+        type: '閱讀測驗',
+        content,
+        article,
+        explanation,
+        tags,
         questions: (questions as SubQuestion[]).map(q => ({
           id: q.id,
           content: q.content,
@@ -350,12 +357,17 @@ export default function GroupQuestionForm({
       } as ReadingQuestion;
     } else {
       questionData = {
-        ...baseData,
+        id: initialData?.id || '',
+        createdAt: initialData?.createdAt || new Date().toISOString(),
+        updatedAt: initialData?.updatedAt || new Date().toISOString(),
+        type: '克漏字',
+        content: article,
+        explanation,
+        tags,
         questions: (questions as ClozeSubQuestion[]).map(q => ({
-          id: q.id,
           options: q.options,
-          answer: q.answer,
-          explanation: q.explanation
+          answer: parseInt(q.selectedOptionId || '0'),
+          content: ''
         }))
       } as ClozeQuestion;
     }
@@ -376,8 +388,8 @@ export default function GroupQuestionForm({
         <Textarea
           value={article}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setArticle(e.target.value)}
-          placeholder={type === '克漏字' ? '請使用 [[1]], [[2]]... 標記空格處' : '請輸入文章內容...'}
-          className="mt-1.5 placeholder:text-gray-400"
+          placeholder={type === '克漏字' ? '請使用【1】、[[1]]或__1__等格式標記空格處' : '請輸入文章內容...'}
+          className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
           required
         />
       </div>
@@ -389,7 +401,7 @@ export default function GroupQuestionForm({
             <button
               type="button"
               onClick={addQuestion}
-              className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-primary/90"
+              className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-primary/80"
             >
               新增子題
             </button>
@@ -404,7 +416,7 @@ export default function GroupQuestionForm({
                     value={(question as SubQuestion).content}
                     onChange={(e) => handleQuestionChange(questionIndex, 'content', e.target.value)}
                     placeholder="請輸入題目內容..."
-                    className="mt-1.5 placeholder:text-gray-400"
+                    className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                     required
                   />
                 </div>
@@ -445,7 +457,7 @@ export default function GroupQuestionForm({
                           }
                         }}
                         placeholder={`選項 ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (必填)' : ''}`}
-                        className="placeholder:text-gray-400"
+                        className="placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                         required={optionIndex < 2}
                       />
                     </div>
@@ -460,7 +472,7 @@ export default function GroupQuestionForm({
                     value={question.explanation || ''}
                     onChange={(e) => handleQuestionChange(questionIndex, 'explanation', e.target.value)}
                     placeholder="請輸入解說..."
-                    className="mt-1.5 placeholder:text-gray-400"
+                    className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                   />
                 </div>
               )}
@@ -505,7 +517,7 @@ export default function GroupQuestionForm({
                           }
                         }}
                         placeholder={`選項 ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (必填)' : ''}`}
-                        className="placeholder:text-gray-400"
+                        className="placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                         required={optionIndex < 2}
                       />
                     </div>
@@ -519,7 +531,7 @@ export default function GroupQuestionForm({
                   value={question.explanation || ''}
                   onChange={(e) => handleQuestionChange(questionIndex, 'explanation', e.target.value)}
                   placeholder="請輸入此空格的解說..."
-                  className="mt-1.5 placeholder:text-gray-400"
+                  className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                 />
               </div>
             </div>

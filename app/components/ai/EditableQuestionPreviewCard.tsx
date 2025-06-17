@@ -1,4 +1,4 @@
-import { Question, SingleChoiceQuestion, MultipleChoiceQuestion, FillInQuestion, ShortAnswerQuestion, ReadingQuestion } from '@/app/types/question';
+import { Question, SingleChoiceQuestion, MultipleChoiceQuestion, FillInQuestion, ShortAnswerQuestion, ReadingQuestion, ClozeQuestion } from '@/app/types/question';
 import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
@@ -14,12 +14,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
   question: Question;
+  questions: Question[];
   currentIndex: number;
   totalQuestions: number;
   availableTags: string[];
   onPrevious: () => void;
   onNext: () => void;
-  onImport: (question: Question) => void;
+  onImport: (questions: Question[]) => void;
   onSkip: () => void;
 }
 
@@ -29,6 +30,7 @@ const QUESTION_TYPES = [
   { value: '填空題', label: '填空題' },
   { value: '簡答題', label: '簡答題' },
   { value: '閱讀測驗', label: '閱讀測驗' },
+  { value: '克漏字', label: '克漏字' },
 ];
 
 function sanitizeQuestion(raw: any): Question | null {
@@ -123,6 +125,34 @@ function sanitizeQuestion(raw: any): Question | null {
             : []
         } as ReadingQuestion;
 
+      case '克漏字':
+        const questions = Array.isArray(raw.questions)
+          ? raw.questions.map((q: any) => ({
+              content: q.content || '',
+              options: Array.isArray(q.options) ? q.options : ['', '', '', ''],
+              answer: typeof q.answer === 'number' ? q.answer : 0
+            }))
+          : [];
+
+        // 如果沒有子題目，根據內容中的空格數量自動創建
+        if (questions.length === 0) {
+          // 支援多種空格標記格式
+          const blankCount = (raw.content.match(/(?:\[\[(\d+)\]\])|(?:【(\d+)】)|(?:__(\d+)__)/g) || []).length;
+          for (let i = 0; i < blankCount; i++) {
+            questions.push({
+              content: `空格${i + 1}`,
+              options: ['', '', '', ''],
+              answer: 0
+            });
+          }
+        }
+
+        return {
+          ...base,
+          type: '克漏字',
+          questions
+        } as ClozeQuestion;
+
       default:
         return null;
     }
@@ -134,6 +164,7 @@ function sanitizeQuestion(raw: any): Question | null {
 
 export function EditableQuestionPreviewCard({
   question: initialQuestion,
+  questions,
   currentIndex,
   totalQuestions,
   availableTags,
@@ -142,23 +173,47 @@ export function EditableQuestionPreviewCard({
   onImport,
   onSkip,
 }: Props) {
+  const [editedQuestions, setEditedQuestions] = useState<Question[]>(
+    questions.map(q => sanitizeQuestion(q) || q)
+  );
   const [editedQuestion, setEditedQuestion] = useState<Question>(sanitizeQuestion(initialQuestion) || initialQuestion);
-  const [selectedTags, setSelectedTags] = useState<string[]>(editedQuestion.tags || []);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialQuestion.tags || []);
   const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     const sanitized = sanitizeQuestion(initialQuestion);
     if (sanitized) {
       setEditedQuestion(sanitized);
-      setSelectedTags(sanitized.tags || []);
+      setEditedQuestions(prev => {
+        const newQuestions = [...prev];
+        newQuestions[currentIndex] = sanitized;
+        return newQuestions;
+      });
     }
   }, [initialQuestion]);
+
+  useEffect(() => {
+    setEditedQuestions(prev => 
+      prev.map(q => ({
+        ...q,
+        tags: selectedTags
+      }))
+    );
+  }, [selectedTags]);
+
+  const updateEditedQuestion = (updatedQuestion: Question) => {
+    setEditedQuestion(updatedQuestion);
+    setEditedQuestions(prev => {
+      const newQuestions = [...prev];
+      newQuestions[currentIndex] = updatedQuestion;
+      return newQuestions;
+    });
+  };
 
   const handleTypeChange = (newType: string) => {
     const transformed = sanitizeQuestion({
       ...editedQuestion,
       type: newType,
-      // 重置相關欄位
       options: newType === '單選題' || newType === '多選題' ? ['', '', '', ''] : undefined,
       answer: newType === '單選題' ? 0 : newType === '簡答題' ? '' : undefined,
       answers: newType === '多選題' ? [] : undefined,
@@ -167,11 +222,10 @@ export function EditableQuestionPreviewCard({
       questions: newType === '閱讀測驗' ? [] : undefined,
     });
     if (transformed) {
-      setEditedQuestion(transformed);
+      updateEditedQuestion(transformed);
     }
   };
 
-  // 驗證標籤數量
   const validateTags = () => {
     if (selectedTags.length === 0) {
       return '請至少選擇一個標籤';
@@ -189,7 +243,13 @@ export function EditableQuestionPreviewCard({
       setTimeout(() => setShowError(false), 3000);
       return;
     }
-    onImport({ ...editedQuestion, tags: selectedTags });
+    
+    const questionsWithTags = editedQuestions.map(q => ({
+      ...q,
+      tags: selectedTags
+    }));
+    
+    onImport(questionsWithTags);
   };
 
   const renderSingleChoiceEditor = (q: SingleChoiceQuestion) => (
@@ -198,7 +258,7 @@ export function EditableQuestionPreviewCard({
         <label className="block text-sm font-medium mb-1">題幹</label>
         <Textarea
           value={q.content}
-          onChange={(e) => setEditedQuestion({ ...q, content: e.target.value } as SingleChoiceQuestion)}
+          onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as SingleChoiceQuestion)}
           placeholder="請輸入題目內容..."
         />
       </div>
@@ -213,7 +273,7 @@ export function EditableQuestionPreviewCard({
                 onChange={(e) => {
                   const newOptions = [...q.options];
                   newOptions[index] = e.target.value;
-                  setEditedQuestion({ ...q, options: newOptions } as SingleChoiceQuestion);
+                  updateEditedQuestion({ ...q, options: newOptions } as SingleChoiceQuestion);
                 }}
                 placeholder={`選項 ${String.fromCharCode(65 + index)}`}
               />
@@ -225,7 +285,7 @@ export function EditableQuestionPreviewCard({
         <label className="block text-sm font-medium mb-1">正確答案</label>
         <Select
           value={q.answer.toString()}
-          onValueChange={(value) => setEditedQuestion({ ...q, answer: parseInt(value) } as SingleChoiceQuestion)}
+          onValueChange={(value) => updateEditedQuestion({ ...q, answer: parseInt(value) } as SingleChoiceQuestion)}
         >
           <SelectTrigger>
             <SelectValue placeholder="選擇正確答案" />
@@ -248,7 +308,7 @@ export function EditableQuestionPreviewCard({
         <label className="block text-sm font-medium mb-1">題幹</label>
         <Textarea
           value={q.content}
-          onChange={(e) => setEditedQuestion({ ...q, content: e.target.value } as MultipleChoiceQuestion)}
+          onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as MultipleChoiceQuestion)}
           placeholder="請輸入題目內容..."
         />
       </div>
@@ -263,7 +323,7 @@ export function EditableQuestionPreviewCard({
                   const newAnswers = checked
                     ? [...q.answers, index].sort()
                     : q.answers.filter(a => a !== index);
-                  setEditedQuestion({ ...q, answers: newAnswers } as MultipleChoiceQuestion);
+                  updateEditedQuestion({ ...q, answers: newAnswers } as MultipleChoiceQuestion);
                 }}
               />
               <span className="w-6">{String.fromCharCode(65 + index)}</span>
@@ -272,7 +332,7 @@ export function EditableQuestionPreviewCard({
                 onChange={(e) => {
                   const newOptions = [...q.options];
                   newOptions[index] = e.target.value;
-                  setEditedQuestion({ ...q, options: newOptions } as MultipleChoiceQuestion);
+                  updateEditedQuestion({ ...q, options: newOptions } as MultipleChoiceQuestion);
                 }}
                 placeholder={`選項 ${String.fromCharCode(65 + index)}`}
               />
@@ -293,7 +353,7 @@ export function EditableQuestionPreviewCard({
             const content = e.target.value;
             const blanks = (content.match(/\[\[(.*?)\]\]/g) || [])
               .map(match => match.slice(2, -2));
-            setEditedQuestion({ ...q, content, blanks });
+            updateEditedQuestion({ ...q, content, blanks });
           }}
           placeholder="請輸入題目內容，使用 [[答案]] 標記填空處..."
           rows={5}
@@ -316,7 +376,7 @@ export function EditableQuestionPreviewCard({
         <label className="block text-sm font-medium mb-1">題幹</label>
         <Textarea
           value={q.content}
-          onChange={(e) => setEditedQuestion({ ...q, content: e.target.value } as ShortAnswerQuestion)}
+          onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as ShortAnswerQuestion)}
           placeholder="請輸入題目內容..."
         />
       </div>
@@ -324,7 +384,7 @@ export function EditableQuestionPreviewCard({
         <label className="block text-sm font-medium mb-1">答案</label>
         <Textarea
           value={q.answer}
-          onChange={(e) => setEditedQuestion({ ...q, answer: e.target.value } as ShortAnswerQuestion)}
+          onChange={(e) => updateEditedQuestion({ ...q, answer: e.target.value } as ShortAnswerQuestion)}
           placeholder="請輸入參考答案..."
         />
       </div>
@@ -337,7 +397,7 @@ export function EditableQuestionPreviewCard({
         <label className="block text-sm font-medium mb-1">文章內容</label>
         <Textarea
           value={q.article}
-          onChange={(e) => setEditedQuestion({ ...q, article: e.target.value } as ReadingQuestion)}
+          onChange={(e) => updateEditedQuestion({ ...q, article: e.target.value } as ReadingQuestion)}
           placeholder="請輸入文章內容..."
           rows={5}
           className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
@@ -355,7 +415,7 @@ export function EditableQuestionPreviewCard({
                   onChange={(e) => {
                     const newQuestions = [...q.questions];
                     newQuestions[index] = { ...subQ, content: e.target.value };
-                    setEditedQuestion({
+                    updateEditedQuestion({
                       ...q,
                       questions: newQuestions
                     } as ReadingQuestion);
@@ -371,7 +431,7 @@ export function EditableQuestionPreviewCard({
                       onValueChange={(value) => {
                         const newQuestions = [...q.questions];
                         newQuestions[index] = { ...subQ, answer: value };
-                        setEditedQuestion({
+                        updateEditedQuestion({
                           ...q,
                           questions: newQuestions
                         } as ReadingQuestion);
@@ -386,7 +446,7 @@ export function EditableQuestionPreviewCard({
                         const newOptions = [...subQ.options];
                         newOptions[optIndex] = e.target.value;
                         newQuestions[index] = { ...subQ, options: newOptions };
-                        setEditedQuestion({
+                        updateEditedQuestion({
                           ...q,
                           questions: newQuestions
                         } as ReadingQuestion);
@@ -402,7 +462,7 @@ export function EditableQuestionPreviewCard({
                   onValueChange={(value) => {
                     const newQuestions = [...q.questions];
                     newQuestions[index] = { ...subQ, answer: value };
-                    setEditedQuestion({ ...q, questions: newQuestions } as ReadingQuestion);
+                    updateEditedQuestion({ ...q, questions: newQuestions } as ReadingQuestion);
                   }}
                 >
                   <SelectTrigger>
@@ -424,6 +484,94 @@ export function EditableQuestionPreviewCard({
     </div>
   );
 
+  const renderClozeTestEditor = (q: ClozeQuestion) => (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">文章內容（使用【1】、[[1]]或__1__等格式標記空格）</label>
+        <Textarea
+          value={q.content}
+          onChange={(e) => {
+            const content = e.target.value;
+            // 支援多種空格標記格式
+            const blanks = (content.match(/(?:\[\[(\d+)\]\])|(?:【(\d+)】)|(?:__(\d+)__)/g) || []);
+            const currentQuestions = [...q.questions];
+            
+            // 根據空格數量調整子題目
+            while (currentQuestions.length < blanks.length) {
+              currentQuestions.push({
+                options: ['', '', '', ''],
+                answer: 0
+              });
+            }
+            
+            updateEditedQuestion({
+              ...q,
+              content,
+              questions: currentQuestions.slice(0, blanks.length)
+            } as ClozeQuestion);
+          }}
+          placeholder="請輸入文章內容，使用【1】、[[1]]或__1__等格式標記空格..."
+          rows={5}
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">選項設定</label>
+        <div className="space-y-4">
+          {q.questions.map((subQ, index) => (
+            <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+              <div className="mb-2">
+                <Label className="text-gray-700 dark:text-mainBg">空格 {index + 1}</Label>
+              </div>
+              <div className="space-y-2">
+                {subQ.options.map((option, optIndex) => (
+                  <div key={optIndex} className="flex items-center gap-2">
+                    <RadioGroup
+                      value={subQ.answer.toString()}
+                      onValueChange={(value) => {
+                        const newQuestions = [...q.questions];
+                        newQuestions[index] = {
+                          ...subQ,
+                          answer: parseInt(value)
+                        };
+                        updateEditedQuestion({
+                          ...q,
+                          questions: newQuestions
+                        } as ClozeQuestion);
+                      }}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value={optIndex.toString()} />
+                        <Label className="w-6">{String.fromCharCode(65 + optIndex)}</Label>
+                      </div>
+                    </RadioGroup>
+                    <Input
+                      value={option}
+                      onChange={(e) => {
+                        const newQuestions = [...q.questions];
+                        const newOptions = [...subQ.options];
+                        newOptions[optIndex] = e.target.value;
+                        newQuestions[index] = {
+                          ...subQ,
+                          options: newOptions
+                        };
+                        updateEditedQuestion({
+                          ...q,
+                          questions: newQuestions
+                        } as ClozeQuestion);
+                      }}
+                      className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                      placeholder={`選項 ${String.fromCharCode(65 + optIndex)}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   const renderEditorByType = () => {
     switch (editedQuestion.type) {
       case '單選題':
@@ -436,6 +584,8 @@ export function EditableQuestionPreviewCard({
         return renderShortAnswerEditor(editedQuestion as ShortAnswerQuestion);
       case '閱讀測驗':
         return renderReadingTestEditor(editedQuestion as ReadingQuestion);
+      case '克漏字':
+        return renderClozeTestEditor(editedQuestion as ClozeQuestion);
       default:
         return <div className="text-red-500">⚠️ 無法辨識的題型</div>;
     }
@@ -471,11 +621,11 @@ export function EditableQuestionPreviewCard({
       <Card className="flex-1 bg-mainBg dark:bg-default border border-gray-300 dark:border-gray-600 overflow-hidden">
         <CardContent className="h-full lg:h-[calc(90vh-12rem)] overflow-y-auto p-6">
           <div className="space-y-6">
-            {editedQuestion.type === '閱讀測驗' ? (
+            {editedQuestion.type === '閱讀測驗' && (
               <div className="space-y-4">
                 <Textarea
                   value={editedQuestion.article}
-                  onChange={(e) => setEditedQuestion({ ...editedQuestion, article: e.target.value } as ReadingQuestion)}
+                  onChange={(e) => updateEditedQuestion({ ...editedQuestion, article: e.target.value } as ReadingQuestion)}
                   placeholder="請輸入文章內容..."
                   rows={5}
                   className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
@@ -492,7 +642,7 @@ export function EditableQuestionPreviewCard({
                             onChange={(e) => {
                               const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
                               newQuestions[index] = { ...subQ, content: e.target.value };
-                              setEditedQuestion({
+                              updateEditedQuestion({
                                 ...editedQuestion,
                                 questions: newQuestions
                               } as ReadingQuestion);
@@ -510,7 +660,7 @@ export function EditableQuestionPreviewCard({
                                   onValueChange={(value) => {
                                     const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
                                     newQuestions[index] = { ...subQ, answer: value };
-                                    setEditedQuestion({
+                                    updateEditedQuestion({
                                       ...editedQuestion,
                                       questions: newQuestions
                                     } as ReadingQuestion);
@@ -525,7 +675,7 @@ export function EditableQuestionPreviewCard({
                                     const newOptions = [...subQ.options];
                                     newOptions[optIndex] = e.target.value;
                                     newQuestions[index] = { ...subQ, options: newOptions };
-                                    setEditedQuestion({
+                                    updateEditedQuestion({
                                       ...editedQuestion,
                                       questions: newQuestions
                                     } as ReadingQuestion);
@@ -543,7 +693,7 @@ export function EditableQuestionPreviewCard({
                             onChange={(e) => {
                               const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
                               newQuestions[index] = { ...subQ, explanation: e.target.value };
-                              setEditedQuestion({
+                              updateEditedQuestion({
                                 ...editedQuestion,
                                 questions: newQuestions
                               } as ReadingQuestion);
@@ -556,13 +706,92 @@ export function EditableQuestionPreviewCard({
                   </div>
                 </div>
               </div>
-            ) : (
-              <Textarea
-                value={editedQuestion.content}
-                onChange={(e) => setEditedQuestion({ ...editedQuestion, content: e.target.value })}
-                className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
-                placeholder="請輸入題目內容..."
-              />
+            )}
+
+            {editedQuestion.type === '克漏字' && (
+              <div className="space-y-4">
+                <Textarea
+                  value={editedQuestion.content}
+                  onChange={(e) => {
+                    const content = e.target.value;
+                    // 支援多種空格標記格式
+                    const blanks = (content.match(/(?:\[\[(\d+)\]\])|(?:【(\d+)】)|(?:__(\d+)__)/g) || []);
+                    const currentQuestions = [...(editedQuestion as ClozeQuestion).questions];
+                    
+                    // 根據空格數量調整子題目
+                    while (currentQuestions.length < blanks.length) {
+                      currentQuestions.push({
+                        options: ['', '', '', ''],
+                        answer: 0
+                      });
+                    }
+                    
+                    updateEditedQuestion({
+                      ...editedQuestion,
+                      content,
+                      questions: currentQuestions.slice(0, blanks.length)
+                    } as ClozeQuestion);
+                  }}
+                  placeholder="請輸入文章內容，使用【1】、[[1]]或__1__等格式標記空格..."
+                  rows={5}
+                  className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-2">空格選項</label>
+                  <div className="space-y-4">
+                    {(editedQuestion as ClozeQuestion).questions.map((subQ, index) => (
+                      <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 space-y-4">
+                        <div>
+                          <Label className="text-gray-700 dark:text-mainBg">空格 {index + 1}</Label>
+                          <div className="space-y-2 mt-2">
+                            {subQ.options.map((option, optIndex) => (
+                              <div key={optIndex} className="flex items-center gap-2">
+                                <RadioGroup
+                                  value={subQ.answer.toString()}
+                                  onValueChange={(value) => {
+                                    const newQuestions = [...(editedQuestion as ClozeQuestion).questions];
+                                    newQuestions[index] = {
+                                      ...subQ,
+                                      answer: parseInt(value)
+                                    };
+                                    updateEditedQuestion({
+                                      ...editedQuestion,
+                                      questions: newQuestions
+                                    } as ClozeQuestion);
+                                  }}
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value={optIndex.toString()} />
+                                    <Label className="w-6">{String.fromCharCode(65 + optIndex)}</Label>
+                                  </div>
+                                </RadioGroup>
+                                <Input
+                                  value={option}
+                                  onChange={(e) => {
+                                    const newQuestions = [...(editedQuestion as ClozeQuestion).questions];
+                                    const newOptions = [...subQ.options];
+                                    newOptions[optIndex] = e.target.value;
+                                    newQuestions[index] = {
+                                      ...subQ,
+                                      options: newOptions
+                                    };
+                                    updateEditedQuestion({
+                                      ...editedQuestion,
+                                      questions: newQuestions
+                                    } as ClozeQuestion);
+                                  }}
+                                  className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                                  placeholder={`選項 ${String.fromCharCode(65 + optIndex)}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
 
             {editedQuestion.type === '單選題' && (
@@ -571,7 +800,7 @@ export function EditableQuestionPreviewCard({
                 <RadioGroup
                   value={String((editedQuestion as SingleChoiceQuestion).answer)}
                   onValueChange={(value) =>
-                    setEditedQuestion({
+                    updateEditedQuestion({
                       ...editedQuestion,
                       answer: parseInt(value)
                     } as SingleChoiceQuestion)
@@ -586,7 +815,7 @@ export function EditableQuestionPreviewCard({
                         onChange={(e) => {
                           const newOptions = [...(editedQuestion as SingleChoiceQuestion).options];
                           newOptions[index] = e.target.value;
-                          setEditedQuestion({
+                          updateEditedQuestion({
                             ...editedQuestion,
                             options: newOptions
                           } as SingleChoiceQuestion);
@@ -611,7 +840,7 @@ export function EditableQuestionPreviewCard({
                           const newAnswers = checked
                             ? [...(editedQuestion as MultipleChoiceQuestion).answers, index].sort()
                             : (editedQuestion as MultipleChoiceQuestion).answers.filter(a => a !== index);
-                          setEditedQuestion({
+                          updateEditedQuestion({
                             ...editedQuestion,
                             answers: newAnswers
                           } as MultipleChoiceQuestion);
@@ -622,7 +851,7 @@ export function EditableQuestionPreviewCard({
                         onChange={(e) => {
                           const newOptions = [...(editedQuestion as MultipleChoiceQuestion).options];
                           newOptions[index] = e.target.value;
-                          setEditedQuestion({
+                          updateEditedQuestion({
                             ...editedQuestion,
                             options: newOptions
                           } as MultipleChoiceQuestion);
@@ -646,7 +875,7 @@ export function EditableQuestionPreviewCard({
                       onChange={(e) => {
                         const newBlanks = [...(editedQuestion as FillInQuestion).blanks];
                         newBlanks[index] = e.target.value;
-                        setEditedQuestion({
+                        updateEditedQuestion({
                           ...editedQuestion,
                           blanks: newBlanks
                         } as FillInQuestion);
@@ -664,7 +893,7 @@ export function EditableQuestionPreviewCard({
                 <Textarea
                   value={(editedQuestion as ShortAnswerQuestion).answer}
                   onChange={(e) =>
-                    setEditedQuestion({
+                    updateEditedQuestion({
                       ...editedQuestion,
                       answer: e.target.value
                     } as ShortAnswerQuestion)
@@ -679,7 +908,7 @@ export function EditableQuestionPreviewCard({
               <Textarea
                 value={editedQuestion.explanation}
                 onChange={(e) =>
-                  setEditedQuestion({
+                  updateEditedQuestion({
                     ...editedQuestion,
                     explanation: e.target.value
                   })
@@ -708,7 +937,7 @@ export function EditableQuestionPreviewCard({
             variant="outline"
             onClick={onPrevious}
             disabled={currentIndex === 0}
-            className="bg-mainBg dark:bg-white text-gray-700 dark:text-gray-800 border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
+            className="bg-mainBg hover:bg-primary/80 text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
           >
             ←
           </Button>
@@ -716,7 +945,7 @@ export function EditableQuestionPreviewCard({
             variant="outline"
             onClick={onNext}
             disabled={currentIndex === totalQuestions - 1}
-            className="bg-mainBg dark:bg-white text-gray-700 dark:text-gray-800 border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
+            className="bg-mainBg hover:bg-primary/80 text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
           >
             →
           </Button>
@@ -739,7 +968,7 @@ export function EditableQuestionPreviewCard({
               }
               handleImportClick();
             }}
-            className={`bg-primary hover:bg-primary/90 text-white transition ${validateTags() ? 'cursor-not-allowed opacity-50' : ''}`}
+            className={`bg-primary hover:bg-primary/80 text-white transition ${validateTags() ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             💾儲存
           </Button>

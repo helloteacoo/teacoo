@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy, getDoc } from 'firebase/firestore';
 import type { Question } from '@/app/types/question';
 
 const QUESTIONS_COLLECTION = 'questions';
@@ -34,13 +34,24 @@ export async function updateQuestion(id: string, question: Partial<Question>): P
 
 // 刪除題目
 export async function deleteQuestion(id: string): Promise<void> {
+  if (!id) {
+    throw new Error('刪除題目時必須提供有效的 ID');
+  }
+
   try {
-    console.log('嘗試刪除 Firestore 文件 id:', id);
     const questionRef = doc(db, QUESTIONS_COLLECTION, id);
+    
+    // 先確認文件是否存在
+    const docSnap = await getDoc(questionRef);
+    if (!docSnap.exists()) {
+      throw new Error(`找不到 ID 為 ${id} 的題目`);
+    }
+
+    // 執行刪除操作
     await deleteDoc(questionRef);
-    console.log('刪除成功:', id);
+    console.log('成功刪除題目:', id);
   } catch (error) {
-    console.error('刪除題目失敗:', error, id);
+    console.error('刪除題目時發生錯誤:', error);
     throw error;
   }
 }
