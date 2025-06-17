@@ -12,15 +12,18 @@ interface AssignQuizModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedQuestions: Question[];
+  mode?: 'assign' | 'practice';  // 新增模式參數
 }
 
 function AssignQuizContent() {
-  const { state } = useAssignQuiz();
+  const { state, mode } = useAssignQuiz();
   return (
     <div className="space-y-3">
       <DialogHeader className="pb-2">
         <DialogTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-          {state.step === 'completed' ? '派發成功' : '派發作業'}
+          {state.step === 'completed' 
+            ? (mode === 'practice' ? '準備開始' : '派發成功') 
+            : (mode === 'practice' ? '自我練習' : '派發作業')}
         </DialogTitle>
       </DialogHeader>
 
@@ -55,6 +58,7 @@ export default function AssignQuizModal({
   open,
   onOpenChange,
   selectedQuestions,
+  mode = 'assign',  // 預設為派發模式
 }: AssignQuizModalProps) {
   const handleSuccess = () => {
     // 派發成功後不自動關閉 Modal，讓使用者自行關閉
@@ -67,6 +71,7 @@ export default function AssignQuizModal({
     <AssignQuizProvider 
       selectedQuestions={selectedQuestions}
       onSuccess={handleSuccess}
+      mode={mode}  // 傳遞模式到 Provider
     >
       <AssignQuizModalContent open={open} onOpenChange={onOpenChange} />
     </AssignQuizProvider>

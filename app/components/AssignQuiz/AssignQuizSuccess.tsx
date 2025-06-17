@@ -7,21 +7,45 @@ import { useAssignQuiz } from './AssignQuizContext';
 import { toast } from 'sonner';
 
 export default function AssignQuizSuccess() {
-  const { state } = useAssignQuiz();
+  const { state, mode } = useAssignQuiz();
   const quizUrl = `${window.location.origin}/quiz/${state.data.id}`;
 
   const handleCopyUrl = async () => {
     try {
       await navigator.clipboard.writeText(quizUrl);
-      toast.success('作業連結已複製到剪貼簿');
+      toast.success('連結已複製到剪貼簿');
     } catch (error) {
       toast.error('無法複製連結，請手動複製');
     }
   };
 
-  const handlePreview = () => {
+  const handleStart = () => {
     window.open(quizUrl, '_blank');
   };
+
+  if (mode === 'practice') {
+    return (
+      <div className="space-y-2.5">
+        <div className="text-center">
+          <h3 className="text-base sm:text-lg font-semibold text-green-600 dark:text-green-400">
+            ✅ 準備就緒！
+          </h3>
+          <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            點擊下方按鈕開始練習
+          </p>
+        </div>
+
+        <div className="flex justify-center pt-1">
+          <Button 
+            onClick={handleStart} 
+            className="flex-1 h-7 sm:h-8 text-xs sm:text-sm bg-primary hover:bg-primary/80 dark:bg-primary dark:hover:bg-primary/80 rounded-md"
+          >
+            ▶️ 開始練習
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2.5">
@@ -60,7 +84,7 @@ export default function AssignQuizSuccess() {
 
         <div className="flex justify-center pt-1">
           <Button 
-            onClick={handlePreview} 
+            onClick={handleStart} 
             className="flex-1 h-7 sm:h-8 text-xs sm:text-sm bg-primary hover:bg-primary/80 dark:bg-primary dark:hover:bg-primary/80 rounded-md"
           >
             🔍 預覽作業

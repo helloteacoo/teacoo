@@ -35,6 +35,7 @@ interface AssignQuizContextType {
   dispatch: React.Dispatch<AssignQuizAction>;
   handleSubmit: () => Promise<void>;
   selectedQuestions: Question[];
+  mode: 'assign' | 'practice';
 }
 
 // 創建 Context
@@ -102,6 +103,7 @@ interface AssignQuizProviderProps {
   children: ReactNode;
   selectedQuestions?: Question[];
   onSuccess?: (quizId: string) => void;
+  mode?: 'assign' | 'practice';
 }
 
 // Provider 組件
@@ -109,6 +111,7 @@ export function AssignQuizProvider({
   children,
   selectedQuestions = [],
   onSuccess,
+  mode = 'assign',
 }: AssignQuizProviderProps) {
   const [state, dispatch] = useReducer(assignQuizReducer, initialState);
 
@@ -154,7 +157,8 @@ export function AssignQuizProvider({
         settings: {
           showTimer: state.data.settings.showTimer,
           targetList: state.data.settings.targetList || [], // 確保寫入名單
-        }
+        },
+        mode, // 加入模式資訊
       });
   
       dispatch({ type: 'SET_ID', payload: quizId });
@@ -171,7 +175,7 @@ export function AssignQuizProvider({
   };
 
   return (
-    <AssignQuizContext.Provider value={{ state, dispatch, handleSubmit, selectedQuestions }}>
+    <AssignQuizContext.Provider value={{ state, dispatch, handleSubmit, selectedQuestions, mode }}>
       {children}
     </AssignQuizContext.Provider>
   );

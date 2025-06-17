@@ -5,6 +5,7 @@ import { Question } from '@/app/types/question';
 interface TopbarButtonsProps {
   onAIModalChange: (open: boolean) => void;
   onAssignQuestions: () => void;
+  onSelfPractice: () => void;
   selectedQuestionIds: string[];
   keyword: string;
   onKeywordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -16,6 +17,7 @@ interface TopbarButtonsProps {
 export default function TopbarButtons({
   onAIModalChange,
   onAssignQuestions,
+  onSelfPractice,
   selectedQuestionIds,
   keyword,
   onKeywordChange,
@@ -42,7 +44,14 @@ export default function TopbarButtons({
           >
             📤 派發作業
           </Button>
-          <Button className="text-gray-200 h-8 px-3 text-sm">🧪 自我練習</Button>
+          <Button 
+            onClick={onSelfPractice}
+            disabled={selectedQuestionIds.length === 0}
+            title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '開始自我練習'}
+            className="text-gray-200 h-8 px-3 text-sm"
+          >
+            🧪 自我練習
+          </Button>
           <Button className="text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
         </div>
 
@@ -122,7 +131,14 @@ export default function TopbarButtons({
             >
               📤 派發作業
             </Button>
-            <Button className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm">🧪 自我練習</Button>
+            <Button 
+              onClick={onSelfPractice}
+              disabled={selectedQuestionIds.length === 0}
+              title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '開始自我練習'}
+              className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
+            >
+              🧪 自我練習
+            </Button>
             <Button className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
           </div>
         </div>

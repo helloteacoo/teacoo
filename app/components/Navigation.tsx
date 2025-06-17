@@ -18,6 +18,7 @@ export default function Navigation() {
   const { theme, toggleTheme } = useTheme();
   const { user, loading, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const navItems = [
     { name: '我的題庫', href: '/question' },
@@ -27,10 +28,12 @@ export default function Navigation() {
 
   const handleSignOut = async () => {
     try {
+      setIsSigningOut(true);
       await signOut();
       router.push('/login');
     } catch (error) {
       console.error('登出時發生錯誤:', error);
+      setIsSigningOut(false);
     }
   };
 
@@ -112,9 +115,10 @@ export default function Navigation() {
                 <Button
                   variant="ghost"
                   onClick={handleSignOut}
+                  disabled={isSigningOut}
                   className="text-gray-700 dark:text-gray-300"
                 >
-                  登出
+                  {isSigningOut ? '登出中...' : '登出'}
                 </Button>
               </div>
             ) : (
@@ -176,9 +180,10 @@ export default function Navigation() {
                 <Button
                   variant="ghost"
                   onClick={handleSignOut}
+                  disabled={isSigningOut}
                   className="ml-auto text-gray-700 dark:text-gray-300"
                 >
-                  登出
+                  {isSigningOut ? '登出中...' : '登出'}
                 </Button>
               </div>
             )}

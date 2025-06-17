@@ -75,6 +75,7 @@ export default function QuestionPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignModalMode, setAssignModalMode] = useState<'assign' | 'practice'>('assign');
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('');
@@ -613,10 +614,12 @@ export default function QuestionPage() {
   };
 
   const handleAssignQuestions = () => {
-    if (selectedQuestionIds.length === 0) {
-      toast.error('請先選擇要派發的題目');
-      return;
-    }
+    setAssignModalMode('assign');
+    setShowAssignModal(true);
+  };
+
+  const handleSelfPractice = () => {
+    setAssignModalMode('practice');
     setShowAssignModal(true);
   };
 
@@ -661,6 +664,7 @@ export default function QuestionPage() {
           <TopbarButtons
             onAIModalChange={handleAIModalChange}
             onAssignQuestions={handleAssignQuestions}
+            onSelfPractice={handleSelfPractice}
             selectedQuestionIds={selectedQuestionIds}
             keyword={keyword}
             onKeywordChange={handleKeywordChange}
@@ -756,8 +760,9 @@ export default function QuestionPage() {
 
       <AssignQuizModal
         open={showAssignModal}
-        onOpenChange={(open) => setShowAssignModal(open)}
+        onOpenChange={setShowAssignModal}
         selectedQuestions={selectedQuestions}
+        mode={assignModalMode}
       />
     </div>
   );

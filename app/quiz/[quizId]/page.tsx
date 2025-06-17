@@ -9,12 +9,30 @@ import { Button } from '@/app/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Textarea } from '@/app/components/ui/textarea';
 import { toast } from 'sonner';
-import { Question } from '@/app/types/question';
+import { 
+  Question, 
+  ReadingQuestion, 
+  ClozeQuestion, 
+  SingleChoiceQuestion,
+  MultipleChoiceQuestion,
+  SubQuestion 
+} from '@/app/types/question';
 import { useTheme } from '@/app/contexts/ThemeContext';
 import { SunIcon, MoonIcon } from '@radix-ui/react-icons';
 
-type AnswerValue = string | string[];
+type AnswerValue = string | Array<string>;
 type Answers = Record<string, AnswerValue>;
+
+interface Quiz {
+  title: string;
+  questions: Question[];
+  settings: {
+    showTimer: boolean;
+    targetList: string[];
+  };
+  mode: 'assign' | 'practice';
+  deadline?: string;  // 可選的截止日期
+}
 
 const QUESTIONS_PER_PAGE = 10;
 
@@ -22,7 +40,7 @@ export default function StudentQuizPage() {
   const params = useParams();
   const quizId = params?.quizId as string;
   const { theme, toggleTheme } = useTheme();
-  const [quiz, setQuiz] = useState<any>(null);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -66,18 +84,26 @@ export default function StudentQuizPage() {
         }
         
         // 確保從 Firestore 讀取完整的 quiz 資料
-        const fullQuizData = {
-          ...quizData,
+        const fullQuizData: Quiz = {
+          title: quizData.title || '',
           questions: qs,
           settings: {
             showTimer: quizData.settings?.showTimer || false,
             targetList: quizData.settings?.targetList || []
-          }
+          },
+          mode: quizData.mode || 'assign',
+          deadline: quizData.deadline || undefined
         };
         
         console.log('Quiz Data:', fullQuizData); // 用於除錯
         setQuiz(fullQuizData);
         setQuestions(qs);
+
+        // 如果是自我練習模式，自動開始作答
+        if (fullQuizData.mode === 'practice') {
+          setName('練習者');
+          setStartTime(Date.now());
+        }
       } catch (error) {
         console.error('載入試卷失敗:', error);
         toast.error('載入試卷失敗');
@@ -134,13 +160,15 @@ export default function StudentQuizPage() {
 
   // 開始作答
   const handleStart = () => {
-    if (!name) {
-      toast.error('請輸入姓名');
-      return;
-    }
-    if (quiz?.settings?.targetList?.length > 0 && !quiz.settings.targetList.includes(name)) {
-      toast.error('查無此姓名');
-      return;
+    if (quiz?.mode === 'assign') {
+      if (!name) {
+        toast.error('請輸入姓名');
+        return;
+      }
+      if (quiz?.settings?.targetList?.length > 0 && !quiz.settings.targetList.includes(name)) {
+        toast.error('查無此姓名');
+        return;
+      }
     }
     setStartTime(Date.now());
   };
@@ -186,15 +214,53 @@ export default function StudentQuizPage() {
           const correctAnswers = q.answers.map((idx: number) => q.options[idx]);
           if (Array.isArray(userAnswer) && userAnswer.length === correctAnswers.length && userAnswer.every(a => correctAnswers.includes(a))) correctCount++;
         }
-        // 其他題型可擴充
+        if (q.type === '閱讀測驗') {
+          const readingQ = q as ReadingQuestion;
+          if (Array.isArray(userAnswer)) {
+            readingQ.questions.forEach((subQ, idx) => {
+              if (userAnswer[idx] === subQ.answer) correctCount++;
+            });
+          }
+        }
+        if (q.type === '克漏字') {
+          const clozeQ = q as ClozeQuestion;
+          if (Array.isArray(userAnswer)) {
+            clozeQ.questions.forEach((subQ, idx) => {
+              if (userAnswer[idx] === subQ.options[subQ.answer]) correctCount++;
+            });
+          }
+        }
       });
-      await addDoc(collection(db, 'quizResponses', quizId, 'responses'), {
+
+      // 根據模式儲存答案到不同的 collection
+      const responseData = {
         name,
         answers,
         score: correctCount,
         duration,
         submittedAt: Timestamp.now()
-      });
+      };
+
+      // 詳細記錄要寫入的資料
+      console.log('===== 準備儲存作答紀錄 =====');
+      console.log('測驗模式:', quiz.mode);
+      console.log('測驗ID:', quizId);
+      console.log('作答者:', name);
+      console.log('得分:', correctCount, '/', questions.length);
+      console.log('作答時間:', Math.floor(duration / 60000), '分', Math.floor((duration % 60000) / 1000), '秒');
+      console.log('答案內容:', answers);
+
+      try {
+        const collectionPath = quiz.mode === 'assign' ? 'quizResponses' : 'practiceResponses';
+        const docRef = await addDoc(collection(db, collectionPath, quizId, 'responses'), responseData);
+        console.log('✅ 成功儲存作答紀錄');
+        console.log('儲存位置:', `${collectionPath}/${quizId}/responses/${docRef.id}`);
+        console.log('========================');
+      } catch (error) {
+        console.error('❌ 儲存作答紀錄失敗：', error);
+        throw error;
+      }
+
       setScore(correctCount);
       setDuration(duration);
       setSubmitted(true);
@@ -208,69 +274,65 @@ export default function StudentQuizPage() {
   };
 
   if (loading) {
-    return <div className="container mx-auto px-4 py-8 bg-mainBg dark:bg-gray-900 text-gray-800 dark:text-gray-200">載入中...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-mainBg dark:bg-gray-900">
+        <div className="text-gray-600 dark:text-gray-400">載入中...</div>
+      </div>
+    );
   }
 
   if (!quiz) {
-    return <div className="container mx-auto px-4 py-8 bg-mainBg dark:bg-gray-900 text-gray-800 dark:text-gray-200">找不到此試卷</div>;
-  }
-
-  if (submitted) {
-    const minutes = Math.floor(duration / 60000);
-    const seconds = Math.floor((duration % 60000) / 1000);
     return (
-      <div className="container mx-auto px-4 py-8 text-center bg-mainBg dark:bg-gray-900">
-        <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">✅ 作業已完成！</h1>
-        <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">🎯 得分：{score} / {questions.length} 題正確（{Math.round((score / questions.length) * 100)}%）</p>
-        {quiz.settings.showTimer && <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">⏱️ 作答時間：{minutes} 分 {seconds} 秒</p>}
-        <Button className="mt-4 bg-primary hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary/90">📄 查看作答結果</Button>
+      <div className="min-h-screen flex items-center justify-center bg-mainBg dark:bg-gray-900">
+        <div className="text-gray-600 dark:text-gray-400">找不到此試卷</div>
       </div>
     );
   }
 
   if (!startTime) {
     return (
-      <div className="container mx-auto px-4 py-8 bg-mainBg dark:bg-gray-900">
-        <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">📃 {quiz?.title}</h1>
-        <div className="max-w-md mx-auto bg-cardBg dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-300 dark:border-gray-700">
-          <div className="space-y-4">
-            {quiz?.settings?.targetList?.length > 0 ? (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  選擇你的姓名
-                </label>
-                <Select onValueChange={setName}>
-                  <SelectTrigger className="w-full bg-mainBg dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
-                    <SelectValue placeholder="從名單中選擇" />
-                  </SelectTrigger>
-                  <SelectContent className="dark:bg-gray-900 dark:border-gray-700">
-                    {quiz.settings.targetList.map((n: string) => (
-                      <SelectItem key={n} value={n} className="dark:text-gray-100 dark:focus:bg-gray-800">{n}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  輸入你的姓名
-                </label>
-                <Input
-                  value={name}
-                  onChange={e => setName(e.target.value)} 
-                  placeholder="請輸入你的姓名"
-                  className="w-full bg-mainBg dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:placeholder:text-gray-400"
-                />
-              </div>
-            )}
-            <Button 
-              onClick={handleStart} 
-              className="w-full mt-4 bg-primary hover:bg-primary/80 dark:bg-primary dark:hover:bg-primary/80" 
-              disabled={!name}
-            >
-              開始作答
-            </Button>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-mainBg dark:bg-gray-900 p-4">
+        <div className="w-full max-w-md space-y-4">
+          <div className="text-center space-y-2">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{quiz.title}</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              共 {questions.length} 題
+            </p>
           </div>
+
+          {/* 只在派發作業模式下顯示姓名輸入 */}
+          {quiz.mode === 'assign' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                請輸入姓名
+              </label>
+              <Input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="請輸入姓名"
+                className="w-full"
+              />
+            </div>
+          )}
+
+          <Button onClick={handleStart} className="w-full">
+            開始作答
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    const minutes = Math.floor(duration / 60000);
+    const seconds = Math.floor((duration % 60000) / 1000);
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-mainBg dark:bg-gray-900">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">✅ 作業已完成！</h1>
+          <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">🎯 得分：{score} / {questions.length} 題正確（{Math.round((score / questions.length) * 100)}%）</p>
+          {quiz.settings.showTimer && <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">⏱️ 作答時間：{minutes} 分 {seconds} 秒</p>}
+          <Button className="mt-4">📄 查看作答結果</Button>
         </div>
       </div>
     );
@@ -311,12 +373,92 @@ export default function StudentQuizPage() {
           return (
             <div key={question.id} className="bg-cardBg dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-300 dark:border-gray-700">
               <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">
-                {((page - 1) * QUESTIONS_PER_PAGE) + idx + 1}. {question.content}
+                {((page - 1) * QUESTIONS_PER_PAGE) + idx + 1}. {!['克漏字', '閱讀測驗'].includes(question.type) && question.content}
               </h2>
+
+              {/* 閱讀測驗 */}
+              {question.type === '閱讀測驗' && (
+                <div className="space-y-6">
+                  <div className="prose dark:prose-invert max-w-none mb-6 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                    {(question as ReadingQuestion).article}
+                  </div>
+                  <div className="space-y-8">
+                    {(question as ReadingQuestion).questions.map((subQ, subIdx) => (
+                      <div key={subQ.id} className="space-y-4">
+                        <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">
+                          ({subIdx + 1}) {subQ.content}
+                        </h3>
+                        <div className="space-y-0.5 ml-4">
+                          {subQ.options.map((option, optIdx) => (
+                            <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
+                              <input
+                                type="radio"
+                                name={`${question.id}_${subIdx}`}
+                                value={option}
+                                checked={Array.isArray(answers[question.id]) && answers[question.id][subIdx] === option}
+                                onChange={() => {
+                                  const currentAnswers = Array.isArray(answers[question.id]) ? [...answers[question.id]] : new Array((question as ReadingQuestion).questions.length).fill('');
+                                  currentAnswers[subIdx] = option;
+                                  handleAnswerChange(question.id, currentAnswers);
+                                }}
+                                className="radio text-primary"
+                              />
+                              <span className="inline-flex items-center">
+                                <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
+                                <span>{option}</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 克漏字 */}
+              {question.type === '克漏字' && (
+                <div className="space-y-6">
+                  <div className="prose dark:prose-invert max-w-none mb-6 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                    {(question as ClozeQuestion).content}
+                  </div>
+                  <div className="space-y-4">
+                    {(question as ClozeQuestion).questions.map((subQ, subIdx) => (
+                      <div key={subIdx} className="flex items-start">
+                        <span className="text-base font-medium text-gray-800 dark:text-gray-200 mr-4 pt-1.5">({subIdx + 1})</span>
+                        <div className="space-y-0.5 flex-1">
+                          {subQ.options.map((option, optIdx) => (
+                            <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
+                              <input
+                                type="radio"
+                                name={`${question.id}_${subIdx}`}
+                                value={option}
+                                checked={Array.isArray(answers[question.id]) && answers[question.id][subIdx] === option}
+                                onChange={() => {
+                                  const currentAnswers = Array.isArray(answers[question.id]) ? [...answers[question.id]] : new Array((question as ClozeQuestion).questions.length).fill('');
+                                  currentAnswers[subIdx] = option;
+                                  handleAnswerChange(question.id, currentAnswers);
+                                }}
+                                className="radio text-primary"
+                              />
+                              <span className="inline-flex items-center">
+                                <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
+                                <span>{option}</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 其他題型保持不變 */}
               {question.type === '單選題' && (
-                <div className="space-y-2">
-                  {question.options.map(option => (
-                    <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-md transition-colors">
+                <div className="space-y-0.5">
+                  {(question as SingleChoiceQuestion).options.map((option, optIdx) => (
+                    <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
                       <input
                         type="radio"
                         name={question.id}
@@ -325,15 +467,18 @@ export default function StudentQuizPage() {
                         onChange={() => handleAnswerChange(question.id, option)}
                         className="radio text-primary"
                       />
-                      <span>{option}</span>
+                      <span className="inline-flex items-center">
+                        <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
+                        <span>{option}</span>
+                      </span>
                     </label>
                   ))}
                 </div>
               )}
               {question.type === '多選題' && (
-                <div className="space-y-2">
-                  {question.options.map(option => (
-                    <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded-md transition-colors">
+                <div className="space-y-0.5">
+                  {(question as MultipleChoiceQuestion).options.map((option, optIdx) => (
+                    <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
                       <input
                         type="checkbox"
                         value={option}
@@ -347,7 +492,10 @@ export default function StudentQuizPage() {
                         }}
                         className="checkbox text-primary"
                       />
-                      <span>{option}</span>
+                      <span className="inline-flex items-center">
+                        <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
+                        <span>{option}</span>
+                      </span>
                     </label>
                   ))}
                 </div>
