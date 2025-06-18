@@ -269,6 +269,7 @@ export function EditableQuestionPreviewCard({
           value={q.content}
           onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as SingleChoiceQuestion)}
           placeholder="請輸入題目內容..."
+          className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
@@ -285,6 +286,7 @@ export function EditableQuestionPreviewCard({
                   updateEditedQuestion({ ...q, options: newOptions } as SingleChoiceQuestion);
                 }}
                 placeholder={`選項 ${String.fromCharCode(65 + index)}`}
+                className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
               />
             </div>
           ))}
@@ -319,6 +321,7 @@ export function EditableQuestionPreviewCard({
           value={q.content}
           onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as MultipleChoiceQuestion)}
           placeholder="請輸入題目內容..."
+          className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
@@ -344,6 +347,7 @@ export function EditableQuestionPreviewCard({
                   updateEditedQuestion({ ...q, options: newOptions } as MultipleChoiceQuestion);
                 }}
                 placeholder={`選項 ${String.fromCharCode(65 + index)}`}
+                className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
               />
             </div>
           ))}
@@ -370,7 +374,7 @@ export function EditableQuestionPreviewCard({
             } as FillInQuestion);
           }}
           placeholder="請輸入題目內容，使用 [[答案]] 標記填空處..."
-          className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+          className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
@@ -389,7 +393,7 @@ export function EditableQuestionPreviewCard({
                     blanks: newBlanks
                   } as FillInQuestion);
                 }}
-                className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                 placeholder={`請輸入第 ${index + 1} 個填空的答案`}
               />
             </div>
@@ -412,6 +416,7 @@ export function EditableQuestionPreviewCard({
           value={q.content}
           onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as ShortAnswerQuestion)}
           placeholder="請輸入題目內容..."
+          className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
@@ -420,6 +425,7 @@ export function EditableQuestionPreviewCard({
           value={q.answer}
           onChange={(e) => updateEditedQuestion({ ...q, answer: e.target.value } as ShortAnswerQuestion)}
           placeholder="請輸入參考答案..."
+          className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
     </div>
@@ -434,7 +440,7 @@ export function EditableQuestionPreviewCard({
           onChange={(e) => updateEditedQuestion({ ...q, article: e.target.value } as ReadingQuestion)}
           placeholder="請輸入文章內容..."
           rows={5}
-          className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+          className="bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
@@ -454,7 +460,7 @@ export function EditableQuestionPreviewCard({
                       questions: newQuestions
                     } as ReadingQuestion);
                   }}
-                  className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                  className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                 />
               </div>
               <div className="space-y-2">
@@ -485,7 +491,7 @@ export function EditableQuestionPreviewCard({
                           questions: newQuestions
                         } as ReadingQuestion);
                       }}
-                      className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                      className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                     />
                   </div>
                 ))}
@@ -546,6 +552,7 @@ export function EditableQuestionPreviewCard({
           }}
           placeholder="請輸入文章內容，使用【1】、[[1]]或__1__等格式標記空格..."
           rows={5}
+          className="bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
@@ -593,7 +600,7 @@ export function EditableQuestionPreviewCard({
                           questions: newQuestions
                         } as ClozeQuestion);
                       }}
-                      className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                      className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                       placeholder={`選項 ${String.fromCharCode(65 + optIndex)}`}
                     />
                   </div>
@@ -627,14 +634,14 @@ export function EditableQuestionPreviewCard({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center py-1 mb-1 flex-shrink-0 dark:border-gray-300">
+      <div className="flex justify-between items-center py-1 mb-1 flex-shrink-0 dark:border-gray-600">
         <h3 className="font-medium mb-2 text-gray-800 dark:text-mainBg">預覽與編輯</h3>
         <div className="flex items-center space-x-4">
           <Select value={editedQuestion.type} onValueChange={handleTypeChange}>
-            <SelectTrigger className="w-[140px] h-8 bg-mainBg dark:bg-default text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-300">
+            <SelectTrigger className="w-[140px] h-8 bg-mainBg dark:bg-default text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-600">
               <SelectValue placeholder="選擇題型" />
             </SelectTrigger>
-            <SelectContent className="bg-mainBg dark:bg-default text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-300">
+            <SelectContent className="bg-mainBg dark:bg-default text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-600">
               {QUESTION_TYPES.map(type => (
                 <SelectItem 
                   key={type.value} 
@@ -662,7 +669,7 @@ export function EditableQuestionPreviewCard({
                   onChange={(e) => updateEditedQuestion({ ...editedQuestion, article: e.target.value } as ReadingQuestion)}
                   placeholder="請輸入文章內容..."
                   rows={5}
-                  className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                  className="bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                 />
                 <div>
                   <label className="block text-sm font-medium mb-2">子題目</label>
@@ -681,7 +688,7 @@ export function EditableQuestionPreviewCard({
                                 questions: newQuestions
                               } as ReadingQuestion);
                             }}
-                            className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                            className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                           />
                         </div>
                         <div>
@@ -714,7 +721,7 @@ export function EditableQuestionPreviewCard({
                                       questions: newQuestions
                                     } as ReadingQuestion);
                                   }}
-                                  className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                                  className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                                 />
                               </div>
                             ))}
@@ -732,7 +739,7 @@ export function EditableQuestionPreviewCard({
                                 questions: newQuestions
                               } as ReadingQuestion);
                             }}
-                            className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                            className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                           />
                         </div>
                       </div>
@@ -768,7 +775,7 @@ export function EditableQuestionPreviewCard({
                   }}
                   placeholder="請輸入文章內容，使用【1】、[[1]]或__1__等格式標記空格..."
                   rows={5}
-                  className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                  className="bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                 />
                 <div>
                   <label className="block text-sm font-medium mb-2">空格選項</label>
@@ -814,7 +821,7 @@ export function EditableQuestionPreviewCard({
                                       questions: newQuestions
                                     } as ClozeQuestion);
                                   }}
-                                  className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                                  className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                                   placeholder={`選項 ${String.fromCharCode(65 + optIndex)}`}
                                 />
                               </div>
@@ -830,7 +837,19 @@ export function EditableQuestionPreviewCard({
 
             {editedQuestion.type === '單選題' && (
               <div>
-                <Label className="text-gray-700 dark:text-mainBg">選項</Label>
+                <Label className="text-gray-700 dark:text-mainBg">題幹</Label>
+                <Textarea
+                  value={editedQuestion.content}
+                  onChange={(e) =>
+                    updateEditedQuestion({
+                      ...editedQuestion,
+                      content: e.target.value
+                    } as SingleChoiceQuestion)
+                  }
+                  placeholder="請輸入題目內容..."
+                  className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
+                />
+                <Label className="text-gray-700 dark:text-mainBg mt-4 block">選項</Label>
                 <RadioGroup
                   value={String((editedQuestion as SingleChoiceQuestion).answer)}
                   onValueChange={(value) =>
@@ -854,7 +873,7 @@ export function EditableQuestionPreviewCard({
                             options: newOptions
                           } as SingleChoiceQuestion);
                         }}
-                        className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                        className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                       />
                     </div>
                   ))}
@@ -864,7 +883,19 @@ export function EditableQuestionPreviewCard({
 
             {editedQuestion.type === '多選題' && (
               <div>
-                <Label className="text-gray-700 dark:text-mainBg">選項</Label>
+                <Label className="text-gray-700 dark:text-mainBg">題幹</Label>
+                <Textarea
+                  value={editedQuestion.content}
+                  onChange={(e) =>
+                    updateEditedQuestion({
+                      ...editedQuestion,
+                      content: e.target.value
+                    } as MultipleChoiceQuestion)
+                  }
+                  placeholder="請輸入題目內容..."
+                  className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
+                />
+                <Label className="text-gray-700 dark:text-mainBg mt-4 block">選項</Label>
                 <div className="mt-2 space-y-2">
                   {(editedQuestion as MultipleChoiceQuestion).options.map((option: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2">
@@ -890,7 +921,7 @@ export function EditableQuestionPreviewCard({
                             options: newOptions
                           } as MultipleChoiceQuestion);
                         }}
-                        className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                        className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                       />
                     </div>
                   ))}
@@ -916,7 +947,7 @@ export function EditableQuestionPreviewCard({
                       } as FillInQuestion);
                     }}
                     placeholder="請輸入題目內容，使用 [[答案]] 標記填空處..."
-                    className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                    className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                   />
                 </div>
                 <div>
@@ -935,7 +966,7 @@ export function EditableQuestionPreviewCard({
                               blanks: newBlanks
                             } as FillInQuestion);
                           }}
-                          className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                          className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                           placeholder={`請輸入第 ${index + 1} 個填空的答案`}
                         />
                       </div>
@@ -961,7 +992,7 @@ export function EditableQuestionPreviewCard({
                       answer: e.target.value
                     } as ShortAnswerQuestion)
                   }
-                  className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                  className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                 />
               </div>
             )}
@@ -976,7 +1007,7 @@ export function EditableQuestionPreviewCard({
                     explanation: e.target.value
                   })
                 }
-                className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
               />
             </div>
 
@@ -987,6 +1018,7 @@ export function EditableQuestionPreviewCard({
                   value={selectedTags}
                   onChange={setSelectedTags}
                   allTags={availableTags}
+                  className="dark:bg-gray-800"
                 />
               </div>
             </div>
@@ -1000,7 +1032,7 @@ export function EditableQuestionPreviewCard({
             variant="outline"
             onClick={onPrevious}
             disabled={currentIndex === 0}
-            className="bg-mainBg hover:bg-primary/80 text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
+            className="bg-mainBg hover:bg-primary/80 text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-100"
           >
             ←
           </Button>
@@ -1008,7 +1040,7 @@ export function EditableQuestionPreviewCard({
             variant="outline"
             onClick={onNext}
             disabled={currentIndex === totalQuestions - 1}
-            className="bg-mainBg hover:bg-primary/80 text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-100"
+            className="bg-mainBg hover:bg-primary/80 text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-100"
           >
             →
           </Button>

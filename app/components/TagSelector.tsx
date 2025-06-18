@@ -75,7 +75,7 @@ export default function TagSelector({
         {value.map(tag => (
           <div
             key={tag}
-            className="flex items-center gap-1 px-2 py-1 text-sm bg-secondary text-secondary-foreground rounded-md"
+            className="flex items-center gap-1 px-2 py-1 text-sm bg-mainBg dark:bg-gray-700 text-secondary-foreground rounded-md"
           >
             {tag}
             <button
@@ -97,7 +97,7 @@ export default function TagSelector({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            className="w-full justify-between bg-mainBg dark:bg-gray-800 text-gray-400 dark:text-gray-400 border-gray-200 dark:border-gray-600"
             disabled={disabled || value.length >= maxTags}
           >
             {value.length === 0 
@@ -108,14 +108,14 @@ export default function TagSelector({
             }
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0 bg-white text-gray-400 dark:bg-gray-800 dark:text-mainBg">
-          <Command className="w-full">
+        <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 text-gray-400 dark:text-mainBg">
+          <Command className="w-full dark:bg-gray-800">
             <CommandInput 
               placeholder="搜尋標籤..." 
-              className="border-none focus:ring-0 text-gray-400 dark:text-gray-400"
+              className="border-none focus:ring-0 text-gray-400 dark:text-gray-400 dark:bg-gray-800"
             />
             
-            <CommandGroup className="max-h-[200px] overflow-auto">
+            <CommandGroup className="max-h-[200px] overflow-auto dark:bg-gray-800">
               {allTags
                 .filter(tag => !value.includes(tag))
                 .map(tag => (

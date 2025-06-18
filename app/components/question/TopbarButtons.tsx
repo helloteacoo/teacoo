@@ -73,7 +73,7 @@ export default function TopbarButtons({
             onClick={onClearSelection} 
             className="text-gray-300 h-8 px-3 text-sm"
           >
-            ⬜️ 取消
+            ❎ 取消
           </Button>
           <Button
             onClick={onShowDeleteConfirm}
