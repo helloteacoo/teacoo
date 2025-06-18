@@ -10,10 +10,32 @@
     --input: 215.4 16.3% 46.9%;
     --ring: 215.4 16.3% 46.9%;
   }
+
+  /* 設置主題切換過渡效果 */
+  html {
+    @apply bg-gray-50 transition-colors duration-200;
+  }
+
+  html.dark {
+    @apply bg-gray-900;
+  }
+
+  body {
+    @apply bg-gray-50 transition-colors duration-200;
+  }
+
+  body.dark {
+    @apply bg-gray-900;
+  }
 }
 
-body {
-  @apply bg-background text-foreground;
+/* 確保所有頁面容器都有相同的背景色和過渡效果 */
+#__next {
+  @apply bg-gray-50 transition-colors duration-200;
+}
+
+#__next.dark {
+  @apply bg-gray-900;
 }
 
 .dark body {

@@ -16,9 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-TW">
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+    <html lang="zh-TW" suppressHydrationWarning>
+      <body>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

@@ -20,11 +20,15 @@ export function TabsList({ children }: TabsListProps) {
 interface TabsTriggerProps {
   value: string;
   children: ReactNode;
+  onClick?: () => void;
 }
 
-export function TabsTrigger({ value, children }: TabsTriggerProps) {
+export function TabsTrigger({ value, children, onClick }: TabsTriggerProps) {
   return (
-    <button className="tabs-trigger px-4 py-2 border rounded">
+    <button 
+      className="tabs-trigger px-4 py-2 border rounded"
+      onClick={onClick}
+    >
       {children}
     </button>
   );

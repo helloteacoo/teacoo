@@ -14,80 +14,58 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const getStoredTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'light';
+
+  const sessionTheme = sessionStorage.getItem('theme') as Theme;
+  if (sessionTheme) return sessionTheme;
+
+  const localTheme = localStorage.getItem('theme') as Theme;
+  if (localTheme) {
+    sessionStorage.setItem('theme', localTheme);
+    return localTheme;
+  }
+
+  return 'light';
+};
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
+  const [hydrated, setHydrated] = useState(false);
 
-  // 從 localStorage 和 Firestore 載入主題設定
   useEffect(() => {
-    const loadTheme = async () => {
-      // 先從 localStorage 讀取
-      const savedTheme = localStorage.getItem('theme') as Theme;
-      
-      // 如果用戶已登入，從 Firestore 讀取
-      const user = auth.currentUser;
-      if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const userTheme = userDoc.data()?.theme as Theme;
-        if (userTheme) {
-          setTheme(userTheme);
-          localStorage.setItem('theme', userTheme);
-          return;
-        }
-      }
-      
-      // 如果沒有儲存的主題，使用系統預設
-      if (!savedTheme) {
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        setTheme(systemTheme);
-        localStorage.setItem('theme', systemTheme);
-      } else {
-        setTheme(savedTheme);
-      }
-    };
-
-    loadTheme();
+    const storedTheme = getStoredTheme();
+    setTheme(storedTheme);
+    setHydrated(true);
   }, []);
 
-  // 監聽登入狀態變化
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const userTheme = userDoc.data()?.theme as Theme;
-        if (userTheme) {
-          setTheme(userTheme);
-          localStorage.setItem('theme', userTheme);
-        }
-      }
-    });
+    if (!hydrated) return;
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+    root.style.colorScheme = theme;
+  }, [theme, hydrated]);
 
-    return () => unsubscribe();
-  }, []);
-
-  // 切換主題
   const toggleTheme = async () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
+    sessionStorage.setItem('theme', newTheme);
     localStorage.setItem('theme', newTheme);
 
-    // 如果用戶已登入，儲存到 Firestore
     const user = auth.currentUser;
     if (user) {
-      await setDoc(doc(db, 'users', user.uid), {
-        theme: newTheme
-      }, { merge: true });
+      try {
+        await setDoc(doc(db, 'users', user.uid), { theme: newTheme }, { merge: true });
+      } catch (error) {
+        console.error('無法儲存主題至 Firestore:', error);
+      }
     }
   };
 
-  // 更新 HTML 的 class
-  useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
-  }, [theme]);
-
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
+      {hydrated ? children : null}
     </ThemeContext.Provider>
   );
 }

@@ -6,24 +6,24 @@ service cloud.firestore {
       allow read: if true;
     }
     
-    // 允許寫入作答紀錄
+    // 允許完整操作作答紀錄
     match /quizResponses/{quizId}/responses/{responseId} {
-      allow write: if true;
+      allow read, write, delete: if true;
     }
     
-    // 允許寫入練習紀錄
+    // 允許完整操作練習紀錄
     match /practiceResponses/{quizId}/responses/{responseId} {
-      allow write: if true;
+      allow read, write, delete: if true;
     }
     
-    // 允許讀寫測驗資料
+    // 允許完整操作測驗資料
     match /quizzes/{quizId} {
-      allow read, write: if true;
+      allow read, write, delete: if true;
     }
     
-    // 允許讀寫題目資料
+    // 允許完整操作題目資料
     match /questions/{questionId} {
-      allow read, write: if true;
+      allow read, write, delete: if true;
     }
   }
 } 

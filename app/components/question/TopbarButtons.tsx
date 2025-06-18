@@ -1,3 +1,4 @@
+import { Square, SquareCheckBig, Trash2, SquareX } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Question } from '@/app/types/question';
@@ -33,9 +34,9 @@ export default function TopbarButtons({
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
           <Button 
             onClick={() => onAIModalChange(true)}
-            className="text-gray-200 h-8 px-3 text-sm"
+            className="text-mainBg h-8 px-3 text-sm"
           >
-            🤖 AI匯入
+            🤖 匯入題目
           </Button>
           <Button
             onClick={onAssignQuestions}
@@ -48,11 +49,11 @@ export default function TopbarButtons({
             onClick={onSelfPractice}
             disabled={selectedQuestionIds.length === 0}
             title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '開始自我練習'}
-            className="text-gray-200 h-8 px-3 text-sm"
+            className="text-mainBg h-8 px-3 text-sm"
           >
-            🧪 自我練習
+            💪 自我練習
           </Button>
-          <Button className="text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
+          <Button className="text-mainBg h-8 px-3 text-sm">📄 匯出題目</Button>
         </div>
 
         {/* 第二行：搜尋和選擇按鈕 */}
@@ -65,22 +66,22 @@ export default function TopbarButtons({
           />
           <Button
             onClick={onSelectAll}
-            className="text-gray-200 h-8 px-3 text-sm"
+            className="text-mainBg h-8 px-3 text-sm"
           >
-            ✅ 全選
+            <SquareCheckBig className="w-4 h-4" /> 
           </Button>
           <Button 
             onClick={onClearSelection} 
-            className="text-gray-300 h-8 px-3 text-sm"
+            className="text-mainBg h-8 px-3 text-sm"
           >
-            ❎ 取消
+            <SquareX className="w-4 h-4"/>
           </Button>
           <Button
             onClick={onShowDeleteConfirm}
             disabled={selectedQuestionIds.length === 0}
-            className="text-gray-200 h-8 px-3 text-sm"
+            className="text-mainBg h-8 px-3 text-sm"
           >
-            🗑️ 刪除
+            <Trash2 className="w-4 h-4" /> 
           </Button>
         </div>
       </div>

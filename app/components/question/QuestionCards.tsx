@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Question } from '@/app/types/question';
@@ -79,7 +80,7 @@ export default function QuestionCards({
               title="編輯"
               variant="ghost"
             >
-              ✏️
+              <Pencil className="w-4 h-4 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-500" />
             </Button>
             <div className="flex-1">
               <div onClick={() => q.id && onToggleCollapse(q.id)} className="cursor-pointer">
