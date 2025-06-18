@@ -45,117 +45,122 @@ function sanitizeQuestion(raw: any): Question | null {
       updatedAt: raw.updatedAt || new Date().toISOString(),
     };
 
-    switch (raw.type) {
-      case '單選題':
-        return {
-          ...base,
-          type: '單選題',
-          options: Array.isArray(raw.options) && raw.options.length > 0 
-            ? raw.options 
-            : ['', '', '', ''],
-          answer: typeof raw.answer === 'number' && raw.answer >= 0 && raw.answer < 4
-            ? raw.answer
-            : 0
-        } as SingleChoiceQuestion;
+    // 如果沒有選項或答案，但有之前的題型，保留該題型的基本結構
+    const previousType = raw.type;
+    if (previousType) {
+      switch (previousType) {
+        case '單選題':
+          return {
+            ...base,
+            type: '單選題',
+            options: Array.isArray(raw.options) && raw.options.length > 0 
+              ? raw.options 
+              : ['', '', '', ''],
+            answer: typeof raw.answer === 'number' && raw.answer >= 0 && raw.answer < 4
+              ? raw.answer
+              : 0
+          } as SingleChoiceQuestion;
 
-      case '多選題':
-        const options = Array.isArray(raw.options) && raw.options.length > 0
-          ? raw.options
-          : ['', '', '', ''];
-        
-        let answers = Array.isArray(raw.answers) 
-          ? raw.answers.filter((i: number) => i >= 0 && i < options.length)
-          : [];
+        case '多選題':
+          const options = Array.isArray(raw.options) && raw.options.length > 0
+            ? raw.options
+            : ['', '', '', ''];
+          
+          let answers = Array.isArray(raw.answers) 
+            ? raw.answers.filter((i: number) => i >= 0 && i < options.length)
+            : [];
 
-        // 確保答案是數字陣列
-        answers = answers.map((ans: any) => {
-          if (typeof ans === 'number') return ans;
-          if (typeof ans === 'string') {
-            // 如果是字母（A, B, C...），轉換為數字
-            if (/^[A-Z]$/.test(ans)) {
-              return ans.charCodeAt(0) - 65;
+          // 確保答案是數字陣列
+          answers = answers.map((ans: any) => {
+            if (typeof ans === 'number') return ans;
+            if (typeof ans === 'string') {
+              // 如果是字母（A, B, C...），轉換為數字
+              if (/^[A-Z]$/.test(ans)) {
+                return ans.charCodeAt(0) - 65;
+              }
+              // 如果是數字字串，轉換為數字
+              return parseInt(ans, 10);
             }
-            // 如果是數字字串，轉換為數字
-            return parseInt(ans, 10);
-          }
-          return 0;
-        }).filter((num: number) => !isNaN(num) && num >= 0 && num < options.length);
+            return 0;
+          }).filter((num: number) => !isNaN(num) && num >= 0 && num < options.length);
 
-        console.log('🔍 處理多選題:', {
-          原始選項: raw.options,
-          處理後選項: options,
-          原始答案: raw.answers,
-          處理後答案: answers
-        });
+          return {
+            ...base,
+            type: '多選題',
+            options,
+            answers
+          } as MultipleChoiceQuestion;
 
-        return {
-          ...base,
-          type: '多選題',
-          options,
-          answers
-        } as MultipleChoiceQuestion;
+        case '填空題':
+          return {
+            ...base,
+            type: '填空題',
+            blanks: Array.isArray(raw.blanks) ? raw.blanks : []
+          } as FillInQuestion;
 
-      case '填空題':
-        return {
-          ...base,
-          type: '填空題',
-          blanks: Array.isArray(raw.blanks) ? raw.blanks : []
-        } as FillInQuestion;
+        case '簡答題':
+          return {
+            ...base,
+            type: '簡答題',
+            answer: raw.answer || ''
+          } as ShortAnswerQuestion;
 
-      case '簡答題':
-        return {
-          ...base,
-          type: '簡答題',
-          answer: raw.answer || ''
-        } as ShortAnswerQuestion;
+        case '閱讀測驗':
+          return {
+            ...base,
+            type: '閱讀測驗',
+            article: raw.article || '',
+            questions: Array.isArray(raw.questions)
+              ? raw.questions.map((q: any) => ({
+                  id: q.id || uuidv4(),
+                  content: q.content || '',
+                  options: Array.isArray(q.options) ? q.options : ['', '', '', ''],
+                  answer: typeof q.answer === 'string' ? q.answer : '',
+                  explanation: q.explanation || ''
+                }))
+              : []
+          } as ReadingQuestion;
 
-      case '閱讀測驗':
-        return {
-          ...base,
-          type: '閱讀測驗',
-          article: raw.article || '',
-          questions: Array.isArray(raw.questions)
+        case '克漏字':
+          const questions = Array.isArray(raw.questions)
             ? raw.questions.map((q: any) => ({
-                id: q.id || uuidv4(),
                 content: q.content || '',
                 options: Array.isArray(q.options) ? q.options : ['', '', '', ''],
-                answer: typeof q.answer === 'string' ? q.answer : '',
-                explanation: q.explanation || ''
+                answer: typeof q.answer === 'number' ? q.answer : 0
               }))
-            : []
-        } as ReadingQuestion;
+            : [];
 
-      case '克漏字':
-        const questions = Array.isArray(raw.questions)
-          ? raw.questions.map((q: any) => ({
-              content: q.content || '',
-              options: Array.isArray(q.options) ? q.options : ['', '', '', ''],
-              answer: typeof q.answer === 'number' ? q.answer : 0
-            }))
-          : [];
-
-        // 如果沒有子題目，根據內容中的空格數量自動創建
-        if (questions.length === 0) {
-          // 支援多種空格標記格式
-          const blankCount = (raw.content.match(/(?:\[\[(\d+)\]\])|(?:【(\d+)】)|(?:__(\d+)__)/g) || []).length;
-          for (let i = 0; i < blankCount; i++) {
-            questions.push({
-              content: `空格${i + 1}`,
-              options: ['', '', '', ''],
-              answer: 0
-            });
+          // 如果沒有子題目，根據內容中的空格數量自動創建
+          if (questions.length === 0) {
+            // 支援多種空格標記格式
+            const blankCount = (raw.content.match(/(?:\[\[(\d+)\]\])|(?:【(\d+)】)|(?:__(\d+)__)/g) || []).length;
+            for (let i = 0; i < blankCount; i++) {
+              questions.push({
+                content: `空格${i + 1}`,
+                options: ['', '', '', ''],
+                answer: 0
+              });
+            }
           }
-        }
 
-        return {
-          ...base,
-          type: '克漏字',
-          questions
-        } as ClozeQuestion;
+          return {
+            ...base,
+            type: '克漏字',
+            questions
+          } as ClozeQuestion;
 
-      default:
-        return null;
+        default:
+          return null;
+      }
     }
+
+    // 如果是新題目，使用預設的單選題結構
+    return {
+      ...base,
+      type: '單選題',
+      options: ['', '', '', ''],
+      answer: 0
+    } as SingleChoiceQuestion;
   } catch (error) {
     console.error('題目資料清洗錯誤:', error);
     return null;
@@ -181,7 +186,11 @@ export function EditableQuestionPreviewCard({
   const [showError, setShowError] = useState(false);
 
   useEffect(() => {
-    const sanitized = sanitizeQuestion(initialQuestion);
+    const sanitized = sanitizeQuestion({
+      ...initialQuestion,
+      type: editedQuestion.type,
+      tags: selectedTags,
+    });
     if (sanitized) {
       setEditedQuestion(sanitized);
       setEditedQuestions(prev => {
@@ -190,7 +199,7 @@ export function EditableQuestionPreviewCard({
         return newQuestions;
       });
     }
-  }, [initialQuestion]);
+  }, [initialQuestion, currentIndex]);
 
   useEffect(() => {
     setEditedQuestions(prev => 
@@ -346,25 +355,50 @@ export function EditableQuestionPreviewCard({
   const renderFillInBlankEditor = (q: FillInQuestion) => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">題幹（使用 [[答案]] 標記填空處）</label>
+        <Label className="text-gray-700 dark:text-mainBg">題幹</Label>
         <Textarea
           value={q.content}
           onChange={(e) => {
             const content = e.target.value;
+            // 提取填空答案
             const blanks = (content.match(/\[\[(.*?)\]\]/g) || [])
               .map(match => match.slice(2, -2));
-            updateEditedQuestion({ ...q, content, blanks });
+            updateEditedQuestion({
+              ...q,
+              content,
+              blanks
+            } as FillInQuestion);
           }}
           placeholder="請輸入題目內容，使用 [[答案]] 標記填空處..."
-          rows={5}
+          className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">填空答案</label>
-        <div className="text-sm text-gray-500">
-          {q.blanks.length > 0 
-            ? q.blanks.map((blank, i) => `${i + 1}. ${blank}`).join('、')
-            : '尚未標記任何填空'}
+        <Label className="text-gray-700 dark:text-mainBg">填空答案</Label>
+        <div className="mt-2 space-y-2">
+          {q.blanks.map((blank: string, index: number) => (
+            <div key={index} className="flex items-center gap-2">
+              <span className="text-sm text-gray-500 w-20">填空 {index + 1}：</span>
+              <Input
+                value={blank}
+                onChange={(e) => {
+                  const newBlanks = [...q.blanks];
+                  newBlanks[index] = e.target.value;
+                  updateEditedQuestion({
+                    ...q,
+                    blanks: newBlanks
+                  } as FillInQuestion);
+                }}
+                className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                placeholder={`請輸入第 ${index + 1} 個填空的答案`}
+              />
+            </div>
+          ))}
+          {q.blanks.length === 0 && (
+            <div className="text-sm text-gray-500">
+              請在題目中使用 [[答案]] 格式來標記填空處
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -865,24 +899,53 @@ export function EditableQuestionPreviewCard({
             )}
 
             {editedQuestion.type === '填空題' && (
-              <div>
-                <Label className="text-gray-700 dark:text-mainBg">答案</Label>
-                <div className="mt-2 space-y-2">
-                  {(editedQuestion as FillInQuestion).blanks.map((blank: string, index: number) => (
-                    <Input
-                      key={index}
-                      value={blank}
-                      onChange={(e) => {
-                        const newBlanks = [...(editedQuestion as FillInQuestion).blanks];
-                        newBlanks[index] = e.target.value;
-                        updateEditedQuestion({
-                          ...editedQuestion,
-                          blanks: newBlanks
-                        } as FillInQuestion);
-                      }}
-                      className="bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
-                    />
-                  ))}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-gray-700 dark:text-mainBg">題幹</Label>
+                  <Textarea
+                    value={editedQuestion.content}
+                    onChange={(e) => {
+                      const content = e.target.value;
+                      // 提取填空答案
+                      const blanks = (content.match(/\[\[(.*?)\]\]/g) || [])
+                        .map(match => match.slice(2, -2));
+                      updateEditedQuestion({
+                        ...editedQuestion,
+                        content,
+                        blanks
+                      } as FillInQuestion);
+                    }}
+                    placeholder="請輸入題目內容，使用 [[答案]] 標記填空處..."
+                    className="mt-2 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-700 dark:text-mainBg">填空答案</Label>
+                  <div className="mt-2 space-y-2">
+                    {(editedQuestion as FillInQuestion).blanks.map((blank: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500 w-20">填空 {index + 1}：</span>
+                        <Input
+                          value={blank}
+                          onChange={(e) => {
+                            const newBlanks = [...(editedQuestion as FillInQuestion).blanks];
+                            newBlanks[index] = e.target.value;
+                            updateEditedQuestion({
+                              ...editedQuestion,
+                              blanks: newBlanks
+                            } as FillInQuestion);
+                          }}
+                          className="flex-1 bg-white dark:bg-gray-50 text-gray-900 dark:text-gray-900 border-gray-200 dark:border-gray-300"
+                          placeholder={`請輸入第 ${index + 1} 個填空的答案`}
+                        />
+                      </div>
+                    ))}
+                    {(editedQuestion as FillInQuestion).blanks.length === 0 && (
+                      <div className="text-sm text-gray-500">
+                        請在題目中使用 [[答案]] 格式來標記填空處
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

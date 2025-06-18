@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { doc, getDoc, collection, addDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -46,6 +46,7 @@ export default function StudentQuizPage() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timer, setTimer] = useState('00:00:00');
   const [answers, setAnswers] = useState<Answers>({});
+  const answersRef = useRef<Answers>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
@@ -174,8 +175,11 @@ export default function StudentQuizPage() {
   };
 
   // 更新答案
-  const handleAnswerChange = (questionId: string, answer: string | string[]) => {
-    setAnswers(prev => ({ ...prev, [questionId]: answer }));
+  const handleAnswerChange = (questionId: string, answer: AnswerValue) => {
+    console.log(`📝 答案更新：${questionId}`, answer);
+    const newAnswers = { ...answersRef.current, [questionId]: answer };
+    answersRef.current = newAnswers;
+    setAnswers(newAnswers);
   };
 
   // 翻頁
@@ -194,7 +198,7 @@ export default function StudentQuizPage() {
     // 檢查所有題目都已完成
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      const answer = answers[q.id];
+      const answer = answersRef.current[q.id];
       if (!answer || answer === '' || (Array.isArray(answer) && answer.length === 0)) {
         toast.error(`請填寫第 ${i + 1} 題`);
         setPage(Math.floor(i / QUESTIONS_PER_PAGE) + 1);
@@ -208,7 +212,7 @@ export default function StudentQuizPage() {
       // 計算分數
       let correctCount = 0;
       questions.forEach(q => {
-        const userAnswer = answers[q.id];
+        const userAnswer = answersRef.current[q.id];
         if (q.type === '單選題' && userAnswer === q.options[q.answer]) correctCount++;
         if (q.type === '多選題') {
           const correctAnswers = q.answers.map((idx: number) => q.options[idx]);
@@ -235,7 +239,7 @@ export default function StudentQuizPage() {
       // 根據模式儲存答案到不同的 collection
       const responseData = {
         name,
-        answers,
+        answers: answersRef.current,
         score: correctCount,
         duration,
         submittedAt: Timestamp.now()
@@ -248,13 +252,37 @@ export default function StudentQuizPage() {
       console.log('作答者:', name);
       console.log('得分:', correctCount, '/', questions.length);
       console.log('作答時間:', Math.floor(duration / 60000), '分', Math.floor((duration % 60000) / 1000), '秒');
-      console.log('答案內容:', answers);
+      console.log('答案內容:', JSON.stringify(answersRef.current, null, 2));
+      console.log('完整 responseData:', JSON.stringify(responseData, null, 2));
+
+      // 檢查資料完整性
+      if (!name || typeof name !== 'string') {
+        throw new Error('作答者姓名無效');
+      }
+      if (!answersRef.current || typeof answersRef.current !== 'object' || Object.keys(answersRef.current).length === 0) {
+        throw new Error('答案內容無效');
+      }
+      if (typeof correctCount !== 'number' || correctCount < 0) {
+        throw new Error('得分計算無效');
+      }
+      if (typeof duration !== 'number' || duration <= 0) {
+        throw new Error('作答時間無效');
+      }
 
       try {
         const collectionPath = quiz.mode === 'assign' ? 'quizResponses' : 'practiceResponses';
         const docRef = await addDoc(collection(db, collectionPath, quizId, 'responses'), responseData);
         console.log('✅ 成功儲存作答紀錄');
         console.log('儲存位置:', `${collectionPath}/${quizId}/responses/${docRef.id}`);
+        
+        // 驗證寫入的資料
+        const writtenDoc = await getDoc(docRef);
+        if (writtenDoc.exists()) {
+          console.log('📦 實際寫入內容：', JSON.stringify(writtenDoc.data(), null, 2));
+        } else {
+          console.error('❌ 寫入後無法讀取文件');
+          throw new Error('寫入後無法讀取文件');
+        }
         console.log('========================');
       } catch (error) {
         console.error('❌ 儲存作答紀錄失敗：', error);
@@ -294,7 +322,7 @@ export default function StudentQuizPage() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-mainBg dark:bg-gray-900 p-4">
         <div className="w-full max-w-md space-y-4">
           <div className="text-center space-y-2">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{quiz.title}</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">📃{quiz.title}</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               共 {questions.length} 題
             </p>
@@ -310,7 +338,7 @@ export default function StudentQuizPage() {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="請輸入姓名"
-                className="w-full"
+                className="w-full text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
               />
             </div>
           )}
@@ -390,23 +418,23 @@ export default function StudentQuizPage() {
                         </h3>
                         <div className="space-y-0.5 ml-4">
                           {subQ.options.map((option, optIdx) => (
-                            <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
+                            <label key={option} className="flex items-start space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
                               <input
                                 type="radio"
                                 name={`${question.id}_${subIdx}`}
                                 value={option}
-                                checked={Array.isArray(answers[question.id]) && answers[question.id][subIdx] === option}
+                                checked={Array.isArray(answersRef.current[question.id]) && answersRef.current[question.id][subIdx] === option}
                                 onChange={() => {
-                                  const currentAnswers = Array.isArray(answers[question.id]) ? [...answers[question.id]] : new Array((question as ReadingQuestion).questions.length).fill('');
+                                  const currentAnswers = Array.isArray(answersRef.current[question.id]) ? [...answersRef.current[question.id]] : new Array((question as ReadingQuestion).questions.length).fill('');
                                   currentAnswers[subIdx] = option;
                                   handleAnswerChange(question.id, currentAnswers);
                                 }}
-                                className="radio text-primary"
+                                className="radio text-primary mt-1"
                               />
-                              <span className="inline-flex items-center">
+                              <div className="flex-1">
                                 <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
-                                <span>{option}</span>
-                              </span>
+                                <span className="break-words">{option}</span>
+                              </div>
                             </label>
                           ))}
                         </div>
@@ -428,23 +456,23 @@ export default function StudentQuizPage() {
                         <span className="text-base font-medium text-gray-800 dark:text-gray-200 mr-4 pt-1.5">({subIdx + 1})</span>
                         <div className="space-y-0.5 flex-1">
                           {subQ.options.map((option, optIdx) => (
-                            <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
+                            <label key={option} className="flex items-start space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
                               <input
                                 type="radio"
                                 name={`${question.id}_${subIdx}`}
                                 value={option}
-                                checked={Array.isArray(answers[question.id]) && answers[question.id][subIdx] === option}
+                                checked={Array.isArray(answersRef.current[question.id]) && answersRef.current[question.id][subIdx] === option}
                                 onChange={() => {
-                                  const currentAnswers = Array.isArray(answers[question.id]) ? [...answers[question.id]] : new Array((question as ClozeQuestion).questions.length).fill('');
+                                  const currentAnswers = Array.isArray(answersRef.current[question.id]) ? [...answersRef.current[question.id]] : new Array((question as ClozeQuestion).questions.length).fill('');
                                   currentAnswers[subIdx] = option;
                                   handleAnswerChange(question.id, currentAnswers);
                                 }}
-                                className="radio text-primary"
+                                className="radio text-primary mt-1"
                               />
-                              <span className="inline-flex items-center">
+                              <div className="flex-1">
                                 <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
-                                <span>{option}</span>
-                              </span>
+                                <span className="break-words">{option}</span>
+                              </div>
                             </label>
                           ))}
                         </div>
@@ -458,19 +486,19 @@ export default function StudentQuizPage() {
               {question.type === '單選題' && (
                 <div className="space-y-0.5">
                   {(question as SingleChoiceQuestion).options.map((option, optIdx) => (
-                    <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
+                    <label key={option} className="flex items-start space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
                       <input
                         type="radio"
                         name={question.id}
                         value={option}
-                        checked={answers[question.id] === option}
+                        checked={answersRef.current[question.id] === option}
                         onChange={() => handleAnswerChange(question.id, option)}
-                        className="radio text-primary"
+                        className="radio text-primary mt-1"
                       />
-                      <span className="inline-flex items-center">
+                      <div className="flex-1">
                         <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
-                        <span>{option}</span>
-                      </span>
+                        <span className="break-words">{option}</span>
+                      </div>
                     </label>
                   ))}
                 </div>
@@ -478,24 +506,24 @@ export default function StudentQuizPage() {
               {question.type === '多選題' && (
                 <div className="space-y-0.5">
                   {(question as MultipleChoiceQuestion).options.map((option, optIdx) => (
-                    <label key={option} className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
+                    <label key={option} className="flex items-start space-x-2 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-1.5 px-3 rounded-md transition-colors">
                       <input
                         type="checkbox"
                         value={option}
-                        checked={Array.isArray(answers[question.id]) && answers[question.id].includes(option)}
+                        checked={Array.isArray(answersRef.current[question.id]) && answersRef.current[question.id].includes(option)}
                         onChange={e => {
-                          const currentAnswers = (answers[question.id] as string[]) || [];
+                          const currentAnswers = (answersRef.current[question.id] as string[]) || [];
                           const newAnswers = e.target.checked
                             ? [...currentAnswers, option]
                             : currentAnswers.filter(a => a !== option);
                           handleAnswerChange(question.id, newAnswers);
                         }}
-                        className="checkbox text-primary"
+                        className="checkbox text-primary mt-1"
                       />
-                      <span className="inline-flex items-center">
+                      <div className="flex-1">
                         <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
-                        <span>{option}</span>
-                      </span>
+                        <span className="break-words">{option}</span>
+                      </div>
                     </label>
                   ))}
                 </div>
@@ -508,9 +536,9 @@ export default function StudentQuizPage() {
                         key={i}
                         className="w-40 bg-white dark:bg-gray-900 border-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-400 dark:border-gray-700 text-gray-900 dark:text-mainBg"
                         placeholder={`填空 ${i + 1}`}
-                        value={(answers[question.id] as string[] | undefined)?.[i] || ''}
+                        value={(answersRef.current[question.id] as string[] | undefined)?.[i] || ''}
                         onChange={(e) => {
-                          const currentAnswers = (answers[question.id] as string[]) || [];
+                          const currentAnswers = (answersRef.current[question.id] as string[]) || [];
                           const updatedAnswers = [...currentAnswers];
                           updatedAnswers[i] = e.target.value;
                           handleAnswerChange(question.id, updatedAnswers);
@@ -523,7 +551,7 @@ export default function StudentQuizPage() {
               {question.type === '簡答題' && (
                 <div className="mt-4">
                   <Textarea
-                    value={answers[question.id] || ''}
+                    value={answersRef.current[question.id] || ''}
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                     placeholder="請輸入你的答案"
                     className="w-full min-h-[120px] bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
