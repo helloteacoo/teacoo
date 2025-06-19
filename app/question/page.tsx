@@ -30,6 +30,8 @@ import { toast } from 'sonner';
 import { safeLocalStorage } from '@/lib/utils/storage';
 import AssignQuizModal from '../components/AssignQuiz/AssignQuizModal';
 import { getAllQuestions, addQuestion, updateQuestion, deleteQuestion, searchQuestions, getQuestionsByTags } from '@/app/lib/firebase/questions';
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { db, auth } from '@/app/lib/firebase/firebase';
 
 interface ButtonProps {
   children: React.ReactNode;
@@ -100,42 +102,77 @@ export default function QuestionPage() {
     const loadQuestions = async () => {
       try {
         setIsLoading(true);
-        const firebaseQuestions = await getAllQuestions();
 
-        const hasSeenSample = safeLocalStorage.getItem('hasLoadedSampleQuestions');
-
-        if (!hasSeenSample) {
-          const existingQuestions = await getAllQuestions();
-          const existingContents = new Set(existingQuestions.map(q => q.content));
-        
-          await Promise.all(
-            sampleQuestions
-              .filter((q) => !existingContents.has(q.content)) // 避免重複
-              .map(async (q) => {
-                const { id, ...rest } = q;
-                await addQuestion(rest); // 移除 isSample 標記，因為 Question 型別中沒有這個欄位
-              })
-          );
-        
-          safeLocalStorage.setItem('hasLoadedSampleQuestions', 'true');
+        // 確保用戶已認證
+        if (!auth.currentUser) {
+          console.log('等待用戶認證...');
+          return;
         }
-        
 
-        const updatedQuestions = await getAllQuestions();
-        setQuestions(updatedQuestions);
+        console.log('用戶已認證，ID:', auth.currentUser.uid);
+
+        // 載入所有題目
+        console.log('開始載入所有題目...');
+        const existingQuestions = await getAllQuestions();
+        console.log('成功載入題目，數量:', existingQuestions.length);
+
+        // 如果是新帳號（沒有任何題目），則載入範例題目
+        if (existingQuestions.length === 0) {
+          console.log('新帳號，載入範例題目...');
+          
+          try {
+            // 載入範例題目
+            const addedQuestions = await Promise.all(
+              sampleQuestions.map(async (question) => {
+                const { id, ...rest } = question;
+                console.log('新增範例題目:', rest.content);
+                try {
+                  const newId = await addQuestion({
+                    ...rest,
+                    createdAt: Timestamp.now(),
+                    updatedAt: Timestamp.now()
+                  });
+                  return { ...rest, id: newId };
+                } catch (error) {
+                  console.error('新增範例題目失敗:', error);
+                  throw error;
+                }
+              })
+            );
+
+            console.log('範例題目載入完成，數量:', addedQuestions.length);
+            setQuestions(addedQuestions);
+            toast.success('歡迎使用 Teacoo！已為您載入範例題目');
+          } catch (error) {
+            console.error('載入範例題目失敗:', error);
+            toast.error('載入範例題目失敗，請稍後再試');
+          }
+        } else {
+          console.log('載入現有題目');
+          setQuestions(existingQuestions);
+        }
       } catch (error) {
         console.error('載入題目失敗:', error);
-        
+        toast.error('載入題目失敗，請稍後再試');
         setQuestions([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (isClient) {
-      loadQuestions();
-    }
-  }, [isClient]);
+    // 監聽認證狀態變化
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      console.log('認證狀態變化:', user ? '已登入' : '未登入');
+      if (user) {
+        loadQuestions();
+      } else {
+        setQuestions([]);
+      }
+    });
+
+    // 清理訂閱
+    return () => unsubscribe();
+  }, []); // 移除 auth.currentUser 依賴，改用 onAuthStateChanged
 
   // 處理新增題目
   const handleAddQuestion = async (newQuestion: Omit<Question, 'id'>) => {
@@ -283,7 +320,11 @@ export default function QuestionPage() {
         if (!tagMap.has(tag)) {
           tagMap.set(tag, {
             tag,
-            createdAt: q.createdAt || q.updatedAt || new Date().toISOString()
+            createdAt: q.createdAt instanceof Timestamp ? q.createdAt.toDate().toISOString() : 
+              q.updatedAt instanceof Timestamp ? q.updatedAt.toDate().toISOString() :
+              (typeof q.createdAt === 'string' ? q.createdAt : 
+               typeof q.updatedAt === 'string' ? q.updatedAt : 
+               new Date().toISOString())
           });
         }
       });

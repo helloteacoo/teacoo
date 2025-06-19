@@ -163,6 +163,7 @@ export default function Sidebar({
                 toggleFilter={handleFilterToggle}
                 onDeleteTag={handleDeleteTag}
                 onRenameTag={onRenameTag}
+                onTagClick={handleFilterToggle}
               />
             </div>
           </div>

@@ -36,14 +36,14 @@ export default function TopbarButtons({
             onClick={() => onAIModalChange(true)}
             className="text-mainBg h-8 px-3 text-sm"
           >
-            🤖 匯入題目
+            📥 匯入題目
           </Button>
           <Button
             onClick={onAssignQuestions}
             disabled={selectedQuestionIds.length === 0}
             title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '派發選中的題目'}
           >
-            📤 派發作業
+            ✍ 派發作業
           </Button>
           <Button 
             onClick={onSelfPractice}
@@ -53,7 +53,7 @@ export default function TopbarButtons({
           >
             💪 自我練習
           </Button>
-          <Button className="text-mainBg h-8 px-3 text-sm">📄 匯出題目</Button>
+          <Button className="text-mainBg h-8 px-3 text-sm">📤 匯出題目</Button>
         </div>
 
         {/* 第二行：搜尋和選擇按鈕 */}
@@ -123,14 +123,14 @@ export default function TopbarButtons({
               onClick={() => onAIModalChange(true)}
               className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
             >
-              🤖 匯入題目
+              📥 匯入題目
             </Button>
             <Button
               onClick={onAssignQuestions}
               disabled={selectedQuestionIds.length === 0}
               title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '派發選中的題目'}
             >
-              📤 派發作業
+              ✍ 派發作業
             </Button>
             <Button 
               onClick={onSelfPractice}
@@ -138,9 +138,9 @@ export default function TopbarButtons({
               title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '開始自我練習'}
               className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
             >
-              🧪 自我練習
+              💪 自我練習
             </Button>
-            <Button className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm">📄 匯出題目</Button>
+            <Button className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm">📤 匯出題目</Button>
           </div>
         </div>
       </div>

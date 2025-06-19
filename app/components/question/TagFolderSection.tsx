@@ -32,6 +32,7 @@ interface TagFolderSectionProps {
   toggleFilter: (key: FilterKey) => void;
   onDeleteTag?: (tag: string) => void;
   onRenameTag?: (oldTag: string, newTag: string) => void;
+  onTagClick?: (tag: string) => void;
 }
 
 // 可拖曳的標籤組件
@@ -100,17 +101,28 @@ function DraggableTag({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center gap-1 px-3 py-1 rounded-full text-xs transition-colors cursor-move ${
+      className={`group flex items-center gap-1 px-3 py-1 rounded-full text-xs transition-colors ${
         isSelected
           ? 'bg-primary text-white'
           : 'bg-blue-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-200 dark:hover:bg-gray-700'
       }`}
-      onClick={onToggle}
-      {...attributes}
-      {...listeners}
     >
-      <GripVertical className="h-3 w-3 mr-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-      {tag}
+      <div 
+        className="flex items-center cursor-move" 
+        {...attributes} 
+        {...listeners}
+      >
+        <GripVertical className="h-3 w-3 mr-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+      </div>
+      <div 
+        className="cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
+      >
+        {tag}
+      </div>
       {onRename && (
         <button
           className="text-gray-400 dark:text-gray-400 hover:text-mainBg dark:hover:text-mainBg ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
@@ -133,7 +145,8 @@ export default function TagFolderSection({
   filters,
   toggleFilter,
   onDeleteTag,
-  onRenameTag
+  onRenameTag,
+  onTagClick
 }: TagFolderSectionProps) {
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);

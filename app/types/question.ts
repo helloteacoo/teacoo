@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export type QuestionType = 
   | '單選題'
   | '多選題'
@@ -12,8 +14,8 @@ export interface BaseQuestion {
   content: string;
   explanation: string;
   tags: string[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | Timestamp;
+  updatedAt: string | Timestamp;
   isSample?: boolean;
 }
 

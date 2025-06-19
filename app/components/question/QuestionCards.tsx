@@ -59,6 +59,12 @@ export default function QuestionCards({
   MAX_ITEMS,
   isPremium
 }: QuestionCardsProps) {
+  // 計算哪些問題應該被模糊化（非付費用戶且超過100題的舊題目）
+  const shouldBlurQuestion = (index: number) => {
+    if (isPremium) return false;
+    return index < questions.length - 100;
+  };
+
   return (
     <div className="overflow-y-auto h-[calc(100vh-64px-72px-40px)] pr-2 space-y-4">
       {questions.length > MAX_ITEMS && (
@@ -69,28 +75,47 @@ export default function QuestionCards({
         </div>
       )}
       
-      {questions.map((q: Question) => {
-        if (!q.id) return null; // 如果沒有 id，跳過這個問題
+      {questions.map((q: Question, index: number) => {
+        if (!q.id) return null;
         const isCollapsed = collapsedCards.includes(q.id);
+        const isBlurred = shouldBlurQuestion(index);
+
         return (
-          <div key={q.id} className="relative p-4 bg-cardBg dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg">
-            <Button
-              onClick={() => onEditClick(q)}
-              className="absolute top-3 right-3 bg-transparent hover:bg-transparent text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 p-0 h-auto shadow-none"
-              title="編輯"
-              variant="ghost"
-            >
-              <Pencil className="w-4 h-4 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-500" />
-            </Button>
-            <div className="flex-1">
-              <div onClick={() => q.id && onToggleCollapse(q.id)} className="cursor-pointer">
+          <div 
+            key={q.id} 
+            className={`relative p-4 bg-cardBg dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg ${
+              isBlurred ? 'overflow-hidden' : ''
+            }`}
+          >
+            {isBlurred && (
+              <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md z-10 flex items-center justify-center">
+                <div className="text-center px-4 py-2 bg-yellow-100/90 dark:bg-yellow-900/90 rounded-lg">
+                  <p className="text-yellow-800 dark:text-yellow-200 font-medium">
+                    升級至付費版本以檢視此題目
+                  </p>
+                </div>
+              </div>
+            )}
+            {!isBlurred && (
+              <Button
+                onClick={() => onEditClick(q)}
+                className="absolute top-3 right-3 bg-transparent hover:bg-transparent text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 p-0 h-auto shadow-none"
+                title="編輯"
+                variant="ghost"
+              >
+                <Pencil className="w-4 h-4 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-500" />
+              </Button>
+            )}
+            <div className={`flex-1 ${isBlurred ? 'blur-lg opacity-25 select-none pointer-events-none' : ''}`}>
+              <div onClick={() => !isBlurred && q.id && onToggleCollapse(q.id)} className={!isBlurred ? "cursor-pointer" : ""}>
                 <div className="flex">
                   <div className="w-[24px]">
                     <Checkbox
                       checked={q.id ? selectedQuestionIds.includes(q.id) : false}
-                      onCheckedChange={() => q.id && onToggleSelection(q.id)}
+                      onCheckedChange={() => !isBlurred && q.id && onToggleSelection(q.id)}
                       className="mt-[2px]"
                       onClick={e => e.stopPropagation()}
+                      disabled={isBlurred}
                     />
                   </div>
                   <div className="flex-1">
@@ -113,7 +138,7 @@ export default function QuestionCards({
                 </div>
               </div>
 
-              {!isCollapsed && (
+              {!isCollapsed && !isBlurred && (
                 <>
                   {isSingleChoiceQuestion(q) ? (
                     <>
