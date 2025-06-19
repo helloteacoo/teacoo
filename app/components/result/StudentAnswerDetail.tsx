@@ -262,26 +262,34 @@ export default function StudentAnswerDetail({
                         )}
                         {(isSingleChoice(question) || isMultipleChoice(question)) && (
                           <div className="flex flex-col space-y-1 mt-1">
-                            {question.options.map((option, optIndex) => (
-                              <div
-                                key={optIndex}
-                                className={`p-0.5 rounded border-2 ${
-                                  isSingleChoice(question)
-                                    ? userAnswer === option
-                                      ? isCorrect
-                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
-                                        : 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                                      : 'border-transparent bg-trasparent dark:bg-trasparent'
-                                    : Array.isArray(userAnswer) && userAnswer.includes(option)
-                                    ? isCorrect
-                                      ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
-                                      : 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                                    : 'border-transparent bg-trasparent dark:bg-trasparent'
-                                }`}
-                              >
-                                ({String.fromCharCode(65 + optIndex)}){'\u00A0'}{option}
-                              </div>
-                            ))}
+                            {question.options.map((option, optIndex) => {
+                              let optionStyle = 'border-transparent bg-transparent dark:bg-transparent';
+                              if (isSingleChoice(question)) {
+                                if (userAnswer === option) {
+                                  optionStyle = isCorrect
+                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                                    : 'border-red-500 bg-red-50 dark:bg-red-900/30';
+                                }
+                              } else if (isMultipleChoice(question)) {
+                                const isOptionSelected = Array.isArray(userAnswer) && userAnswer.includes(option);
+                                const isOptionCorrect = question.answers.includes(optIndex);
+                                
+                                if (isOptionSelected) {
+                                  optionStyle = isOptionCorrect
+                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                                    : 'border-red-500 bg-red-50 dark:bg-red-900/30';
+                                }
+                              }
+                              
+                              return (
+                                <div
+                                  key={optIndex}
+                                  className={`p-0.5 rounded border-2 ${optionStyle}`}
+                                >
+                                  ({String.fromCharCode(65 + optIndex)}){'\u00A0'}{option}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </>

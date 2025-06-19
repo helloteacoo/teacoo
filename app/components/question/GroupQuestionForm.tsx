@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Button } from '../ui/button';
+import { Trash2 } from 'lucide-react';
 import TagSelector from '../TagSelector';
 import type { ChangeEvent } from 'react';
 import type { 
@@ -66,7 +67,7 @@ export default function GroupQuestionForm({
           };
         });
         setQuestions(formattedQuestions);
-      } else {
+      } else if (type === '克漏字') {
         const data = initialData as ClozeQuestion;
         setArticle(data.content);
         setContent(data.content || '');
@@ -86,7 +87,7 @@ export default function GroupQuestionForm({
             options: q.options,
             answer: q.options[answerIndex],
             selectedOptionId: String(answerIndex),
-            explanation: ''
+            explanation: q.content || ''
           } as ClozeSubQuestion;
         });
         setQuestions(formattedQuestions);
@@ -232,17 +233,11 @@ export default function GroupQuestionForm({
         }
 
         // 必須選擇一個正確答案
-        if (!q.answer) {
+        if (!q.answer && !q.selectedOptionId) {
           return `請為第 ${i + 1} 個子題目選擇正確答案`;
         }
       }
     } else if (type === '克漏字') {
-      // 檢查空格編號
-      const error = validateBlanks(article);
-      if (error) {
-        return error;
-      }
-
       // 檢查每個空格的選項
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i] as ClozeSubQuestion;
@@ -254,7 +249,7 @@ export default function GroupQuestionForm({
         }
 
         // 必須選擇一個正確答案
-        if (!q.answer) {
+        if (q.selectedOptionId === undefined || q.selectedOptionId === null || q.selectedOptionId === '') {
           return `請為第 ${i + 1} 個空格選擇正確答案`;
         }
       }
@@ -270,78 +265,16 @@ export default function GroupQuestionForm({
     type,
     article,
     questions,
-    tags,
-    validateBlanks
+    tags
   ]);
 
   const handleSubmit = () => {
-    // 檢查必要欄位
-    if (!article.trim()) {
-      alert('請輸入文章內容');
-      return;
-    }
-
-    if (type === '閱讀測驗') {
-      if (questions.length === 0) {
-        alert('請至少添加一個子題目');
-        return;
-      }
-
-      // 檢查每個子題目
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i] as SubQuestion;
-        if (!q.content.trim()) {
-          alert(`請輸入第 ${i + 1} 個子題目的內容`);
-          return;
-        }
-
-        // 檢查至少有兩個選項
-        const validOptions = q.options.filter(opt => opt.trim());
-        if (validOptions.length < 2) {
-          alert(`請為第 ${i + 1} 個子題目至少填寫兩個選項`);
-          return;
-        }
-
-        if (!q.answer) {
-          alert(`請為第 ${i + 1} 個子題目選擇正確答案`);
-          return;
-        }
-      }
-    } else if (type === '克漏字') {
-      const blanks = extractBlanks(article);
-      if (blanks.length === 0) {
-        alert('請在文章中使用 __1__, __2__... 標記空格處');
-        return;
-      }
-
-      // 檢查每個空格的選項
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i] as ClozeSubQuestion;
-        // 檢查至少有兩個選項
-        const validOptions = q.options.filter(opt => opt.trim());
-        if (validOptions.length < 2) {
-          alert(`請為第 ${i + 1} 個空格至少填寫兩個選項`);
-          return;
-        }
-
-        if (!q.answer) {
-          alert(`請為第 ${i + 1} 個空格選擇正確答案`);
-          return;
-        }
-      }
-    }
-
-    if (tags.length === 0) {
-      alert('請至少選擇一個標籤');
-      return;
-    }
-
     let questionData: Question;
     if (type === '閱讀測驗') {
       questionData = {
         id: initialData?.id || '',
         createdAt: initialData?.createdAt || new Date().toISOString(),
-        updatedAt: initialData?.updatedAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         type: '閱讀測驗',
         content,
         article,
@@ -351,7 +284,7 @@ export default function GroupQuestionForm({
           id: q.id,
           content: q.content,
           options: q.options,
-          answer: q.answer,
+          answer: q.answer || q.options[parseInt(q.selectedOptionId || '0')],
           explanation: q.explanation
         }))
       } as ReadingQuestion;
@@ -359,7 +292,7 @@ export default function GroupQuestionForm({
       questionData = {
         id: initialData?.id || '',
         createdAt: initialData?.createdAt || new Date().toISOString(),
-        updatedAt: initialData?.updatedAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         type: '克漏字',
         content: article,
         explanation,
@@ -367,7 +300,7 @@ export default function GroupQuestionForm({
         questions: (questions as ClozeSubQuestion[]).map(q => ({
           options: q.options,
           answer: parseInt(q.selectedOptionId || '0'),
-          content: ''
+          content: q.explanation || ''
         }))
       } as ClozeQuestion;
     }
@@ -423,9 +356,9 @@ export default function GroupQuestionForm({
                 <button
                   type="button"
                   onClick={() => removeQuestion(questionIndex)}
-                  className="px-2 py-1 text-sm text-red-500 hover:text-red-600"
+                  className="text-gray-500 hover:text-red-500 transition-colors"
                 >
-                  🗑️
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
@@ -481,13 +414,29 @@ export default function GroupQuestionForm({
         </div>
       )}
 
-      {type === '克漏字' && questions.length > 0 && (
+      {type === '克漏字' && (
         <div className="space-y-6">
-          <Label>空格選項</Label>
+          <div className="flex items-center justify-between">
+            <Label>空格選項</Label>
+            <button
+              type="button"
+              onClick={addQuestion}
+              className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-primary/80"
+            >
+              新增空格
+            </button>
+          </div>
           {questions.map((question, questionIndex) => (
             <div key={question.id} className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <div className="flex items-center justify-between">
                 <Label>空格 {questionIndex + 1}</Label>
+                <button
+                  type="button"
+                  onClick={() => removeQuestion(questionIndex)}
+                  className="text-gray-500 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="space-y-3">
@@ -545,7 +494,7 @@ export default function GroupQuestionForm({
           value={explanation}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setExplanation(e.target.value)}
           placeholder="請輸入整體解說..."
-          className="mt-1.5 placeholder:text-gray-400"
+          className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
         />
       </div>
 

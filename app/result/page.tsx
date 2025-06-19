@@ -423,9 +423,9 @@ export default function ResultPage() {
   return (
     <div className="h-screen flex flex-col bg-mainBg dark:bg-gray-900">
       <Navigation />
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
         {/* 左側記錄瀏覽區 */}
-        <div className="w-2/5 border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
+        <div className="w-full md:w-2/5 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
           <div className="space-y-4">
             {/* 顯示類型選擇 */}
             <div className="bg-transparent dark:bg-gray-800 rounded-lg p-4 shadow">
@@ -473,8 +473,8 @@ export default function ResultPage() {
                     onClick={() => loadQuizData(quiz.id)}
                   >
                     <div className="font-medium pr-8">📃 {quiz.title || `試卷 ${quiz.id}`}</div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                      <span>📅 {quiz.createdAt.toDate().toLocaleString('zh-TW', {
+                    <div className="flex items-center space-x-2 text-sm md:text-sm text-xs text-gray-600 dark:text-gray-400">
+                      <span className="text-xs md:text-sm">📅 {quiz.createdAt.toDate().toLocaleString('zh-TW', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
@@ -484,15 +484,15 @@ export default function ResultPage() {
                       })}</span>
                       {recordType === 'practice' ? (
                         <>
-                          <span>🎯 {quiz.correctQuestions || 0}/{quiz.totalQuestions || 0}(-{quiz.wrongQuestions || 0}, {quiz.averageScore || 0}%)</span>
-                          <span>⏱{formatDuration(quiz.practiceTime || 0)}</span>
+                          <span className="text-xs md:text-sm">🎯 {quiz.correctQuestions || 0}/{quiz.totalQuestions || 0}(-{quiz.wrongQuestions || 0}, {quiz.averageScore || 0}%)</span>
+                          <span className="text-xs md:text-sm">⏱{formatDuration(quiz.practiceTime || 0)}</span>
                         </>
                       ) : (
                         <>
-                          <span>👩‍🏫 {quiz.useTargetList && Array.isArray(quiz.targetList) && quiz.targetList.length > 0
+                          <span className="text-xs md:text-sm">👩‍🏫 {quiz.useTargetList && Array.isArray(quiz.targetList) && quiz.targetList.length > 0
                             ? `${quiz.targetList[0]}等${quiz.targetList.length}人`
                             : '不指定'}</span>
-                          <span>🎯 {quiz.averageScore || 0}%</span>
+                          <span className="text-xs md:text-sm">🎯 {quiz.averageScore || 0}%</span>
                         </>
                       )}
                     </div>
@@ -509,7 +509,7 @@ export default function ResultPage() {
         </div>
 
         {/* 右側答題分析區 */}
-        <div className="w-3/5 p-4 overflow-y-auto">
+        <div className="w-full md:w-3/5 p-4 overflow-y-auto h-[50vh] md:h-auto">
           {selectedQuiz && quizData ? (
             <div className="space-y-4">
               {isPractice(recordType) ? (
@@ -527,7 +527,7 @@ export default function ResultPage() {
                     <Card className="p-4 bg-cardBg dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg">
                       <div className="space-y-2">
                         <h2 className="text-xl font-semibold">📃 {selectedQuiz.title}</h2>
-                        <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-600 dark:text-gray-400">
                           <div className="flex items-center space-x-2">
                             <span>📅</span>
                             <span>派送時間：{selectedQuiz.date}</span>
@@ -552,13 +552,13 @@ export default function ResultPage() {
                             key={student.id}
                             className="flex items-center justify-between p-2 rounded-lg"
                           >
-                            <div className="flex items-center space-x-4">
-                              <span>🙋‍♂️ {student.name}</span>
-                              <span>🎯 {student.score}/{student.totalQuestions}(-{student.wrongQuestions}, {student.percentage}%)</span>
-                              <span className="text-gray-600 dark:text-gray-400">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                              <span className="whitespace-nowrap text-xs md:text-sm">🙋‍♂️ {student.name}</span>
+                              <span className="whitespace-nowrap text-xs md:text-sm">🎯 {student.score}/{student.totalQuestions}(-{student.wrongQuestions}, {student.percentage}%)</span>
+                              <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap text-xs md:text-sm">
                                 <span>📅 {student.submitTime}</span>
                               </span>
-                              <span className="text-gray-600 dark:text-gray-400">
+                              <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap text-xs md:text-sm">
                                 <span>⏱️ {student.duration}</span>
                               </span>
                             </div>

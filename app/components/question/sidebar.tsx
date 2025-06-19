@@ -23,6 +23,7 @@ type Props = {
   allTags: string[];
   isPremium?: boolean;
   onDeleteTag?: (tag: string) => void;
+  onRenameTag?: (oldTag: string, newTag: string) => void;
 };
 
 export default function Sidebar({
@@ -35,7 +36,8 @@ export default function Sidebar({
   setQuestions,
   allTags,
   isPremium = false,
-  onDeleteTag
+  onDeleteTag,
+  onRenameTag
 }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [tagsState, setTagsState] = useState<TagsState>(() => ({
@@ -123,7 +125,7 @@ export default function Sidebar({
               <div className="flex items-center">
                 <Input
                   placeholder="輸入新標籤..."
-                  className="mr-2 text-xs text-gray-400 dark:text-gray-400"
+                  className="mr-2 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                       const newTag = e.currentTarget.value.trim();
@@ -160,6 +162,7 @@ export default function Sidebar({
                 filters={filters}
                 toggleFilter={handleFilterToggle}
                 onDeleteTag={handleDeleteTag}
+                onRenameTag={onRenameTag}
               />
             </div>
           </div>

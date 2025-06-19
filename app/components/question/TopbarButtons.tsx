@@ -100,20 +100,20 @@ export default function TopbarButtons({
               onClick={onSelectAll}
               className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
             >
-              ✅ 全部勾選
+               <SquareCheckBig className="w-4 h-4" />
             </Button>
             <Button 
               onClick={onClearSelection} 
               className="whitespace-nowrap text-gray-300 h-8 px-3 text-sm"
             >
-              ⬜️ 全部取消
+              <SquareX className="w-4 h-4"/>
             </Button>
             <Button
               onClick={onShowDeleteConfirm}
               disabled={selectedQuestionIds.length === 0}
               className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
             >
-              🗑️ 刪除題目
+              <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -123,7 +123,7 @@ export default function TopbarButtons({
               onClick={() => onAIModalChange(true)}
               className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
             >
-              🤖 AI匯入
+              🤖 匯入題目
             </Button>
             <Button
               onClick={onAssignQuestions}

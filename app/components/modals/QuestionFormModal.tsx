@@ -166,124 +166,43 @@ export default function QuestionFormModal({
   const content = (
     <div className="space-y-4">
       <div className="space-y-4">
-        {!isEditMode && (
-          <div className="grid w-full grid-cols-2">
-            <div className="flex items-center space-x-2">
-              <Button
-                type="button"
-                onClick={() => handleModeChange('single')}
-                variant={mode === 'single' ? 'default' : 'outline'}
-                className={`w-full ${
-                  mode === 'single'
-                    ? 'bg-primary text-white dark:bg-primary dark:text-white'
-                    : 'text-gray-600 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
-                }`}
-              >
-                單題
-              </Button>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                type="button"
-                onClick={() => handleModeChange('group')}
-                variant={mode === 'group' ? 'default' : 'outline'}
-                className={`w-full ${
-                  mode === 'group'
-                    ? 'bg-primary text-white dark:bg-primary dark:text-white'
-                    : 'text-gray-600 dark:text-gray-800 dark:border-gray-700 dark:hover:bg-gray-300'
-                }`}
-              >
-                題組
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {mode === 'single' && (
-          <div className="grid w-full grid-cols-4 gap-2">
-            {(['單選題', '多選題', '填空題', '簡答題'] as SingleQuestionType[]).map((type) => (
-              <Button
-                key={type}
-                type="button"
-                onClick={() => handleQuestionTypeChange(type)}
-                variant={questionType === type ? 'default' : 'outline'}
-                className={`w-full ${
-                  questionType === type
-                    ? 'bg-primary text-white dark:bg-primary dark:text-white'
-                    : 'text-gray-600 dark:text-gray-800 dark:border-gray-700 dark:hover:bg-gray-300'
-                }`}
-              >
-                {type}
-              </Button>
-            ))}
-          </div>
-        )}
-
-        {mode === 'group' && (
-          <div className="grid w-full grid-cols-2 gap-2">
-            {(['閱讀測驗', '克漏字'] as GroupQuestionType[]).map((type) => (
-              <Button
-                key={type}
-                type="button"
-                onClick={() => handleGroupTypeChange(type)}
-                variant={groupType === type ? 'default' : 'outline'}
-                className={`w-full ${
-                  groupType === type
-                    ? 'bg-primary text-white dark:bg-primary dark:text-white'
-                    : 'text-gray-600 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700'
-                }`}
-              >
-                {type}
-              </Button>
-            ))}
-          </div>
-        )}
+        <div className="text-sm text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 pb-2">
+          {mode === 'single' ? questionType : groupType}
+        </div>
       </div>
 
       {/* 表單區域 */}
       <div className="mt-4">
         {mode === 'single' && (
-          questionType ? (
-            <SingleQuestionForm
-              key={`${key}-${JSON.stringify(initialData)}`}
-              type={questionType as "單選題" | "填空題" | "簡答題"}
-              onChange={handleSingleQuestionSubmit}
-              defaultTags={lastUsedTags}
-              isPremium={isPremium}
-              initialData={
-                initialData && !['閱讀測驗', '克漏字'].includes(initialData.type)
-                  ? initialData
-                  : undefined
-              }
-              allTags={allTags}
-            />
-          ) : (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-              請先選擇題型
-            </div>
-          )
+          <SingleQuestionForm
+            key={`${key}-${JSON.stringify(initialData)}`}
+            type={questionType as "單選題" | "填空題" | "簡答題"}
+            onChange={handleSingleQuestionSubmit}
+            defaultTags={lastUsedTags}
+            isPremium={isPremium}
+            initialData={
+              initialData && !['閱讀測驗', '克漏字'].includes(initialData.type)
+                ? initialData
+                : undefined
+            }
+            allTags={allTags}
+          />
         )}
 
         {mode === 'group' && (
-          groupType ? (
-            <GroupQuestionForm
-              key={`${key}-group-${JSON.stringify(initialData)}`}
-              type={groupType}
-              onChange={handleGroupQuestionSubmit}
-              defaultTags={lastUsedTags}
-              isPremium={isPremium}
-              initialData={
-                initialData && ['閱讀測驗', '克漏字'].includes(initialData.type)
-                  ? initialData
-                  : undefined
-              }
-              allTags={allTags}
-            />
-          ) : (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-              請先選擇題型
-            </div>
-          )
+          <GroupQuestionForm
+            key={`${key}-group-${JSON.stringify(initialData)}`}
+            type={groupType as GroupQuestionType}
+            onChange={handleGroupQuestionSubmit}
+            defaultTags={lastUsedTags}
+            isPremium={isPremium}
+            initialData={
+              initialData && ['閱讀測驗', '克漏字'].includes(initialData.type)
+                ? initialData
+                : undefined
+            }
+            allTags={allTags}
+          />
         )}
       </div>
     </div>
@@ -299,7 +218,7 @@ export default function QuestionFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-cardBg dark:bg-gray-800 dark:border-gray-700">
+      <DialogContent className="sm:max-w-3xl max-w-[95vw] max-h-[90vh] overflow-y-auto bg-cardBg dark:bg-gray-800 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-gray-800 dark:text-gray-200">{title}</DialogTitle>
         </DialogHeader>
