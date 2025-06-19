@@ -61,6 +61,28 @@ export default function StudentAnswerDetail({
   const isReadingQuestion = (q: Question): q is ReadingQuestion => q.type === '閱讀測驗';
   const isClozeQuestion = (q: Question): q is ClozeQuestion => q.type === '克漏字';
 
+  // 獲取正確答案的輔助函數
+  const getCorrectAnswer = (question: Question): string => {
+    if (isSingleChoice(question)) {
+      return question.options[question.answer];
+    } else if (isMultipleChoice(question)) {
+      return question.answers.map(idx => question.options[idx]).join('、');
+    } else if (isReadingQuestion(question)) {
+      return question.questions.map((q, i) => 
+        `${i + 1}. ${q.options[parseInt(q.answer)]}`
+      ).join('\n');
+    } else if (isClozeQuestion(question)) {
+      return question.questions.map((q, i) => 
+        `${i + 1}. ${q.options[q.answer]}`
+      ).join('\n');
+    } else if (question.type === '填空題') {
+      return question.blanks.map((answer, i) => 
+        `${i + 1}. ${answer}`
+      ).join('\n');
+    }
+    return '';
+  };
+
   // 檢查答案是否正確的輔助函數
   const checkAnswer = (question: Question, userAnswer: string | string[] | undefined): boolean => {
     if (!userAnswer) return false;
@@ -82,26 +104,12 @@ export default function StudentAnswerDetail({
              question.questions.every((q, i) => 
                userAnswer[i] === q.options[q.answer]
              );
+    } else if (question.type === '填空題') {
+      return Array.isArray(userAnswer) &&
+             userAnswer.length === question.blanks.length &&
+             userAnswer.every((ans, i) => ans === question.blanks[i]);
     }
     return false;
-  };
-
-  // 獲取正確答案的輔助函數
-  const getCorrectAnswer = (question: Question): string => {
-    if (isSingleChoice(question)) {
-      return question.options[question.answer];
-    } else if (isMultipleChoice(question)) {
-      return question.answers.map(idx => question.options[idx]).join('、');
-    } else if (isReadingQuestion(question)) {
-      return question.questions.map((q, i) => 
-        `${i + 1}. ${q.options[parseInt(q.answer)]}`
-      ).join('\n');
-    } else if (isClozeQuestion(question)) {
-      return question.questions.map((q, i) => 
-        `${i + 1}. ${q.options[q.answer]}`
-      ).join('\n');
-    }
-    return '';
   };
 
   // 切換題目展開/折疊狀態
@@ -183,20 +191,20 @@ export default function StudentAnswerDetail({
                         <div className="whitespace-pre-wrap">{question.article}</div>
                         {question.questions.map((subQ, subIndex) => (
                           <div key={subIndex} className="ml-4 mt-2">
-                            <div className="font-medium">{subQ.content}</div>
-                            <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div className="font-medium">{subIndex + 1}. {subQ.content}</div>
+                            <div className="flex flex-col space-y-1 mt-1">
                               {subQ.options.map((option, optIndex) => (
                                 <div
                                   key={optIndex}
-                                  className={`p-2 rounded ${
+                                  className={`p-0.5 rounded border-2 ${
                                     Array.isArray(userAnswer) && userAnswer[subIndex] === option
                                       ? isCorrect
-                                        ? 'bg-green-100 dark:bg-green-900'
-                                        : 'bg-red-100 dark:bg-red-900'
-                                      : 'bg-gray-50 dark:bg-gray-800'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                                        : 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                                      : 'border-transparent bg-trasparent dark:bg-trasparent'
                                   }`}
                                 >
-                                  {option}
+                                  ({String.fromCharCode(65 + optIndex)}){'\u00A0'}{option}
                                 </div>
                               ))}
                             </div>
@@ -208,20 +216,20 @@ export default function StudentAnswerDetail({
                         <div className="whitespace-pre-wrap">{question.content}</div>
                         {question.questions.map((subQ, subIndex) => (
                           <div key={subIndex} className="ml-4 mt-2">
-                            <div className="font-medium">空格 {subIndex + 1}</div>
-                            <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div className="font-medium">{subIndex + 1}.</div>
+                            <div className="flex flex-col space-y-1 mt-1">
                               {subQ.options.map((option, optIndex) => (
                                 <div
                                   key={optIndex}
-                                  className={`p-2 rounded ${
+                                  className={`p-0.5 rounded border-2 ${
                                     Array.isArray(userAnswer) && userAnswer[subIndex] === option
                                       ? isCorrect
-                                        ? 'bg-green-100 dark:bg-green-900'
-                                        : 'bg-red-100 dark:bg-red-900'
-                                      : 'bg-gray-50 dark:bg-gray-800'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                                        : 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                                      : 'border-transparent bg-trasparent dark:bg-trasparent'
                                   }`}
                                 >
-                                  {option}
+                                  ({String.fromCharCode(65 + optIndex)}){'\u00A0'}{option}
                                 </div>
                               ))}
                             </div>
@@ -231,26 +239,47 @@ export default function StudentAnswerDetail({
                     ) : (
                       <>
                         <div className="whitespace-pre-wrap">{question.content}</div>
+                        {question.type === '填空題' && (
+                          <div className="mt-4 space-y-2">
+                            {question.blanks.map((correctAnswer, index) => {
+                              const studentAnswer = Array.isArray(userAnswer) ? userAnswer[index] : '';
+                              const isCorrect = studentAnswer === correctAnswer;
+                              
+                              return (
+                                <div key={index} className="flex items-center gap-4">
+                                  <span className="text-sm font-medium">填空 {index + 1}：</span>
+                                  <div className={`p-0.5 rounded border-2 ${
+                                    isCorrect 
+                                      ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                                      : 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                                  }`}>
+                                    {studentAnswer || '(未作答)'}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                         {(isSingleChoice(question) || isMultipleChoice(question)) && (
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-col space-y-1 mt-1">
                             {question.options.map((option, optIndex) => (
                               <div
                                 key={optIndex}
-                                className={`p-2 rounded ${
+                                className={`p-0.5 rounded border-2 ${
                                   isSingleChoice(question)
                                     ? userAnswer === option
                                       ? isCorrect
-                                        ? 'bg-green-100 dark:bg-green-900'
-                                        : 'bg-red-100 dark:bg-red-900'
-                                      : 'bg-gray-50 dark:bg-gray-800'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                                        : 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                                      : 'border-transparent bg-trasparent dark:bg-trasparent'
                                     : Array.isArray(userAnswer) && userAnswer.includes(option)
                                     ? isCorrect
-                                      ? 'bg-green-100 dark:bg-green-900'
-                                      : 'bg-red-100 dark:bg-red-900'
-                                    : 'bg-gray-50 dark:bg-gray-800'
+                                      ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                                      : 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                                    : 'border-transparent bg-trasparent dark:bg-trasparent'
                                 }`}
                               >
-                                {option}
+                                ({String.fromCharCode(65 + optIndex)}){'\u00A0'}{option}
                               </div>
                             ))}
                           </div>
@@ -262,7 +291,7 @@ export default function StudentAnswerDetail({
                   {/* 答案與解釋 */}
                   <div className="space-y-2 text-sm">
                     <div>
-                      <span className="font-medium">正確答案：</span>
+                      <span className="font-medium">正解：</span>
                       <span className="text-green-600 dark:text-green-400 whitespace-pre-line">
                         {getCorrectAnswer(question)}
                       </span>

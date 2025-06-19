@@ -19,6 +19,7 @@ import {
 } from '@/app/types/question';
 import { useTheme } from '@/app/contexts/ThemeContext';
 import { SunIcon, MoonIcon } from '@radix-ui/react-icons';
+import StudentAnswerDetail from '@/app/components/result/StudentAnswerDetail';
 
 type AnswerValue = string | Array<string>;
 type Answers = Record<string, AnswerValue>;
@@ -53,6 +54,7 @@ export default function StudentQuizPage() {
   const [duration, setDuration] = useState(0);
   const [page, setPage] = useState(1);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [showResult, setShowResult] = useState(false);
 
   // 載入 quiz 與題目
   useEffect(() => {
@@ -354,13 +356,26 @@ export default function StudentQuizPage() {
   if (submitted) {
     const minutes = Math.floor(duration / 60000);
     const seconds = Math.floor((duration % 60000) / 1000);
+    if (showResult) {
+      return (
+        <div className="min-h-screen bg-mainBg dark:bg-gray-900 p-4">
+          <StudentAnswerDetail
+            studentName={name}
+            answers={answersRef.current}
+            questionIds={questions.map(q => q.id)}
+            onBack={() => setShowResult(false)}
+            isPractice={quiz?.mode === 'practice'}
+          />
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-mainBg dark:bg-gray-900">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">✅ 作業已完成！</h1>
           <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">🎯 得分：{score} / {questions.length} 題正確（{Math.round((score / questions.length) * 100)}%）</p>
           {quiz.settings.showTimer && <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">⏱️ 作答時間：{minutes} 分 {seconds} 秒</p>}
-          <Button className="mt-4">📄 查看作答結果</Button>
+          <Button onClick={() => setShowResult(true)} className="mt-4">📄 查看作答結果</Button>
         </div>
       </div>
     );

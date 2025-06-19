@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import { getAllLists, addList, List } from '../../lib/firebase/lists';
 import { Checkbox } from '../ui/checkbox';
 import { toast } from 'react-hot-toast';
+import { auth } from '../../lib/firebase/firebase';
 
 export default function AssignQuizForm() {
   const { state, dispatch, handleSubmit, selectedQuestions, mode } = useAssignQuiz();
@@ -30,6 +31,18 @@ export default function AssignQuizForm() {
     }
   }, [useTargetList, mode]);
 
+  // 檢查使用者登入狀態
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user && createNewList) {
+        toast.error('請先登入才能建立名單');
+        setCreateNewList(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [createNewList]);
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     dispatch({ type: "SET_TITLE", payload: e.target.value });
   };
@@ -46,18 +59,48 @@ export default function AssignQuizForm() {
 
   // 建立新名單
   const handleCreateList = async () => {
-    if (!newListName.trim() || !newListStudents.trim()) return;
+    console.log('開始建立名單');
+    if (!newListName.trim() || !newListStudents.trim()) {
+      console.log('名單名稱或學生名單為空');
+      toast.error('請填寫名單名稱和學生名單');
+      return;
+    }
+    
+    if (!auth.currentUser) {
+      console.log('使用者未登入');
+      toast.error('請先登入');
+      return;
+    }
+
+    console.log('準備建立名單:', { newListName, studentsCount: newListStudents.split('\n').length });
     setCreatingList(true);
     const students = newListStudents.split('\n').map(s => s.trim()).filter(Boolean);
+    
     try {
+      console.log('呼叫 addList API');
       const listId = await addList({
         name: newListName,
         students,
-        owner: "teacherUid", // TODO: 改成實際老師 uid
+        owner: auth.currentUser.uid,
       });
-      const newList = { id: listId, name: newListName, students, createdAt: new Date(), owner: "teacherUid" };
+      
+      if (!listId) {
+        console.error('建立名單失敗: 未收到 listId');
+        throw new Error('建立名單失敗');
+      }
+
+      console.log('名單建立成功:', listId);
+      const newList = { 
+        id: listId, 
+        name: newListName, 
+        students, 
+        createdAt: new Date(), 
+        owner: auth.currentUser.uid 
+      };
+      
       setLists(prev => [...prev, newList]);
       setSelectedListId(listId);
+      
       // 更新 settings 中的 targetList
       dispatch({
         type: "SET_SETTINGS",
@@ -66,12 +109,14 @@ export default function AssignQuizForm() {
           targetList: students
         }
       });
+      
       setNewListName("");
       setNewListStudents("");
       setCreateNewList(false);
       toast.success('名單建立成功！');
-    } catch (e) {
-      toast.error('名單建立失敗');
+    } catch (error) {
+      console.error('建立名單失敗:', error);
+      toast.error('建立名單失敗：' + (error instanceof Error ? error.message : '未知錯誤'));
     } finally {
       setCreatingList(false);
     }
@@ -94,20 +139,24 @@ export default function AssignQuizForm() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (createNewList) {
+      // 如果是在建立名單模式，不要提交表單
+      return;
+    }
     setSubmitting(true);
     await handleSubmit();
     setSubmitting(false);
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="space-y-4">
       <div>
-        <label className="block mb-1 font-medium text-gray-800 dark:text-gray-100">
+        <label className="block mb-1 text-sm font-medium text-gray-800 dark:text-gray-100">
           {mode === 'practice' ? '練習標題' : '作業標題'}
         </label>
         <Input
           value={state.data.title}
-          className="w-full placeholder:text-gray-400 dark:placeholder:text-gray-400 bg-white dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600"
+          className="w-full text-sm placeholder:text-gray-400 dark:placeholder:text-gray-400 bg-white dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600"
           onChange={handleTitleChange}
           placeholder={mode === 'practice' ? '請輸入練習名稱' : '請輸入作業名稱'}
           required
@@ -150,7 +199,7 @@ export default function AssignQuizForm() {
             </label>
           </div>
           {useTargetList && (
-            <div className="space-y-4 border rounded-md p-3 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+            <div className="space-y-3 border rounded-md p-2 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="create-new-list"
@@ -190,23 +239,27 @@ export default function AssignQuizForm() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">新名單名稱</label>
+                  <label className="block mb-1 text-xs text-gray-700 dark:text-gray-300">新名單名稱</label>
                   <Input 
                     value={newListName} 
                     onChange={e => setNewListName(e.target.value)} 
                     placeholder="例如：八年級 B 班"
-                    className="dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+                    className="text-sm placeholder:text-gray-400 dark:placeholder:text-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   />
-                  <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">學生姓名（每行一位）</label>
+                  <label className="block mb-1 text-xs text-gray-700 dark:text-gray-300">學生姓名（每行一位）</label>
                   <textarea
-                    className="w-full border rounded p-2 min-h-[80px] text-sm bg-white dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    className="w-full border rounded p-2 min-h-[60px] text-sm bg-white dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600"
                     value={newListStudents}
                     onChange={e => setNewListStudents(e.target.value)}
                     placeholder="請輸入學生姓名，每行一位"
                   />
                   <Button
                     type="button"
-                    onClick={handleCreateList}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleCreateList();
+                    }}
                     disabled={creatingList || !newListName.trim() || !newListStudents.trim()}
                     className="w-full"
                   >

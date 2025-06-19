@@ -47,7 +47,7 @@ function AssignQuizModalContent({ open, onOpenChange }: { open: boolean; onOpenC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[85vw] sm:max-w-md bg-mainBg dark:bg-gray-900 dark:text-mainBg p-4 sm:p-6 rounded-xl border border-gray-300 dark:border-gray-700">
+      <DialogContent className="max-w-[75vw] sm:max-w-sm bg-mainBg dark:bg-gray-900 dark:text-mainBg p-3 sm:p-4 rounded-xl border border-gray-300 dark:border-gray-700">
         <AssignQuizContent />
       </DialogContent>
     </Dialog>

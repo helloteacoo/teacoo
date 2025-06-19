@@ -212,7 +212,7 @@ export default function QuestionCards({
                               ))}
                             </ul>
                             <div className="text-sm mt-1">
-                              🟢 正解：({String.fromCharCode(65 + sub.answer)}) {sub.options[sub.answer]}
+                              🟢 正解：({String.fromCharCode(65 + parseInt(sub.answer.toString()))}) {sub.options[parseInt(sub.answer.toString())]}
                             </div>
                             {sub.content && (
                               <div className="text-sm mt-1 text-gray-600 dark:text-gray-400">
