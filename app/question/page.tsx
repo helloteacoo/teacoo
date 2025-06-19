@@ -707,6 +707,7 @@ export default function QuestionPage() {
             onAssignQuestions={handleAssignQuestions}
             onSelfPractice={handleSelfPractice}
             selectedQuestionIds={selectedQuestionIds}
+            selectedQuestions={selectedQuestions}
             keyword={keyword}
             onKeywordChange={handleKeywordChange}
             onSelectAll={handleSelectAll}
