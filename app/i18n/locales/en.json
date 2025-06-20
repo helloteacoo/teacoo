@@ -1,0 +1,182 @@
+{
+  "common": {
+    "language": "English",
+    "login": "Login",
+    "logout": "Logout",
+    "darkMode": "Switch to Dark Mode",
+    "lightMode": "Switch to Light Mode",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "myQuestions": "Question Bank",
+    "results": "Results",
+    "pricing": "Pricing",
+    "theme": {
+      "toDark": "Switch to Dark Mode",
+      "toLight": "Switch to Light Mode"
+    },
+    "user": "User",
+    "avatar": "'s avatar",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signingOut": "Signing out...",
+    "errors": {
+      "signOut": "Error signing out:"
+    }
+  },
+  "features": {
+    "aiImport": {
+      "title": "AI Question Import",
+      "description": "Paste text and instantly convert to structured questions, no formatting needed."
+    },
+    "easyCreate": {
+      "title": "Easy Question Bank Creation",
+      "description": "Quick editing and category management for organized content and reusability."
+    },
+    "simpleAssign": {
+      "title": "Simple Assignment Distribution",
+      "description": "No registration needed, just share a link with students."
+    },
+    "selfPractice": {
+      "title": "Self-Practice Mode",
+      "description": "Students can freely choose questions to practice with instant feedback."
+    },
+    "autoStats": {
+      "title": "Automatic Statistics",
+      "description": "Real-time accuracy and timing calculations for better learning insights."
+    },
+    "secureStorage": {
+      "title": "Secure Storage & Cloud Sync",
+      "description": "Auto-save and cross-device accessibility for your content."
+    }
+  },
+  "ai": {
+    "convert": "Convert",
+    "converting": "Converting...",
+    "placeholder": "Please paste or enter question text..."
+  },
+  "sidebar": {
+    "questionTypes": "Question Types",
+    "tags": "Tags",
+    "newTag": "Enter new a tag...",
+    "add": "Add",
+    "questionType": {
+      "singleChoice": "MCQ (Single Answer)",
+      "multipleChoice": "MCQ (Multiple Answers)",
+      "fillInBlank": "Fill in the Blank",
+      "shortAnswer": "Short Answer",
+      "reading": "Reading Comprehension",
+      "cloze": "Cloze"
+    }
+  },
+  "tagFolder": {
+    "upgrade": "👑 Upgrade to professional version to use tag folders!",
+    "tags": "Tags",
+    "unorganizedTags": "Unorganized Tags",
+    "folderName": "Folder name...",
+    "create": "Create",
+    "cancel": "Cancel",
+    "addFolder": "Add Folder",
+    "tagExists": "Tag name already exists",
+    "tagRenamed": "Tag \"{{oldTag}}\" has been renamed to \"{{newTag}}\"",
+    "updateFailed": "Failed to update tag, please try again later"
+  },
+  "topbar": {
+    "import": "📥 Import",
+    "assign": "✍ Assign",
+    "practice": "💪 Practice",
+    "export": "📤 Export",
+    "search": "Search questions...",
+    "errors": {
+      "selectFirst": "Please select questions first",
+      "exportFailed": "Export failed",
+      "unknownError": "Unknown error"
+    },
+    "tooltips": {
+      "selectFirst": "Please select questions first",
+      "assignSelected": "Assign selected questions",
+      "practiceSelected": "Start self practice",
+      "exportSelected": "Export selected questions"
+    }
+  },
+  "deleteModal": {
+    "title": "Confirm Delete",
+    "description": "Are you sure you want to delete the selected questions? This action cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete"
+  },
+  "pricing": {
+    "title": "Choose Your Plan",
+    "subtitle": "Whether you're an individual educator or a learner, we have a plan for you",
+    "annual": "Annual Plan",
+    "monthly": "Monthly Plan",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "description": "Experience basic question bank and assignment features",
+        "price": "US$ 0",
+        "period": "Forever"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "Meet your daily practice and teaching management needs",
+        "period": {
+          "year": "year",
+          "month": "month"
+        },
+        "save": "Save US$ {{amount}}",
+        "recommended": "Recommended"
+      }
+    },
+    "features": {
+      "aiConversion": {
+        "name": "AI Conversions",
+        "free": "3 times per day",
+        "pro": "10 times per day"
+      },
+      "questionLimit": {
+        "name": "Question Limit",
+        "free": "Up to 100 questions",
+        "pro": "Up to 1000 questions"
+      },
+      "tagFolders": {
+        "name": "Tag Folders"
+      },
+      "assignment": {
+        "name": "Assignment Distribution",
+        "free": "Up to 10 students per assignment",
+        "pro": "Up to 100 students per assignment + Student Lists"
+      },
+      "results": {
+        "name": "Answer Results",
+        "free": "View last 5 records",
+        "pro": "Unlimited"
+      }
+    },
+    "buttons": {
+      "startNow": "Start Now",
+      "upgrade": "Upgrade Plan"
+    },
+    "faq": {
+      "title": "FAQ",
+      "questions": {
+        "howToUpgrade": {
+          "question": "How to upgrade to Professional?",
+          "answer": "Click the 'Upgrade Plan' button, choose your preferred payment plan (monthly or annual), and fill in your payment information to upgrade immediately."
+        },
+        "trialPeriod": {
+          "question": "Is there a trial period?",
+          "answer": "Yes, we offer a 14-day free trial where you can experience all Professional features."
+        },
+        "cancellation": {
+          "question": "Can I cancel anytime?",
+          "answer": "Yes, you can cancel your subscription at any time. After cancellation, you can still use the paid features until the end of your current period."
+        },
+        "dataRetention": {
+          "question": "Will my data be deleted after cancellation?",
+          "answer": "No, your data and question bank will be fully retained and not deleted."
+        }
+      }
+    }
+  }
+} 

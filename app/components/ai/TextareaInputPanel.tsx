@@ -47,45 +47,40 @@ export function TextareaInputPanel({
   const isOverLimit = charCount > MAX_CHARS;
 
   return (
-    <div className="flex flex-col h-full">
-      <h3 className="font-medium mb-2 text-gray-800 dark:text-mainBg">原始文字</h3>
-      <div className="flex-1 flex flex-col min-h-0">
-        <Textarea
-          value={value ?? localText}
-          onChange={handleChange}
-          placeholder="請貼上或輸入題目文字..."
-          className="flex-1 resize-none overflow-auto border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-md shadow-sm"
-        />
-        <div className="mt-2 flex justify-between items-center">
-          <div>
-            <span className={isOverLimit ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}>
-              {charCount}
-            </span>
-            <span className="text-gray-500 dark:text-gray-400">
-              {' / '}{MAX_CHARS}
-            </span>
-          </div>
-          <Button
-            onClick={handleConvert}
-            disabled={isConverting || !isValid}
-            className={`min-w-[100px] transition-all ${
-              !isValid
-                ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
-                : isConverting
-                  ? 'bg-primary text-white animate-pulse dark:bg-primary dark:text-white'
-                : 'bg-primary text-white hover:bg-primary/80 dark:bg-primary dark:text-white'
-            }`}
-          >
-            {isConverting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                轉換中...
-              </>
-            ) : (
-              '🚀 轉換'
-            )}
-          </Button>
-        </div>
+    <div className="flex flex-col gap-3">
+      <h3 className="font-medium text-gray-800 dark:text-mainBg">原始文字</h3>
+      
+      <Textarea
+        value={value ?? localText}
+        onChange={handleChange}
+        placeholder="請貼上或輸入題目文字..."
+        className="resize-none h-[280px] border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-md shadow-sm"
+      />
+
+      <div className="flex justify-between items-center">
+        <span className={isOverLimit ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}>
+          {charCount} / {MAX_CHARS}
+        </span>
+        <Button
+          onClick={handleConvert}
+          disabled={isConverting || !isValid}
+          className={`min-w-[100px] transition-all ${
+            !isValid
+              ? 'bg-gray-300 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
+              : isConverting
+                ? 'bg-primary text-white animate-pulse dark:bg-primary dark:text-white'
+              : 'bg-primary text-white hover:bg-primary/80 dark:bg-primary dark:text-white'
+          }`}
+        >
+          {isConverting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              轉換中...
+            </>
+          ) : (
+            '🚀 轉換'
+          )}
+        </Button>
       </div>
     </div>
   );

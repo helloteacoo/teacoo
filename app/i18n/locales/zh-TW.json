@@ -1,0 +1,182 @@
+{
+  "common": {
+    "language": "繁體中文",
+    "login": "登入",
+    "logout": "登出",
+    "darkMode": "切換到深色模式",
+    "lightMode": "切換到亮色模式",
+    "loading": "載入中..."
+  },
+  "nav": {
+    "myQuestions": "我的題庫",
+    "results": "答題結果",
+    "pricing": "方案",
+    "theme": {
+      "toDark": "切換到深色模式",
+      "toLight": "切換到亮色模式"
+    },
+    "user": "使用者",
+    "avatar": "的頭像",
+    "signIn": "登入",
+    "signOut": "登出",
+    "signingOut": "登出中...",
+    "errors": {
+      "signOut": "登出時發生錯誤:"
+    }
+  },
+  "features": {
+    "aiImport": {
+      "title": "AI 匯入題目",
+      "description": "貼上文字，一鍵轉成結構化題庫，免格式化、免排版。"
+    },
+    "easyCreate": {
+      "title": "輕鬆建立題庫",
+      "description": "快速編輯與分類管理，讓內容井然有序，方便再利用。"
+    },
+    "simpleAssign": {
+      "title": "派發作業超簡單",
+      "description": "免註冊登入，複製連結即可指派給學生，操作零門檻。"
+    },
+    "selfPractice": {
+      "title": "自我練習模式",
+      "description": "學生可自由挑選題目練習，支援即時對答案與錯題回顧。"
+    },
+    "autoStats": {
+      "title": "自動統計成績",
+      "description": "即時計算正確率、答題時間，老師快速掌握學習狀況。"
+    },
+    "secureStorage": {
+      "title": "安全儲存與雲端同步",
+      "description": "資料自動儲存，不怕遺失；可跨裝置繼續編輯與練習。"
+    }
+  },
+  "ai": {
+    "convert": "轉換",
+    "converting": "轉換中...",
+    "placeholder": "請貼上或輸入題目文字..."
+  },
+  "sidebar": {
+    "questionTypes": "題型",
+    "tags": "標籤",
+    "newTag": "輸入新標籤...",
+    "add": "新增",
+    "questionType": {
+      "singleChoice": "單選題",
+      "multipleChoice": "多選題",
+      "fillInBlank": "填空題",
+      "shortAnswer": "簡答題",
+      "reading": "閱讀測驗",
+      "cloze": "克漏字"
+    }
+  },
+  "tagFolder": {
+    "upgrade": "👑 升級至專業版即可使用標籤資料夾功能！",
+    "tags": "標籤",
+    "unorganizedTags": "未分類標籤",
+    "folderName": "資料夾名稱...",
+    "create": "建立",
+    "cancel": "取消",
+    "addFolder": "新增資料夾",
+    "tagExists": "標籤名稱已存在",
+    "tagRenamed": "已將標籤「{{oldTag}}」重新命名為「{{newTag}}」",
+    "updateFailed": "更新標籤失敗，請稍後再試"
+  },
+  "topbar": {
+    "import": "📥 匯入題目",
+    "assign": "✍ 派發作業",
+    "practice": "💪 自我練習",
+    "export": "📤 匯出題目",
+    "search": "搜尋題目關鍵字...",
+    "errors": {
+      "selectFirst": "請先選擇題目",
+      "exportFailed": "匯出失敗",
+      "unknownError": "未知錯誤"
+    },
+    "tooltips": {
+      "selectFirst": "請先選擇題目",
+      "assignSelected": "派發選中的題目",
+      "practiceSelected": "開始自我練習",
+      "exportSelected": "匯出選中的題目"
+    }
+  },
+  "deleteModal": {
+    "title": "確認刪除",
+    "description": "確定要刪除選中的題目嗎？此操作無法復原。",
+    "cancel": "取消",
+    "confirm": "確認刪除"
+  },
+  "pricing": {
+    "title": "選擇適合您的方案",
+    "subtitle": "無論您是從事學習或教學，我們都有適合您的方案",
+    "annual": "年付方案",
+    "monthly": "月付方案",
+    "plans": {
+      "free": {
+        "name": "免費版",
+        "description": "體驗題庫建立與基本派發功能",
+        "price": "NT$ 0",
+        "period": "永久"
+      },
+      "pro": {
+        "name": "專業版",
+        "description": "滿足日常練習與教學管理需求",
+        "period": {
+          "year": "年",
+          "month": "月"
+        },
+        "save": "省下 US$ {{amount}}",
+        "recommended": "推薦方案"
+      }
+    },
+    "features": {
+      "aiConversion": {
+        "name": "AI 轉換次數",
+        "free": "每日 3 次",
+        "pro": "每日 10 次"
+      },
+      "questionLimit": {
+        "name": "題目數量",
+        "free": "最多 100 題",
+        "pro": "最多 1000 題"
+      },
+      "tagFolders": {
+        "name": "標籤資料夾"
+      },
+      "assignment": {
+        "name": "派送作業功能",
+        "free": "支援不指定對象每份10人",
+        "pro": "支援不指定對象每份100人 + 建立名單"
+      },
+      "results": {
+        "name": "作答結果畫面",
+        "free": "可檢視近5筆紀錄",
+        "pro": "不限"
+      }
+    },
+    "buttons": {
+      "startNow": "開始使用",
+      "upgrade": "升級方案"
+    },
+    "faq": {
+      "title": "常見問題",
+      "questions": {
+        "howToUpgrade": {
+          "question": "如何升級到專業版？",
+          "answer": "您可以點擊「升級方案」按鈕，選擇您想要的付費方案（月付或年付），填寫付款資訊後即可立即升級。"
+        },
+        "trialPeriod": {
+          "question": "付費版有試用期嗎？",
+          "answer": "目前我們提供 14 天的免費試用期，您可以在這期間內體驗所有專業版功能。"
+        },
+        "cancellation": {
+          "question": "可以隨時取消訂閱嗎？",
+          "answer": "是的，您可以隨時取消訂閱。取消後，您仍可以使用付費功能直到當期結束。"
+        },
+        "dataRetention": {
+          "question": "取消專業版訂閱之後資料會被清除嗎？",
+          "answer": "不會，您的資料與題庫都會完整保留，不會被刪除。"
+        }
+      }
+    }
+  }
+} 

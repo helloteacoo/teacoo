@@ -13,7 +13,7 @@
 
   /* 設置主題切換過渡效果 */
   html {
-    @apply bg-gray-50 transition-colors duration-200;
+    @apply bg-white transition-colors duration-200;
   }
 
   html.dark {
@@ -21,7 +21,7 @@
   }
 
   body {
-    @apply bg-gray-50 transition-colors duration-200;
+    @apply bg-white transition-colors duration-200;
   }
 
   body.dark {
@@ -31,7 +31,7 @@
 
 /* 確保所有頁面容器都有相同的背景色和過渡效果 */
 #__next {
-  @apply bg-gray-50 transition-colors duration-200;
+  @apply bg-white transition-colors duration-200;
 }
 
 #__next.dark {

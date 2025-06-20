@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog"
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmDeleteModalProps {
   open: boolean;
@@ -22,13 +23,17 @@ export default function ConfirmDeleteModal({
   onOpenChange,
   onConfirm,
 }: ConfirmDeleteModalProps) {
+  const { t } = useTranslation();
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="bg-mainBg dark:bg-gray-800">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-gray-800 dark:text-gray-200">確認刪除</AlertDialogTitle>
+          <AlertDialogTitle className="text-gray-800 dark:text-gray-200">
+            {t('deleteModal.title')}
+          </AlertDialogTitle>
           <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
-            確定要刪除選中的題目嗎？此操作無法復原。
+            {t('deleteModal.description')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -36,7 +41,7 @@ export default function ConfirmDeleteModal({
             onClick={() => onOpenChange(false)}
             className="bg-transparent dark:hover:bg-gray-700 text-gray-800 dark:text-mainBg"
           >
-            取消
+            {t('deleteModal.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
@@ -45,7 +50,7 @@ export default function ConfirmDeleteModal({
             }}
             className="bg-red-600 hover:bg-red-700 text-white"
           >
-            確認刪除
+            {t('deleteModal.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

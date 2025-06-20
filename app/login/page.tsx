@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Checkbox } from "../components/ui/checkbox";
+import { useTranslation } from 'react-i18next';
 
 // Icons import
 import {
@@ -25,33 +26,33 @@ import {
 const features = [
   {
     icon: BoltIcon,
-    title: 'AI 匯入題目',
-    description: '貼上文字，一鍵轉成結構化題庫，免格式化、免排版。',
+    titleKey: 'features.aiImport.title',
+    descriptionKey: 'features.aiImport.description',
   },
   {
     icon: DocumentTextIcon,
-    title: '輕鬆建立題庫',
-    description: '快速編輯與分類管理，讓內容井然有序，方便再利用。',
+    titleKey: 'features.easyCreate.title',
+    descriptionKey: 'features.easyCreate.description',
   },
   {
     icon: ShareIcon,
-    title: '派發作業超簡單',
-    description: '免註冊登入，複製連結即可指派給學生，操作零門檻。',
+    titleKey: 'features.simpleAssign.title',
+    descriptionKey: 'features.simpleAssign.description',
   },
   {
     icon: CloudArrowUpIcon,
-    title: '自我練習模式',
-    description: '學生可自由挑選題目練習，支援即時對答案與錯題回顧。',
+    titleKey: 'features.selfPractice.title',
+    descriptionKey: 'features.selfPractice.description',
   },
   {
     icon: ChartBarIcon,
-    title: '自動統計成績',
-    description: '即時計算正確率、答題時間，老師快速掌握學習狀況。',
+    titleKey: 'features.autoStats.title',
+    descriptionKey: 'features.autoStats.description',
   },
   {
     icon: ShieldCheckIcon,
-    title: '安全儲存與雲端同步',
-    description: '資料自動儲存，不怕遺失；可跨裝置繼續編輯與練習。',
+    titleKey: 'features.secureStorage.title',
+    descriptionKey: 'features.secureStorage.description',
   },
 ];
 
@@ -80,6 +81,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -130,7 +132,7 @@ export default function LoginPage() {
           <div className="grid grid-cols-2 gap-8">
             {features.map((feature) => (
               <motion.div
-                key={feature.title}
+                key={feature.titleKey}
                 variants={itemVariants}
                 className="flex items-start space-x-4 bg-white/10 backdrop-blur-sm p-6 rounded-xl hover:bg-white/20 transition-colors duration-200"
               >
@@ -139,10 +141,10 @@ export default function LoginPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-mainBg mb-1">
-                    {feature.title}
+                    {t(feature.titleKey)}
                   </h3>
                   <p className="text-mainBg/80 text-sm leading-relaxed">
-                    {feature.description}
+                    {t(feature.descriptionKey)}
                   </p>
                 </div>
               </motion.div>
@@ -157,7 +159,7 @@ export default function LoginPage() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md space-y-8 bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl"
+          className="w-full max-w-md space-y-8 bg-white backdrop-blur-sm p-8 rounded-2xl shadow-xl"
         >
           <div className="text-center lg:text-left">
             <h2 className="text-2xl font-bold text-gray-900">歡迎回來</h2>
@@ -186,7 +188,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white/80 text-gray-500">
+                  <span className="px-2 bg-white text-gray-500">
                     或使用 Email 登入
                   </span>
                 </div>
@@ -203,7 +205,7 @@ export default function LoginPage() {
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   required
                   placeholder="請輸入您的電子郵件"
-                  className="placeholder:text-gray-400 text-gray-900"
+                  className="placeholder:text-gray-400 text-gray-900 bg-white dark:bg-white"
                 />
               </div>
 
@@ -218,7 +220,7 @@ export default function LoginPage() {
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   required
                   placeholder="請輸入您的密碼"
-                  className="placeholder:text-gray-400 text-gray-900"
+                  className="placeholder:text-gray-400 text-gray-900 bg-white dark:bg-white"
                 />
               </div>
             </div>

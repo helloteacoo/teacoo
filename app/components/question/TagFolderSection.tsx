@@ -25,6 +25,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import { collection, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase/firebase';
+import { useTranslation } from 'react-i18next';
 
 interface TagFolderSectionProps {
   isPremium: boolean;
@@ -150,6 +151,7 @@ export default function TagFolderSection({
   onRenameTag,
   onTagClick
 }: TagFolderSectionProps) {
+  const { t } = useTranslation();
   const [newFolderName, setNewFolderName] = useState('');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
@@ -250,14 +252,13 @@ export default function TagFolderSection({
   const handleRenameTag = async (oldTag: string, newTag: string) => {
     if (!newTag || oldTag === newTag) return;
     
-    // 檢查新標籤名稱是否已存在
     const allTags = [
       ...tagsState.unorganizedTags,
       ...tagsState.folders.flatMap(f => f.tags)
     ];
     
     if (allTags.includes(newTag)) {
-      toast.error('標籤名稱已存在');
+      toast.error(t('tagFolder.tagExists'));
       return;
     }
 
@@ -290,10 +291,10 @@ export default function TagFolderSection({
 
       // 呼叫外部的重新命名處理函數
       onRenameTag?.(oldTag, newTag);
-      toast.success(`已將標籤「${oldTag}」重新命名為「${newTag}」`);
+      toast.success(t('tagFolder.tagRenamed', { oldTag, newTag }));
     } catch (error) {
       console.error('更新標籤失敗:', error);
-      toast.error('更新標籤失敗，請稍後再試');
+      toast.error(t('tagFolder.updateFailed'));
     }
   };
 
@@ -302,13 +303,13 @@ export default function TagFolderSection({
       <div className="space-y-4">
         <div className="mb-4 p-3 bg-blue-50 dark:bg-gray-800 rounded-lg">
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            👑 升級至付費版即可使用標籤資料夾功能！
+            {t('tagFolder.upgrade')}
           </p>
         </div>
         
         {/* 免費版的標籤顯示 */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">標籤</h4>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('tagFolder.tags')}</h4>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -344,7 +345,7 @@ export default function TagFolderSection({
           <Input
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
-            placeholder="資料夾名稱..."
+            placeholder={t('tagFolder.folderName')}
             className="flex-1 dark:text-gray-400"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -360,7 +361,7 @@ export default function TagFolderSection({
             size="sm"
             onClick={createNewFolder}
           >
-            建立
+            {t('tagFolder.create')}
           </Button>
           <Button
             variant="ghost"
@@ -370,7 +371,7 @@ export default function TagFolderSection({
               setNewFolderName('');
             }}
           >
-            取消
+            {t('tagFolder.cancel')}
           </Button>
         </div>
       ) : (
@@ -381,7 +382,7 @@ export default function TagFolderSection({
           onClick={() => setIsCreatingFolder(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
-          新增資料夾
+          {t('tagFolder.addFolder')}
         </Button>
       )}
 
@@ -447,7 +448,7 @@ export default function TagFolderSection({
 
       {/* 未分類標籤 */}
       <div className="space-y-2">
-        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">未分類標籤</h4>
+        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('tagFolder.unorganizedTags')}</h4>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

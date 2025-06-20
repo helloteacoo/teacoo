@@ -402,35 +402,35 @@ export default function QuestionPage() {
     if (lowerKeyword !== '' && (noTypesSelected || noTagsSelected)) {
       const matched = questions.filter((q: Question) => {
         if (isSingleChoiceQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-            q.options[q.answer].toLowerCase().includes(lowerKeyword);
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            q.options?.some(opt => (opt?.toLowerCase() ?? '').includes(lowerKeyword)) ||
+            (q.options[q.answer]?.toLowerCase() ?? '').includes(lowerKeyword);
         } else if (isMultipleChoiceQuestion(q)) {
           const multipleChoiceQ = q as MultipleChoiceQuestion;
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            multipleChoiceQ.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
-            multipleChoiceQ.answers.some(answerIndex => 
-              multipleChoiceQ.options[answerIndex].toLowerCase().includes(lowerKeyword)
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            multipleChoiceQ.options?.some((opt: string) => (opt?.toLowerCase() ?? '').includes(lowerKeyword)) ||
+            multipleChoiceQ.answers?.some(answerIndex => 
+              (multipleChoiceQ.options[answerIndex]?.toLowerCase() ?? '').includes(lowerKeyword)
             );
         } else if (isFillInQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.blanks.some((blank: string) => blank.toLowerCase().includes(lowerKeyword));
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            q.blanks?.some((blank: string) => (blank?.toLowerCase() ?? '').includes(lowerKeyword));
         } else if (isShortAnswerQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.answer.toLowerCase().includes(lowerKeyword);
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            (q.answer?.toLowerCase() ?? '').includes(lowerKeyword);
         } else if (isReadingQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.article.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some((sub: SubQuestion) =>
-              sub.content.toLowerCase().includes(lowerKeyword) ||
-              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-              sub.answer.toLowerCase().includes(lowerKeyword)
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            (q.article?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            q.questions?.some((sub: SubQuestion) =>
+              (sub.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+              sub.options?.some(opt => (opt?.toLowerCase() ?? '').includes(lowerKeyword)) ||
+              (sub.answer?.toLowerCase() ?? '').includes(lowerKeyword)
             );
         } else if (isClozeQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some(sub =>
-              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-              sub.options[sub.answer].toLowerCase().includes(lowerKeyword)
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            q.questions?.some(sub =>
+              sub.options?.some(opt => (opt?.toLowerCase() ?? '').includes(lowerKeyword)) ||
+              (sub.options[sub.answer]?.toLowerCase() ?? '').includes(lowerKeyword)
             );
         }
         return false;
@@ -494,40 +494,40 @@ export default function QuestionPage() {
       const matchesType = selectedTypes.length === 0 || selectedTypes.includes(q.type);
       
       // 檢查是否符合標籤條件
-      const matchesTags = selectedTags.length === 0 || q.tags.some(tag => selectedTags.includes(tag));
+      const matchesTags = selectedTags.length === 0 || q.tags?.some(tag => selectedTags.includes(tag));
       
       // 檢查是否符合關鍵字條件
       const matchesKeyword = lowerKeyword === '' || (() => {
         if (isSingleChoiceQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
-            q.options[q.answer].toLowerCase().includes(lowerKeyword);
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            q.options?.some((opt: string) => (opt?.toLowerCase() ?? '').includes(lowerKeyword)) ||
+            (q.options[q.answer]?.toLowerCase() ?? '').includes(lowerKeyword);
         } else if (isMultipleChoiceQuestion(q)) {
           const multipleChoiceQ = q as MultipleChoiceQuestion;
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            multipleChoiceQ.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
-            multipleChoiceQ.answers.some(answerIndex => 
-              multipleChoiceQ.options[answerIndex].toLowerCase().includes(lowerKeyword)
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            multipleChoiceQ.options?.some((opt: string) => (opt?.toLowerCase() ?? '').includes(lowerKeyword)) ||
+            multipleChoiceQ.answers?.some(answerIndex => 
+              (multipleChoiceQ.options[answerIndex]?.toLowerCase() ?? '').includes(lowerKeyword)
             );
         } else if (isFillInQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.blanks.some((blank: string) => blank.toLowerCase().includes(lowerKeyword));
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            q.blanks?.some((blank: string) => (blank?.toLowerCase() ?? '').includes(lowerKeyword));
         } else if (isShortAnswerQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.answer.toLowerCase().includes(lowerKeyword);
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            (q.answer?.toLowerCase() ?? '').includes(lowerKeyword);
         } else if (isReadingQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.article.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some((sub: SubQuestion) =>
-              sub.content.toLowerCase().includes(lowerKeyword) ||
-              sub.options.some((opt: string) => opt.toLowerCase().includes(lowerKeyword)) ||
-              sub.answer.toLowerCase().includes(lowerKeyword)
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            (q.article?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            q.questions?.some((sub: SubQuestion) =>
+              (sub.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+              sub.options?.some(opt => (opt?.toLowerCase() ?? '').includes(lowerKeyword)) ||
+              (sub.answer?.toLowerCase() ?? '').includes(lowerKeyword)
             );
         } else if (isClozeQuestion(q)) {
-          return q.content.toLowerCase().includes(lowerKeyword) ||
-            q.questions.some(sub =>
-              sub.options.some(opt => opt.toLowerCase().includes(lowerKeyword)) ||
-              sub.options[sub.answer].toLowerCase().includes(lowerKeyword)
+          return (q.content?.toLowerCase() ?? '').includes(lowerKeyword) ||
+            q.questions?.some(sub =>
+              sub.options?.some(opt => (opt?.toLowerCase() ?? '').includes(lowerKeyword)) ||
+              (sub.options[sub.answer]?.toLowerCase() ?? '').includes(lowerKeyword)
             );
         }
         return false;

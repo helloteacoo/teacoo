@@ -9,6 +9,7 @@ import { Input } from '../ui/input';
 import TagFolderSection from './TagFolderSection';
 import type { TagsState } from '../../types/tag';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export type FilterKey = string;
 
@@ -26,6 +27,15 @@ type Props = {
   onRenameTag?: (oldTag: string, newTag: string) => void;
 };
 
+const QUESTION_TYPES = {
+  'singleChoice': '單選題',
+  'multipleChoice': '多選題',
+  'fillInBlank': '填空題',
+  'shortAnswer': '簡答題',
+  'reading': '閱讀測驗',
+  'cloze': '克漏字'
+} as const;
+
 export default function Sidebar({
   filters,
   toggleFilter: originalToggleFilter,
@@ -39,6 +49,7 @@ export default function Sidebar({
   onDeleteTag,
   onRenameTag
 }: Props) {
+  const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [tagsState, setTagsState] = useState<TagsState>(() => ({
     folders: [],
@@ -48,7 +59,7 @@ export default function Sidebar({
   // 處理題型勾選邏輯
   const handleFilterToggle = (key: FilterKey) => {
     // 如果是標籤，直接使用原始的 toggleFilter
-    if (!['單選題', '多選題', '填空題', '簡答題', '閱讀測驗', '克漏字'].includes(key)) {
+    if (!Object.values(QUESTION_TYPES).includes(key as any)) {
       originalToggleFilter(key);
       return;
     }
@@ -104,15 +115,17 @@ export default function Sidebar({
       <div className={`p-4 ${isCollapsed ? 'hidden' : 'block'} flex-1 overflow-y-auto`}>
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-semibold mb-3 text-gray-700 dark:text-gray-300">題型</h3>
+            <h3 className="text-base font-semibold mb-3 text-gray-700 dark:text-gray-300">
+              {t('sidebar.questionTypes')}
+            </h3>
             <div className="space-y-2">
-              {['單選題', '多選題', '填空題', '簡答題', '閱讀測驗', '克漏字'].map((key) => (
+              {Object.entries(QUESTION_TYPES).map(([key, value]) => (
                 <div key={key} className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
                   <Checkbox
-                    checked={filters[key]}
-                    onCheckedChange={() => handleFilterToggle(key)}
+                    checked={filters[value]}
+                    onCheckedChange={() => handleFilterToggle(value)}
                   />
-                  <span className="text-sm">{key}</span>
+                  <span className="text-sm">{t(`sidebar.questionType.${key}`)}</span>
                 </div>
               ))}
             </div>
@@ -120,11 +133,13 @@ export default function Sidebar({
 
           {/* 標籤區 */}
           <div>
-            <h3 className="text-base font-semibold mb-3 text-gray-700 dark:text-gray-300">標籤</h3>
+            <h3 className="text-base font-semibold mb-3 text-gray-700 dark:text-gray-300">
+              {t('sidebar.tags')}
+            </h3>
             <div className="space-y-4">
               <div className="flex items-center">
                 <Input
-                  placeholder="輸入新標籤..."
+                  placeholder={t('sidebar.newTag')}
                   className="mr-2 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && e.currentTarget.value.trim()) {
@@ -141,7 +156,7 @@ export default function Sidebar({
                   size="sm"
                   className="bg-primary hover:bg-primary/80 text-xs h-8"
                   onClick={() => {
-                    const input = document.querySelector('input[placeholder="輸入新標籤..."]') as HTMLInputElement;
+                    const input = document.querySelector(`input[placeholder="${t('sidebar.newTag')}"]`) as HTMLInputElement;
                     if (input && input.value.trim()) {
                       const newTag = input.value.trim();
                       if (!allTags.includes(newTag)) {
@@ -151,7 +166,7 @@ export default function Sidebar({
                     }
                   }}
                 >
-                  新增
+                  {t('sidebar.add')}
                 </Button>
               </div>
 

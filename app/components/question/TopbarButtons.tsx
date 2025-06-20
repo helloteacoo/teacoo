@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Question } from '@/app/types/question';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface TopbarButtonsProps {
   onAIModalChange: (open: boolean) => void;
@@ -29,10 +30,11 @@ export default function TopbarButtons({
   onClearSelection,
   onShowDeleteConfirm
 }: TopbarButtonsProps) {
+  const { t } = useTranslation();
   
   const handleExportWord = async () => {
     if (selectedQuestions.length === 0) {
-      toast.error('請先選擇要匯出的題目');
+      toast.error(t('topbar.errors.selectFirst'));
       return;
     }
 
@@ -47,7 +49,7 @@ export default function TopbarButtons({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || '匯出失敗');
+        throw new Error(error.message || t('topbar.errors.exportFailed'));
       }
 
       // 取得 blob 並下載
@@ -62,7 +64,7 @@ export default function TopbarButtons({
       document.body.removeChild(a);
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('匯出失敗：' + (error instanceof Error ? error.message : '未知錯誤'));
+      toast.error(t('topbar.errors.exportFailed') + ': ' + (error instanceof Error ? error.message : t('topbar.errors.unknownError')));
     }
   };
 
@@ -76,38 +78,38 @@ export default function TopbarButtons({
             onClick={() => onAIModalChange(true)}
             className="text-mainBg h-8 px-3 text-sm"
           >
-            📥 匯入題目
+            {t('topbar.import')}
           </Button>
           <Button
             onClick={onAssignQuestions}
             disabled={selectedQuestionIds.length === 0}
-            title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '派發選中的題目'}
+            title={selectedQuestionIds.length === 0 ? t('topbar.tooltips.selectFirst') : t('topbar.tooltips.assignSelected')}
           >
-            ✍ 派發作業
+            {t('topbar.assign')}
           </Button>
           <Button 
             onClick={onSelfPractice}
             disabled={selectedQuestionIds.length === 0}
-            title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '開始自我練習'}
+            title={selectedQuestionIds.length === 0 ? t('topbar.tooltips.selectFirst') : t('topbar.tooltips.practiceSelected')}
             className="text-mainBg h-8 px-3 text-sm"
           >
-            💪 自我練習
+            {t('topbar.practice')}
           </Button>
           <Button 
             onClick={handleExportWord}
             disabled={selectedQuestionIds.length === 0}
-            title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '匯出選中的題目'}
+            title={selectedQuestionIds.length === 0 ? t('topbar.tooltips.selectFirst') : t('topbar.tooltips.exportSelected')}
             className="text-mainBg h-8 px-3 text-sm"
           >
-            📤 匯出題目
+            {t('topbar.export')}
           </Button>
         </div>
 
         {/* 第二行：搜尋和選擇按鈕 */}
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar whitespace-nowrap">
           <Input
-            placeholder="搜尋題目關鍵字..."
-            className="w-[300px] placeholder:text-gray-400 dark:placeholder:text-gray-400 h-8 text-sm"
+            placeholder={t('topbar.search')}
+            className="w-[300px] text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 h-8"
             value={keyword}
             onChange={onKeywordChange}
           />
@@ -136,8 +138,8 @@ export default function TopbarButtons({
       {/* 手機版直立布局 (sm 以下) */}
       <div className="sm:hidden space-y-4 mb-4">
         <Input
-          placeholder="搜尋題目關鍵字..."
-          className="w-full placeholder:text-gray-400 dark:placeholder:text-gray-500 h-8 text-sm"
+          placeholder={t('topbar.search')}
+          className="w-full text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 h-8"
           value={keyword}
           onChange={onKeywordChange}
         />
@@ -170,30 +172,30 @@ export default function TopbarButtons({
               onClick={() => onAIModalChange(true)}
               className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
             >
-              📥 匯入題目
+              {t('topbar.import')}
             </Button>
             <Button
               onClick={onAssignQuestions}
               disabled={selectedQuestionIds.length === 0}
-              title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '派發選中的題目'}
+              title={selectedQuestionIds.length === 0 ? t('topbar.tooltips.selectFirst') : t('topbar.tooltips.assignSelected')}
             >
-              ✍ 派發作業
+              {t('topbar.assign')}
             </Button>
             <Button 
               onClick={onSelfPractice}
               disabled={selectedQuestionIds.length === 0}
-              title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '開始自我練習'}
+              title={selectedQuestionIds.length === 0 ? t('topbar.tooltips.selectFirst') : t('topbar.tooltips.practiceSelected')}
               className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
             >
-              💪 自我練習
+              {t('topbar.practice')}
             </Button>
             <Button 
               onClick={handleExportWord}
               disabled={selectedQuestionIds.length === 0}
-              title={selectedQuestionIds.length === 0 ? '請先選擇題目' : '匯出選中的題目'}
+              title={selectedQuestionIds.length === 0 ? t('topbar.tooltips.selectFirst') : t('topbar.tooltips.exportSelected')}
               className="whitespace-nowrap text-gray-200 h-8 px-3 text-sm"
             >
-              📤 匯出題目
+              {t('topbar.export')}
             </Button>
           </div>
         </div>

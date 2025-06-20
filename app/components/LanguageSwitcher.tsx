@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface LanguageSwitcherProps {
@@ -6,18 +6,17 @@ interface LanguageSwitcherProps {
 }
 
 const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ labelClass = '' }) => {
-  const [language, setLanguage] = useState('zh-TW');
+  const { i18n, t } = useTranslation();
 
   const handleLanguageChange = (value: string) => {
-    setLanguage(value);
-    // TODO: 實作語言切換邏輯
+    i18n.changeLanguage(value);
   };
 
   return (
-    <Select value={language} onValueChange={handleLanguageChange}>
+    <Select value={i18n.language} onValueChange={handleLanguageChange}>
       <SelectTrigger className={`w-[120px] bg-transparent dark:bg-transparent shadow-none border-transparent ${labelClass}`}>
         <SelectValue>
-          {language === 'zh-TW' ? '繁體中文' : 'English'}
+          {t('common.language')}
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-mainBg border border-input dark:border-gray-700">
