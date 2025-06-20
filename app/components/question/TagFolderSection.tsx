@@ -23,6 +23,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
+import { collection, getDocs, updateDoc } from 'firebase/firestore';
+import { db } from '@/app/lib/firebase/firebase';
 
 interface TagFolderSectionProps {
   isPremium: boolean;
@@ -81,7 +83,7 @@ function DraggableTag({
         <Input
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
-          className="h-6 px-2 py-0 text-xs w-24"
+          className="h-6 px-2 py-0 text-xs w-24 text-gray-700 dark:text-gray-700"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               handleSubmit();
@@ -245,7 +247,7 @@ export default function TagFolderSection({
     });
   };
 
-  const handleRenameTag = (oldTag: string, newTag: string) => {
+  const handleRenameTag = async (oldTag: string, newTag: string) => {
     if (!newTag || oldTag === newTag) return;
     
     // 檢查新標籤名稱是否已存在
@@ -259,21 +261,40 @@ export default function TagFolderSection({
       return;
     }
 
-    // 更新狀態
-    setTagsState((prev: TagsState) => {
-      const newState = {
-        folders: prev.folders.map(folder => ({
-          ...folder,
-          tags: folder.tags.map(t => t === oldTag ? newTag : t)
-        })),
-        unorganizedTags: prev.unorganizedTags.map(t => t === oldTag ? newTag : t)
-      };
-      return newState;
-    });
+    try {
+      // 更新所有題目中的標籤
+      const questionsRef = collection(db, 'questions');
+      const querySnapshot = await getDocs(questionsRef);
+      const updatePromises = querySnapshot.docs.map(async (doc) => {
+        const question = doc.data();
+        if (question.tags && question.tags.includes(oldTag)) {
+          const newTags = question.tags.map((tag: string) => 
+            tag === oldTag ? newTag : tag
+          );
+          await updateDoc(doc.ref, { tags: newTags });
+        }
+      });
+      await Promise.all(updatePromises);
 
-    // 呼叫外部的重新命名處理函數
-    onRenameTag?.(oldTag, newTag);
-    toast.success(`已將標籤「${oldTag}」重新命名為「${newTag}」`);
+      // 更新狀態
+      setTagsState((prev: TagsState) => {
+        const newState = {
+          folders: prev.folders.map(folder => ({
+            ...folder,
+            tags: folder.tags.map(t => t === oldTag ? newTag : t)
+          })),
+          unorganizedTags: prev.unorganizedTags.map(t => t === oldTag ? newTag : t)
+        };
+        return newState;
+      });
+
+      // 呼叫外部的重新命名處理函數
+      onRenameTag?.(oldTag, newTag);
+      toast.success(`已將標籤「${oldTag}」重新命名為「${newTag}」`);
+    } catch (error) {
+      console.error('更新標籤失敗:', error);
+      toast.error('更新標籤失敗，請稍後再試');
+    }
   };
 
   if (!isPremium) {

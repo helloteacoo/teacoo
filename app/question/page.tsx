@@ -654,6 +654,30 @@ export default function QuestionPage() {
     toast.success(`已刪除標籤：${tagToDelete}`);
   };
 
+  const handleRenameTag = async (oldTag: string, newTag: string) => {
+    try {
+      // 更新所有題目的標籤
+      setQuestions(prevQuestions => 
+        prevQuestions.map(question => ({
+          ...question,
+          tags: question.tags.map(tag => tag === oldTag ? newTag : tag)
+        }))
+      );
+
+      // 更新篩選器中的標籤
+      setFilters(prevFilters => {
+        const { [oldTag]: oldValue, ...rest } = prevFilters;
+        return {
+          ...rest,
+          [newTag]: oldValue || false
+        };
+      });
+    } catch (error) {
+      console.error('更新標籤失敗:', error);
+      toast.error('更新標籤失敗，請稍後再試');
+    }
+  };
+
   const handleAssignQuestions = () => {
     setAssignModalMode('assign');
     setShowAssignModal(true);
@@ -699,6 +723,7 @@ export default function QuestionPage() {
           allTags={allTags}
           isPremium={isPremium}
           onDeleteTag={handleDeleteTag}
+          onRenameTag={handleRenameTag}
         />
 
         <main className="flex-1 p-2 lg:p-6 overflow-auto max-w-full">
