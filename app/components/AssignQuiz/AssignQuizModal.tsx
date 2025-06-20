@@ -6,7 +6,11 @@ import { AssignQuizProvider } from './AssignQuizContext';
 import AssignQuizForm from './AssignQuizForm';
 import AssignQuizSuccess from './AssignQuizSuccess';
 import { useAssignQuiz } from './AssignQuizContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/contexts/auth';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '@/app/lib/firebase/firebase';
+import { toast } from 'react-hot-toast';
 
 interface AssignQuizModalProps {
   open: boolean;
@@ -60,6 +64,20 @@ export default function AssignQuizModal({
   selectedQuestions,
   mode = 'assign',  // 預設為派發模式
 }: AssignQuizModalProps) {
+  const { user } = useAuth();
+  const [isPremium, setIsPremium] = useState(false);
+
+  // 檢查使用者是否為付費版
+  useEffect(() => {
+    const checkPremiumStatus = async () => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        setIsPremium(userDoc.data()?.isPremium || false);
+      }
+    };
+    checkPremiumStatus();
+  }, [user]);
+
   const handleSuccess = () => {
     // 派發成功後不自動關閉 Modal，讓使用者自行關閉
     // setTimeout(() => {
@@ -72,6 +90,7 @@ export default function AssignQuizModal({
       selectedQuestions={selectedQuestions}
       onSuccess={handleSuccess}
       mode={mode}  // 傳遞模式到 Provider
+      isPremium={isPremium}  // 傳遞付費狀態到 Provider
     >
       <AssignQuizModalContent open={open} onOpenChange={onOpenChange} />
     </AssignQuizProvider>

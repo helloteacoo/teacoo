@@ -10,6 +10,9 @@ import { getAllLists, addList, List } from '../../lib/firebase/lists';
 import { Checkbox } from '../ui/checkbox';
 import { toast } from 'react-hot-toast';
 import { auth } from '../../lib/firebase/firebase';
+import { useAuth } from '@/lib/contexts/auth';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '../../lib/firebase/firebase';
 
 export default function AssignQuizForm() {
   const { state, dispatch, handleSubmit, selectedQuestions, mode } = useAssignQuiz();
@@ -21,15 +24,31 @@ export default function AssignQuizForm() {
   const [newListStudents, setNewListStudents] = useState("");
   const [createNewList, setCreateNewList] = useState(false);
   const [creatingList, setCreatingList] = useState(false);
+  const { user } = useAuth();
+  const [isPremium, setIsPremium] = useState(false);
 
   // 正確取得已選題目數量
   const selectedCount = selectedQuestions ? selectedQuestions.length : 0;
 
+  // 檢查使用者是否為付費版
   useEffect(() => {
-    if (useTargetList && mode === 'assign') {
+    const checkPremiumStatus = async () => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        setIsPremium(userDoc.data()?.isPremium || false);
+      }
+    };
+    checkPremiumStatus();
+  }, [user]);
+
+  useEffect(() => {
+    if (useTargetList && mode === 'assign' && !isPremium) {
+      toast.error('免費版不支援名單功能');
+      setUseTargetList(false);
+    } else if (useTargetList && mode === 'assign') {
       getAllLists().then(setLists);
     }
-  }, [useTargetList, mode]);
+  }, [useTargetList, mode, isPremium]);
 
   // 檢查使用者登入狀態
   useEffect(() => {
@@ -42,6 +61,18 @@ export default function AssignQuizForm() {
 
     return () => unsubscribe();
   }, [createNewList]);
+
+  // 檢查回應人數限制
+  const checkResponseLimit = () => {
+    const targetList = state.data.settings.targetList || [];
+    const maxResponses = isPremium ? 100 : 10;
+    
+    if (targetList.length > maxResponses) {
+      toast.error(`${isPremium ? '付費' : '免費'}版本最多允許 ${maxResponses} 人作答`);
+      return false;
+    }
+    return true;
+  };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     dispatch({ type: "SET_TITLE", payload: e.target.value });
@@ -59,6 +90,11 @@ export default function AssignQuizForm() {
 
   // 建立新名單
   const handleCreateList = async () => {
+    if (!isPremium) {
+      toast.error('免費版不支援名單功能');
+      return;
+    }
+    
     console.log('開始建立名單');
     if (!newListName.trim() || !newListStudents.trim()) {
       console.log('名單名稱或學生名單為空');
@@ -143,6 +179,12 @@ export default function AssignQuizForm() {
       // 如果是在建立名單模式，不要提交表單
       return;
     }
+
+    // 檢查回應人數限制
+    if (!checkResponseLimit()) {
+      return;
+    }
+
     setSubmitting(true);
     await handleSubmit();
     setSubmitting(false);
@@ -181,6 +223,10 @@ export default function AssignQuizForm() {
               id="use-target-list"
               checked={useTargetList}
               onCheckedChange={checked => {
+                if (!isPremium && checked) {
+                  toast.error('免費版不支援名單功能');
+                  return;
+                }
                 setUseTargetList(!!checked);
                 if (!checked) {
                   // 如果取消使用名單，清空 targetList
@@ -197,8 +243,13 @@ export default function AssignQuizForm() {
             <label htmlFor="use-target-list" className="text-sm select-none text-gray-700 dark:text-gray-300">
               是否啟用名單
             </label>
+            {!isPremium && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                (👑升級付費版建立自己的名單)
+              </span>
+            )}
           </div>
-          {useTargetList && (
+          {useTargetList && isPremium && (
             <div className="space-y-3 border rounded-md p-2 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
               <div className="flex items-center space-x-2">
                 <Checkbox

@@ -5,6 +5,9 @@ import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Question } from '@/app/types/question';
 import { addDoc, getDoc } from 'firebase/firestore';
+import { addQuiz } from '@/app/lib/firebase/quizzes';
+import { auth } from '@/app/lib/firebase/firebase';
+import { toast } from 'react-hot-toast';
 
 // 定義狀態類型
 interface AssignQuizState {
@@ -36,6 +39,7 @@ interface AssignQuizContextType {
   handleSubmit: () => Promise<void>;
   selectedQuestions: Question[];
   mode: 'assign' | 'practice';
+  isPremium: boolean;
 }
 
 // 創建 Context
@@ -104,6 +108,7 @@ interface AssignQuizProviderProps {
   selectedQuestions?: Question[];
   onSuccess?: (quizId: string) => void;
   mode?: 'assign' | 'practice';
+  isPremium: boolean;
 }
 
 // Provider 組件
@@ -112,10 +117,25 @@ export function AssignQuizProvider({
   selectedQuestions = [],
   onSuccess,
   mode = 'assign',
+  isPremium,
 }: AssignQuizProviderProps) {
   const [state, dispatch] = useReducer(assignQuizReducer, initialState);
 
   const handleSubmit = async () => {
+    if (!auth.currentUser) {
+      toast.error('請先登入');
+      return;
+    }
+
+    // 檢查回應人數限制
+    const targetList = state.data.settings.targetList || [];
+    const maxResponses = isPremium ? 100 : 10;
+    
+    if (targetList.length > maxResponses) {
+      toast.error(`${isPremium ? '付費' : '免費'}版本最多允許 ${maxResponses} 人作答`);
+      return;
+    }
+
     try {
       if (!state.data.title) {
         dispatch({ type: 'SET_ERROR', payload: '請輸入作業名稱' });
@@ -175,7 +195,7 @@ export function AssignQuizProvider({
   };
 
   return (
-    <AssignQuizContext.Provider value={{ state, dispatch, handleSubmit, selectedQuestions, mode }}>
+    <AssignQuizContext.Provider value={{ state, dispatch, handleSubmit, selectedQuestions, mode, isPremium }}>
       {children}
     </AssignQuizContext.Provider>
   );

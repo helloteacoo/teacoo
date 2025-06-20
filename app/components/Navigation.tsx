@@ -23,7 +23,7 @@ export default function Navigation() {
   const navItems = [
     { name: '我的題庫', href: '/question' },
     { name: '答題結果', href: '/result' },
-    { name: '設定', href: '/settings' }
+    { name: '方案', href: '/pricing' }
   ];
 
   const handleSignOut = async () => {

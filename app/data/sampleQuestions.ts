@@ -8,7 +8,18 @@ import type {
   ClozeQuestion,
 } from '../types/question';
 
-export const sampleQuestions: Question[] = [
+// 定義題型順序
+export enum QuestionTypeOrder {
+  '單選題' = 0,
+  '多選題' = 1,
+  '填空題' = 2,
+  '簡答題' = 3,
+  '閱讀測驗' = 4,
+  '克漏字' = 5,
+}
+
+// 範例題目陣列
+const unsortedSampleQuestions: Question[] = [
   {
     id: 'sample-single',
     type: '單選題',
@@ -151,4 +162,9 @@ export const sampleQuestions: Question[] = [
     createdAt: '2024-03-20T10:00:00Z',
     updatedAt: '2024-03-20T10:00:00Z'
   } as ClozeQuestion
-]; 
+];
+
+// 根據題型順序排序範例題目
+export const sampleQuestions = unsortedSampleQuestions.sort((a, b) => {
+  return QuestionTypeOrder[a.type] - QuestionTypeOrder[b.type];
+}); 

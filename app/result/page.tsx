@@ -14,7 +14,8 @@ import {
   LineChart,
   FileSpreadsheet,
   SortDesc,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import StudentAnswerDetail from '@/app/components/result/StudentAnswerDetail';
 import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
@@ -34,6 +35,7 @@ import { db } from '@/lib/firebase';
 import { Question } from '@/app/types/question';
 import { toast } from 'sonner';
 import ConfirmDeleteModal from '@/app/components/modals/ConfirmDeleteModal';
+import { useAuth } from '@/lib/contexts/auth';
 
 // 類型定義
 type RecordType = 'assignment' | 'practice';
@@ -53,6 +55,7 @@ interface Quiz {
   correctQuestions?: number;
   totalQuestions?: number;
   wrongQuestions?: number;
+  isLocked: boolean;
 }
 
 interface QuizResponse {
@@ -94,7 +97,10 @@ type Student = QuizResponse;
 const isAssignment = (type: RecordType): boolean => type === 'assignment';
 const isPractice = (type: RecordType): boolean => type === 'practice';
 
+const FREE_RECORD_LIMIT = 5;
+
 export default function ResultPage() {
+  const { user, isPremium } = useAuth();
   const [recordType, setRecordType] = useState<RecordType>('assignment');
   const [selectedQuiz, setSelectedQuiz] = useState<QuizResult | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -257,6 +263,30 @@ export default function ResultPage() {
     }
   };
 
+  // 判斷是否為可編輯的記錄
+  const isEditable = (quiz: Quiz) => {
+    if (isPremium) return true;
+    
+    // 根據記錄類型過濾用戶自己的記錄
+    const userRecords = filteredQuizzes.filter(q => 
+      recordType === 'practice' ? q.hasPracticeResponses : q.hasAssignResponses
+    );
+    
+    // 找出當前記錄在用戶記錄中的索引
+    const recordIndex = userRecords.findIndex(q => q.id === quiz.id);
+    return recordIndex < FREE_RECORD_LIMIT;
+  };
+
+  // 模糊化資料
+  const getBlurredTitle = (title: string) => {
+    return title.replace(/./g, '●');
+  };
+
+  // 模糊化日期
+  const getBlurredDate = () => {
+    return '****-**-** **:**';
+  };
+
   // 首次載入測驗列表
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -299,7 +329,6 @@ export default function ResultPage() {
             wrongQuestions = Math.min(Math.abs(practiceData.score || 0), totalQuestions);
             correctQuestions = totalQuestions - wrongQuestions;
             practiceScore = totalQuestions > 0 ? Math.round((correctQuestions / totalQuestions) * 100) : 0;
-            // 將毫秒轉換為秒
             practiceTime = Math.floor((practiceData.duration || 0) / 1000);
           }
 
@@ -311,17 +340,28 @@ export default function ResultPage() {
             practiceTime,
             correctQuestions,
             totalQuestions,
-            wrongQuestions
+            wrongQuestions,
+            isLocked: false // 先設為 false，等過濾後再決定
           };
         });
 
         const quizList = await Promise.all(quizPromises);
-        setQuizzes(quizList);
-
+        
         // 根據記錄類型過濾測驗
         const filteredList = quizList.filter(quiz => 
           recordType === 'practice' ? quiz.hasPracticeResponses : quiz.hasAssignResponses
         );
+
+        // 標記鎖定狀態
+        const markedQuizList = quizList.map(quiz => {
+          const recordIndex = filteredList.findIndex(q => q.id === quiz.id);
+          return {
+            ...quiz,
+            isLocked: !isPremium && recordIndex >= FREE_RECORD_LIMIT
+          };
+        });
+
+        setQuizzes(markedQuizList);
 
         // 如果有符合的測驗，自動選擇第一個
         if (filteredList.length > 0) {
@@ -336,7 +376,7 @@ export default function ResultPage() {
     };
 
     fetchQuizzes();
-  }, [recordType]);
+  }, [recordType, isPremium]);
 
   // 根據記錄類型過濾測驗列表
   const filteredQuizzes = useMemo(() => {
@@ -409,6 +449,17 @@ export default function ResultPage() {
     }
   };
 
+  // 處理點擊測驗記錄
+  const handleQuizClick = (quiz: Quiz) => {
+    if (!isPremium && !isEditable(quiz)) {
+      toast.error('此記錄已鎖定', {
+        description: '升級至付費版以查看所有記錄'
+      });
+      return;
+    }
+    loadQuizData(quiz.id);
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex flex-col bg-mainBg dark:bg-gray-900">
@@ -425,7 +476,7 @@ export default function ResultPage() {
       <Navigation />
       <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
         {/* 左側記錄瀏覽區 */}
-        <div className="w-full md:w-2/5 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
+        <div className={`w-full ${selectedQuiz ? 'md:w-2/5' : 'md:w-full'} border-b md:border-b-0 ${selectedQuiz ? 'md:border-r' : ''} border-gray-200 dark:border-gray-700 p-4 overflow-y-auto`}>
           <div className="space-y-4">
             {/* 顯示類型選擇 */}
             <div className="bg-transparent dark:bg-gray-800 rounded-lg p-4 shadow">
@@ -449,50 +500,75 @@ export default function ResultPage() {
 
             {/* 記錄列表 */}
             <div className="space-y-2">
-              {filteredQuizzes.map(quiz => (
+              {filteredQuizzes.map((quiz, index) => (
                 <Card
                   key={quiz.id}
                   className={`relative p-4 bg-cardBg dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg ${
                     selectedQuiz?.id === quiz.id ? 'border-primary' : ''
-                  }`}
+                  } ${quiz.isLocked ? 'opacity-50' : ''}`}
                 >
+                  {quiz.isLocked && (
+                    <div className="absolute inset-0 bg-gray-200/50 dark:bg-gray-700/50 rounded-xl flex items-center justify-center flex-col gap-2">
+                      <Lock className="w-6 h-6 text-gray-500" />
+                      <span className="text-sm text-gray-500">👑升級專業版解鎖更早的紀錄</span>
+                    </div>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
                     className="absolute top-2 right-2 p-1 h-auto bg-transparent hover:bg-transparent text-gray-400 hover:text-red-500"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!isPremium && !isEditable(quiz)) {
+                        toast.error('無法刪除已鎖定的記錄');
+                        return;
+                      }
                       setDeleteQuizId(quiz.id);
                       setShowDeleteModal(true);
                     }}
+                    disabled={quiz.isLocked}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                   <div 
                     className="space-y-2 cursor-pointer"
-                    onClick={() => loadQuizData(quiz.id)}
+                    onClick={() => handleQuizClick(quiz)}
                   >
-                    <div className="font-medium pr-8">📃 {quiz.title || `試卷 ${quiz.id}`}</div>
+                    <div className="font-medium pr-8">
+                      📃 {quiz.isLocked ? getBlurredTitle(quiz.title || `試卷 ${quiz.id}`) : (quiz.title || `試卷 ${quiz.id}`)}
+                    </div>
                     <div className="flex items-center space-x-2 text-sm md:text-sm text-xs text-gray-600 dark:text-gray-400">
-                      <span className="text-xs md:text-sm">📅 {quiz.createdAt.toDate().toLocaleString('zh-TW', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                      })}</span>
+                      <span className="text-xs md:text-sm">
+                        📅 {quiz.isLocked ? getBlurredDate() : quiz.createdAt.toDate().toLocaleString('zh-TW', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false
+                        })}
+                      </span>
                       {recordType === 'practice' ? (
                         <>
-                          <span className="text-xs md:text-sm">🎯 {quiz.correctQuestions || 0}/{quiz.totalQuestions || 0}(-{quiz.wrongQuestions || 0}, {quiz.averageScore || 0}%)</span>
-                          <span className="text-xs md:text-sm">⏱{formatDuration(quiz.practiceTime || 0)}</span>
+                          <span className="text-xs md:text-sm">
+                            🎯 {quiz.isLocked ? '●●/●●' : `${quiz.correctQuestions || 0}/${quiz.totalQuestions || 0}`}
+                            (-{quiz.isLocked ? '●' : quiz.wrongQuestions || 0}, 
+                            {quiz.isLocked ? '●●' : quiz.averageScore || 0}%)
+                          </span>
+                          <span className="text-xs md:text-sm">
+                            ⏱{quiz.isLocked ? '●●:●●:●●' : formatDuration(quiz.practiceTime || 0)}
+                          </span>
                         </>
                       ) : (
                         <>
-                          <span className="text-xs md:text-sm">👩‍🏫 {quiz.useTargetList && Array.isArray(quiz.targetList) && quiz.targetList.length > 0
-                            ? `${quiz.targetList[0]}等${quiz.targetList.length}人`
-                            : '不指定'}</span>
-                          <span className="text-xs md:text-sm">🎯 {quiz.averageScore || 0}%</span>
+                          <span className="text-xs md:text-sm">
+                            👩‍🏫 {quiz.isLocked ? '●●●' : (quiz.useTargetList && Array.isArray(quiz.targetList) && quiz.targetList.length > 0
+                              ? `${quiz.targetList[0]}等${quiz.targetList.length}人`
+                              : '不指定')}
+                          </span>
+                          <span className="text-xs md:text-sm">
+                            🎯 {quiz.isLocked ? '●●' : quiz.averageScore || 0}%
+                          </span>
                         </>
                       )}
                     </div>
@@ -509,15 +585,18 @@ export default function ResultPage() {
         </div>
 
         {/* 右側答題分析區 */}
-        <div className="w-full md:w-3/5 p-4 overflow-y-auto h-[50vh] md:h-auto">
-          {selectedQuiz && quizData ? (
+        {selectedQuiz && quizData && (
+          <div className="w-full md:w-3/5 p-4 overflow-y-auto h-[50vh] md:h-auto">
             <div className="space-y-4">
               {isPractice(recordType) ? (
                 <StudentAnswerDetail
                   studentName="自我練習"
                   answers={quizData.assignResults[0]?.answers || {}}
                   questionIds={quizData.questions}
-                  onBack={() => {}}
+                  onBack={() => {
+                    setSelectedQuiz(null);
+                    setQuizData(null);
+                  }}
                   isPractice={true}
                 />
               ) : (
@@ -525,22 +604,36 @@ export default function ResultPage() {
                   <>
                     {/* 標頭區 */}
                     <Card className="p-4 bg-cardBg dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg">
-                      <div className="space-y-2">
-                        <h2 className="text-xl font-semibold">📃 {selectedQuiz.title}</h2>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center space-x-2">
-                            <span>📅</span>
-                            <span>派送時間：{selectedQuiz.date}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span>👩‍🏫</span>
-                            <span>{selectedQuiz.className} ({selectedQuiz.studentCount}人)</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span>🎯</span>
-                            <span>平均答對率：{selectedQuiz.averageScore}%</span>
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <h2 className="text-xl font-semibold">📃 {selectedQuiz.title}</h2>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="flex items-center space-x-2">
+                              <span>📅</span>
+                              <span>派送時間：{selectedQuiz.date}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span>👩‍🏫</span>
+                              <span>{selectedQuiz.className} ({selectedQuiz.studentCount}人)</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span>🎯</span>
+                              <span>平均答對率：{selectedQuiz.averageScore}%</span>
+                            </div>
                           </div>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedQuiz(null);
+                            setQuizData(null);
+                          }}
+                          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                          返回
+                        </Button>
                       </div>
                     </Card>
 
@@ -586,12 +679,8 @@ export default function ResultPage() {
                 )
               )}
             </div>
-          ) : (
-            <div className="h-full flex items-center justify-center text-gray-500">
-              請從左側選擇一個測驗記錄以查看詳細資訊
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* 刪除確認對話框 */}
