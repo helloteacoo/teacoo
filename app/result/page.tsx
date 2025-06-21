@@ -36,6 +36,7 @@ import { Question } from '@/app/types/question';
 import { toast } from 'sonner';
 import ConfirmDeleteModal from '@/app/components/modals/ConfirmDeleteModal';
 import { useAuth } from '@/lib/contexts/auth';
+import { useTranslation } from 'react-i18next';
 
 // 類型定義
 type RecordType = 'assignment' | 'practice';
@@ -101,6 +102,7 @@ const FREE_RECORD_LIMIT = 5;
 
 export default function ResultPage() {
   const { user, isPremium } = useAuth();
+  const { t } = useTranslation();
   const [recordType, setRecordType] = useState<RecordType>('assignment');
   const [selectedQuiz, setSelectedQuiz] = useState<QuizResult | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -116,7 +118,7 @@ export default function ResultPage() {
       setLoading(true);
       const quizDoc = await getDoc(doc(db, 'quizzes', quizId));
       if (!quizDoc.exists()) {
-        toast.error('測驗不存在');
+        toast.error(t('result.errors.quizNotFound'));
         return;
       }
 
@@ -257,7 +259,7 @@ export default function ResultPage() {
       }
     } catch (error) {
       console.error('載入測驗資料失敗:', error);
-      toast.error('載入測驗資料失敗');
+      toast.error(t('result.errors.loadQuizFailed'));
     } finally {
       setLoading(false);
     }
@@ -369,7 +371,7 @@ export default function ResultPage() {
         }
       } catch (error) {
         console.error('載入測驗列表失敗:', error);
-        toast.error('載入測驗列表失敗');
+        toast.error(t('result.errors.loadQuizzesFailed'));
       } finally {
         setLoading(false);
       }
@@ -411,7 +413,7 @@ export default function ResultPage() {
       const quizToDelete = quizzes.find(q => q.id === deleteQuizId);
       
       if (!quizToDelete) {
-        toast.error('找不到要刪除的測驗');
+        toast.error(t('result.errors.quizNotFound'));
         return;
       }
 
@@ -438,10 +440,10 @@ export default function ResultPage() {
         setQuizData(null);
       }
 
-      toast.success('測驗記錄已刪除');
+      toast.success(t('result.success.deleteQuiz'));
     } catch (error) {
       console.error('刪除測驗記錄失敗:', error);
-      toast.error('刪除測驗記錄失敗');
+      toast.error(t('result.errors.deleteQuizFailed'));
     } finally {
       setLoading(false);
       setDeleteQuizId(null);
@@ -452,8 +454,8 @@ export default function ResultPage() {
   // 處理點擊測驗記錄
   const handleQuizClick = (quiz: Quiz) => {
     if (!isPremium && !isEditable(quiz)) {
-      toast.error('此記錄已鎖定', {
-        description: '升級至付費版以查看所有記錄'
+      toast.error(t('result.actions.upgrade.locked'), {
+        description: t('result.actions.upgrade.description')
       });
       return;
     }
@@ -465,7 +467,7 @@ export default function ResultPage() {
       <div className="h-screen flex flex-col bg-mainBg dark:bg-gray-900">
         <Navigation />
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-lg">載入中...</div>
+          <div className="text-lg">{t('result.loading')}</div>
         </div>
       </div>
     );
@@ -480,7 +482,7 @@ export default function ResultPage() {
           <div className="space-y-4">
             {/* 顯示類型選擇 */}
             <div className="bg-transparent dark:bg-gray-800 rounded-lg p-4 shadow">
-              <h3 className="text-lg font-semibold mb-3">📂 顯示紀錄類型</h3>
+              <h3 className="text-lg font-semibold mb-3">{t('result.recordType.title')}</h3>
               <RadioGroup 
                 defaultValue="assignment"
                 value={recordType}
@@ -489,11 +491,11 @@ export default function ResultPage() {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="assignment" id="assignment" />
-                  <Label htmlFor="assignment">派送作業</Label>
+                  <Label htmlFor="assignment">{t('result.recordType.assignment')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="practice" id="practice" />
-                  <Label htmlFor="practice">自我練習</Label>
+                  <Label htmlFor="practice">{t('result.recordType.practice')}</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -510,7 +512,7 @@ export default function ResultPage() {
                   {quiz.isLocked && (
                     <div className="absolute inset-0 bg-gray-200/50 dark:bg-gray-700/50 rounded-xl flex items-center justify-center flex-col gap-2">
                       <Lock className="w-6 h-6 text-gray-500" />
-                      <span className="text-sm text-gray-500">👑升級專業版解鎖更早的紀錄</span>
+                      <span className="text-sm text-gray-500">{t('result.actions.upgrade.title')}</span>
                     </div>
                   )}
                   <Button
@@ -520,7 +522,7 @@ export default function ResultPage() {
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!isPremium && !isEditable(quiz)) {
-                        toast.error('無法刪除已鎖定的記錄');
+                        toast.error(t('result.actions.upgrade.error'));
                         return;
                       }
                       setDeleteQuizId(quiz.id);
@@ -535,7 +537,7 @@ export default function ResultPage() {
                     onClick={() => handleQuizClick(quiz)}
                   >
                     <div className="font-medium pr-8">
-                      📃 {quiz.isLocked ? getBlurredTitle(quiz.title || `試卷 ${quiz.id}`) : (quiz.title || `試卷 ${quiz.id}`)}
+                      📃 {quiz.isLocked ? getBlurredTitle(quiz.title || `${t('result.quiz.title')} ${quiz.id}`) : (quiz.title || `${t('result.quiz.title')} ${quiz.id}`)}
                     </div>
                     <div className="flex items-center space-x-2 text-sm md:text-sm text-xs text-gray-600 dark:text-gray-400">
                       <span className="text-xs md:text-sm">
@@ -563,8 +565,8 @@ export default function ResultPage() {
                         <>
                           <span className="text-xs md:text-sm">
                             👩‍🏫 {quiz.isLocked ? '●●●' : (quiz.useTargetList && Array.isArray(quiz.targetList) && quiz.targetList.length > 0
-                              ? `${quiz.targetList[0]}等${quiz.targetList.length}人`
-                              : '不指定')}
+                              ? `${quiz.targetList[0]}${t('result.quiz.targetList')}${quiz.targetList.length}${t('result.quiz.people')}`
+                              : t('result.quiz.class'))}
                           </span>
                           <span className="text-xs md:text-sm">
                             🎯 {quiz.isLocked ? '●●' : quiz.averageScore || 0}%
@@ -577,7 +579,7 @@ export default function ResultPage() {
               ))}
               {filteredQuizzes.length === 0 && (
                 <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                  {recordType === 'practice' ? '沒有自我練習記錄' : '沒有派送作業記錄'}
+                  {recordType === 'practice' ? t('result.noRecords.practice') : t('result.noRecords.assignment')}
                 </div>
               )}
             </div>
@@ -590,7 +592,7 @@ export default function ResultPage() {
             <div className="space-y-4">
               {isPractice(recordType) ? (
                 <StudentAnswerDetail
-                  studentName="自我練習"
+                  studentName={t('result.recordType.practice')}
                   answers={quizData.assignResults[0]?.answers || {}}
                   questionIds={quizData.questions}
                   onBack={() => {
@@ -610,15 +612,15 @@ export default function ResultPage() {
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-600 dark:text-gray-400">
                             <div className="flex items-center space-x-2">
                               <span>📅</span>
-                              <span>派送時間：{selectedQuiz.date}</span>
+                              <span>{t('result.quiz.date')}：{selectedQuiz.date}</span>
                             </div>
                             <div className="flex items-center space-x-2">
                               <span>👩‍🏫</span>
-                              <span>{selectedQuiz.className} ({selectedQuiz.studentCount}人)</span>
+                              <span>{selectedQuiz.className} ({selectedQuiz.studentCount}{t('result.quiz.people')})</span>
                             </div>
                             <div className="flex items-center space-x-2">
                               <span>🎯</span>
-                              <span>平均答對率：{selectedQuiz.averageScore}%</span>
+                              <span>{t('result.quiz.averageScore')}：{selectedQuiz.averageScore}%</span>
                             </div>
                           </div>
                         </div>
@@ -632,7 +634,7 @@ export default function ResultPage() {
                           className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                         >
                           <ChevronLeft className="h-5 w-5" />
-                          返回
+                          {t('result.actions.back')}
                         </Button>
                       </div>
                     </Card>

@@ -396,5 +396,55 @@
     },
     "correctAnswer": "Correct Answer:",
     "explanation": "Explanation:"
+  },
+  "result": {
+    "recordType": {
+      "title": "📂 Display Record Type",
+      "assignment": "Assignment",
+      "practice": "Self Practice"
+    },
+    "loading": "Loading...",
+    "noRecords": {
+      "practice": "No practice records",
+      "assignment": "No assignment records"
+    },
+    "quiz": {
+      "title": "Quiz",
+      "date": "Assignment Date",
+      "class": "Not Specified",
+      "targetList": "and",
+      "people": "people",
+      "averageScore": "Average Score",
+      "score": "Score",
+      "correctCount": "Correct",
+      "wrongCount": "Wrong",
+      "totalQuestions": "Total Questions",
+      "timeTaken": "Time Taken"
+    },
+    "student": {
+      "name": "Name",
+      "submitTime": "Submit Time",
+      "duration": "Duration"
+    },
+    "actions": {
+      "back": "Back",
+      "delete": "Delete",
+      "view": "View",
+      "upgrade": {
+        "title": "👑 Upgrade to unlock earlier records",
+        "error": "Cannot delete locked records",
+        "locked": "This record is locked",
+        "description": "Upgrade to premium to view all records"
+      }
+    },
+    "errors": {
+      "loadQuizFailed": "Failed to load quiz data",
+      "loadQuizzesFailed": "Failed to load quiz list",
+      "quizNotFound": "Quiz not found",
+      "deleteQuizFailed": "Failed to delete quiz record"
+    },
+    "success": {
+      "deleteQuiz": "Quiz record deleted"
+    }
   }
 } 

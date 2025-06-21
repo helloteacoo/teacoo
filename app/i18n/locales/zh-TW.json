@@ -396,5 +396,55 @@
     },
     "correctAnswer": "正解：",
     "explanation": "解釋："
+  },
+  "result": {
+    "recordType": {
+      "title": "📂 顯示紀錄類型",
+      "assignment": "派送作業",
+      "practice": "自我練習"
+    },
+    "loading": "載入中...",
+    "noRecords": {
+      "practice": "沒有自我練習記錄",
+      "assignment": "沒有派送作業記錄"
+    },
+    "quiz": {
+      "title": "試卷",
+      "date": "派送時間",
+      "class": "不指定",
+      "targetList": "等",
+      "people": "人",
+      "averageScore": "平均答對率",
+      "score": "答對率",
+      "correctCount": "答對題數",
+      "wrongCount": "錯誤題數",
+      "totalQuestions": "總題數",
+      "timeTaken": "作答時間"
+    },
+    "student": {
+      "name": "姓名",
+      "submitTime": "提交時間",
+      "duration": "作答時間"
+    },
+    "actions": {
+      "back": "返回",
+      "delete": "刪除",
+      "view": "查看",
+      "upgrade": {
+        "title": "👑升級專業版解鎖更早的紀錄",
+        "error": "無法刪除已鎖定的記錄",
+        "locked": "此記錄已鎖定",
+        "description": "升級至付費版以查看所有記錄"
+      }
+    },
+    "errors": {
+      "loadQuizFailed": "載入測驗資料失敗",
+      "loadQuizzesFailed": "載入測驗列表失敗",
+      "quizNotFound": "測驗不存在",
+      "deleteQuizFailed": "刪除測驗記錄失敗"
+    },
+    "success": {
+      "deleteQuiz": "測驗記錄已刪除"
+    }
   }
 } 
