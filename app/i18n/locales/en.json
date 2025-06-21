@@ -347,5 +347,54 @@
       "minTags": "At least {{count}} tags required",
       "maxTags": "Maximum {{count}} tags allowed"
     }
+  },
+  "quiz": {
+    "notFound": "Quiz not found",
+    "totalQuestions": "{{count}} questions in total",
+    "selectName": "Please select your name",
+    "enterName": "Please enter your name",
+    "selectNamePlaceholder": "Select your name",
+    "enterNamePlaceholder": "Enter your name",
+    "startQuiz": "Start Quiz",
+    "deadline": "📆 Deadline: {{date}}",
+    "fillInBlank": "Blank {{number}}",
+    "shortAnswer": {
+      "placeholder": "Enter your answer here"
+    },
+    "navigation": {
+      "previous": "◀ Previous",
+      "next": "Next ▶",
+      "pageInfo": "Page {{current}} of {{total}}",
+      "progress": "Completed {{completed}} of {{total}} questions"
+    },
+    "submit": {
+      "submitting": "Submitting...",
+      "submit": "📤 Submit"
+    },
+    "success": {
+      "completed": "✅ Quiz Completed!",
+      "score": "🎯 Score: {{score}} / {{total}} correct ({{percentage}}%)",
+      "time": "⏱️ Time taken: {{minutes}} min {{seconds}} sec",
+      "viewResult": "📄 View Results",
+      "submit": "Submitted successfully!"
+    },
+    "errors": {
+      "nameRequired": "Please enter your name",
+      "nameNotFound": "Name not found",
+      "answerRequired": "Please answer question {{number}}",
+      "readAfterWrite": "Unable to read document after writing",
+      "submitFailed": "Submission failed, please try again later"
+    }
+  },
+  "studentAnswerDetail": {
+    "loading": "Loading questions...",
+    "answerRecord": "'s Answer Record",
+    "questionNumber": "Question {{number}}",
+    "answerStatus": {
+      "correct": "Correct",
+      "incorrect": "Incorrect"
+    },
+    "correctAnswer": "Correct Answer:",
+    "explanation": "Explanation:"
   }
 } 

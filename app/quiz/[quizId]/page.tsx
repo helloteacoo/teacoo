@@ -20,6 +20,7 @@ import {
 import { useTheme } from '@/app/contexts/ThemeContext';
 import { SunIcon, MoonIcon } from '@radix-ui/react-icons';
 import StudentAnswerDetail from '@/app/components/result/StudentAnswerDetail';
+import { useTranslation } from 'react-i18next';
 
 type AnswerValue = string | Array<string>;
 type Answers = Record<string, AnswerValue>;
@@ -41,6 +42,7 @@ export default function StudentQuizPage() {
   const params = useParams();
   const quizId = params?.quizId as string;
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -145,8 +147,33 @@ export default function StudentQuizPage() {
 
   // 已完成題數
   const completedCount = useMemo(() =>
-    Object.keys(answers).filter(qid => answers[qid] !== '' && answers[qid] !== undefined).length,
-    [answers]
+    questions.filter(q => {
+      const answer = answers[q.id];
+      if (!answer || answer === '') return false;
+      
+      // 檢查閱讀測驗的所有子題目
+      if (q.type === '閱讀測驗') {
+        const readingQ = q as ReadingQuestion;
+        if (!Array.isArray(answer) || answer.length !== readingQ.questions.length) return false;
+        return answer.every(a => a !== '' && a !== undefined);
+      }
+      
+      // 檢查克漏字的所有空格
+      if (q.type === '克漏字') {
+        const clozeQ = q as ClozeQuestion;
+        if (!Array.isArray(answer) || answer.length !== clozeQ.questions.length) return false;
+        return answer.every(a => a !== '' && a !== undefined);
+      }
+      
+      // 檢查多選題是否有選擇答案
+      if (q.type === '多選題') {
+        return Array.isArray(answer) && answer.length > 0;
+      }
+      
+      // 其他題型（單選題、簡答題等）
+      return true;
+    }).length,
+    [answers, questions]
   );
 
   // 檢查本頁是否有未填題目
@@ -165,11 +192,11 @@ export default function StudentQuizPage() {
   const handleStart = () => {
     if (quiz?.mode === 'assign') {
       if (!name) {
-        toast.error('請輸入姓名');
+        toast.error(t('quiz.errors.nameRequired'));
         return;
       }
       if (quiz?.settings?.targetList?.length > 0 && !quiz.settings.targetList.includes(name)) {
-        toast.error('查無此姓名');
+        toast.error(t('quiz.errors.nameNotFound'));
         return;
       }
     }
@@ -188,7 +215,7 @@ export default function StudentQuizPage() {
   const handlePageChange = (next: number) => {
     const firstUnanswered = getFirstUnansweredIndex();
     if (firstUnanswered !== -1) {
-      toast.error(`請填寫第 ${firstUnanswered + 1} 題`);
+      toast.error(t('quiz.errors.answerRequired', { number: firstUnanswered + 1 }));
       return;
     }
     setPage(next);
@@ -202,7 +229,7 @@ export default function StudentQuizPage() {
       const q = questions[i];
       const answer = answersRef.current[q.id];
       if (!answer || answer === '' || (Array.isArray(answer) && answer.length === 0)) {
-        toast.error(`請填寫第 ${i + 1} 題`);
+        toast.error(t('quiz.errors.answerRequired', { number: i + 1 }));
         setPage(Math.floor(i / QUESTIONS_PER_PAGE) + 1);
         return;
       }
@@ -214,26 +241,42 @@ export default function StudentQuizPage() {
       // 計算分數
       let correctCount = 0;
       questions.forEach(q => {
-        const userAnswer = answersRef.current[q.id];
-        if (q.type === '單選題' && userAnswer === q.options[q.answer]) correctCount++;
-        if (q.type === '多選題') {
-          const correctAnswers = q.answers.map((idx: number) => q.options[idx]);
-          if (Array.isArray(userAnswer) && userAnswer.length === correctAnswers.length && userAnswer.every(a => correctAnswers.includes(a))) correctCount++;
+        if (q.type === '單選題') {
+          const userAnswer = answersRef.current[q.id];
+          if (userAnswer === q.options[q.answer]) correctCount++;
         }
-        if (q.type === '閱讀測驗') {
-          const readingQ = q as ReadingQuestion;
-          if (Array.isArray(userAnswer)) {
-            readingQ.questions.forEach((subQ, idx) => {
-              if (userAnswer[idx] === subQ.answer) correctCount++;
-            });
+        else if (q.type === '多選題') {
+          const userAnswer = answersRef.current[q.id];
+          const correctAnswers = q.answers.map((idx: number) => q.options[idx]);
+          if (Array.isArray(userAnswer) && 
+              userAnswer.length === correctAnswers.length && 
+              userAnswer.every(a => correctAnswers.includes(a)) &&
+              correctAnswers.every(a => userAnswer.includes(a))) {
+            correctCount++;
           }
         }
-        if (q.type === '克漏字') {
-          const clozeQ = q as ClozeQuestion;
-          if (Array.isArray(userAnswer)) {
-            clozeQ.questions.forEach((subQ, idx) => {
-              if (userAnswer[idx] === subQ.options[subQ.answer]) correctCount++;
+        else if (q.type === '閱讀測驗') {
+          const readingQ = q as ReadingQuestion;
+          if (Array.isArray(answersRef.current[q.id])) {
+            let allSubQuestionsCorrect = true;
+            readingQ.questions.forEach((subQ, idx) => {
+              if (answersRef.current[q.id][idx] !== subQ.answer) {
+                allSubQuestionsCorrect = false;
+              }
             });
+            if (allSubQuestionsCorrect) correctCount++;
+          }
+        }
+        else if (q.type === '克漏字') {
+          const clozeQ = q as ClozeQuestion;
+          if (Array.isArray(answersRef.current[q.id])) {
+            let allBlanksCorrect = true;
+            clozeQ.questions.forEach((subQ, idx) => {
+              if (answersRef.current[q.id][idx] !== subQ.options[subQ.answer]) {
+                allBlanksCorrect = false;
+              }
+            });
+            if (allBlanksCorrect) correctCount++;
           }
         }
       });
@@ -283,7 +326,7 @@ export default function StudentQuizPage() {
           console.log('📦 實際寫入內容：', JSON.stringify(writtenDoc.data(), null, 2));
         } else {
           console.error('❌ 寫入後無法讀取文件');
-          throw new Error('寫入後無法讀取文件');
+          throw new Error(t('quiz.errors.readAfterWrite'));
         }
         console.log('========================');
       } catch (error) {
@@ -294,10 +337,10 @@ export default function StudentQuizPage() {
       setScore(correctCount);
       setDuration(duration);
       setSubmitted(true);
-      toast.success('提交成功！');
+      toast.success(t('quiz.success.submit'));
     } catch (error) {
       console.error('提交失敗:', error);
-      toast.error('提交失敗，請稍後再試');
+      toast.error(t('quiz.errors.submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -306,7 +349,7 @@ export default function StudentQuizPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-mainBg dark:bg-gray-900">
-        <div className="text-gray-600 dark:text-gray-400">載入中...</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('common.loading')}</div>
       </div>
     );
   }
@@ -314,7 +357,7 @@ export default function StudentQuizPage() {
   if (!quiz) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-mainBg dark:bg-gray-900">
-        <div className="text-gray-600 dark:text-gray-400">找不到此試卷</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('quiz.notFound')}</div>
       </div>
     );
   }
@@ -326,7 +369,7 @@ export default function StudentQuizPage() {
           <div className="text-center space-y-2">
             <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">📃{quiz.title}</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              共 {questions.length} 題
+              {t('quiz.totalQuestions', { count: questions.length })}
             </p>
           </div>
 
@@ -334,12 +377,12 @@ export default function StudentQuizPage() {
           {quiz.mode === 'assign' && (
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {quiz.settings.targetList?.length > 0 ? '請選擇姓名' : '請輸入姓名'}
+                {quiz.settings.targetList?.length > 0 ? t('quiz.selectName') : t('quiz.enterName')}
               </label>
               {quiz.settings.targetList?.length > 0 ? (
                 <Select value={name} onValueChange={setName}>
                   <SelectTrigger className="w-full text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700">
-                    <SelectValue placeholder="請選擇姓名" />
+                    <SelectValue placeholder={t('quiz.selectNamePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {quiz.settings.targetList.map((studentName) => (
@@ -353,7 +396,7 @@ export default function StudentQuizPage() {
                 <Input
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="請輸入姓名"
+                  placeholder={t('quiz.enterNamePlaceholder')}
                   className="w-full text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700"
                 />
               )}
@@ -361,7 +404,7 @@ export default function StudentQuizPage() {
           )}
 
           <Button onClick={handleStart} className="w-full">
-            開始作答
+            {t('quiz.startQuiz')}
           </Button>
         </div>
       </div>
@@ -387,10 +430,22 @@ export default function StudentQuizPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-mainBg dark:bg-gray-900">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">✅ 作業已完成！</h1>
-          <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">🎯 得分：{score} / {questions.length} 題正確（{Math.round((score / questions.length) * 100)}%）</p>
-          {quiz.settings.showTimer && <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">⏱️ 作答時間：{minutes} 分 {seconds} 秒</p>}
-          <Button onClick={() => setShowResult(true)} className="mt-4">📄 查看作答結果</Button>
+          <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">{t('quiz.success.completed')}</h1>
+          <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">
+            {t('quiz.success.score', { 
+              score, 
+              total: questions.length,
+              percentage: Math.min(100, Math.round((score / questions.length) * 100))
+            })}
+          </p>
+          {quiz.settings.showTimer && (
+            <p className="text-lg mb-2 text-gray-700 dark:text-gray-200">
+              {t('quiz.success.time', { minutes, seconds })}
+            </p>
+          )}
+          <Button onClick={() => setShowResult(true)} className="mt-4">
+            {t('quiz.success.viewResult')}
+          </Button>
         </div>
       </div>
     );
@@ -405,7 +460,7 @@ export default function StudentQuizPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 truncate">📝 {quiz?.title}</h1>
             {quiz?.deadline && (
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                📆 截止：{quiz.deadline}
+                {t('quiz.deadline', { date: quiz.deadline })}
               </div>
             )}
           </div>
@@ -419,7 +474,7 @@ export default function StudentQuizPage() {
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              title={theme === 'light' ? '切換到深色模式' : '切換到亮色模式'}
+              title={theme === 'light' ? t('common.darkMode') : t('common.lightMode')}
               className="text-gray-700 dark:text-gray-300 flex-shrink-0"
             >
               {theme === 'light' ? (
@@ -456,26 +511,40 @@ export default function StudentQuizPage() {
                             ({subIdx + 1}) {subQ.content}
                           </h3>
                           <div className="space-y-1 ml-2 sm:ml-4">
-                            {subQ.options.map((option, optIdx) => (
-                              <label key={option} className="flex items-start space-x-2 text-sm sm:text-base text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-2 px-3 rounded-md transition-colors">
-                                <input
-                                  type="radio"
-                                  name={`${question.id}_${subIdx}`}
-                                  value={option}
-                                  checked={Array.isArray(answersRef.current[question.id]) && answersRef.current[question.id][subIdx] === option}
-                                  onChange={() => {
-                                    const currentAnswers = Array.isArray(answersRef.current[question.id]) ? [...answersRef.current[question.id]] : new Array((question as ReadingQuestion).questions.length).fill('');
-                                    currentAnswers[subIdx] = option;
-                                    handleAnswerChange(question.id, currentAnswers);
-                                  }}
-                                  className="radio text-primary mt-1"
-                                />
-                                <div className="flex-1">
-                                  <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
-                                  <span className="break-words">{option}</span>
-                                </div>
-                              </label>
-                            ))}
+                            {subQ.options.map((option, optIdx) => {
+                              const isSelected = Array.isArray(answersRef.current[question.id]) && answersRef.current[question.id][subIdx] === option;
+                              const isCorrect = option === subQ.answer;
+                              let optionColor = '';
+                              if (submitted) {
+                                if (isSelected && isCorrect) {
+                                  optionColor = 'bg-green-100 dark:bg-green-900/30';
+                                } else if (isSelected && !isCorrect) {
+                                  optionColor = 'bg-red-100 dark:bg-red-900/30';
+                                }
+                              }
+                              
+                              return (
+                                <label key={option} className={`flex items-start space-x-2 text-sm sm:text-base text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-2 px-3 rounded-md transition-colors ${optionColor}`}>
+                                  <input
+                                    type="radio"
+                                    name={`${question.id}_${subIdx}`}
+                                    value={option}
+                                    checked={isSelected}
+                                    disabled={submitted}
+                                    onChange={() => {
+                                      const currentAnswers = Array.isArray(answersRef.current[question.id]) ? [...answersRef.current[question.id]] : new Array((question as ReadingQuestion).questions.length).fill('');
+                                      currentAnswers[subIdx] = option;
+                                      handleAnswerChange(question.id, currentAnswers);
+                                    }}
+                                    className="radio text-primary mt-1"
+                                  />
+                                  <div className="flex-1">
+                                    <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
+                                    <span className="break-words">{option}</span>
+                                  </div>
+                                </label>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
@@ -494,26 +563,40 @@ export default function StudentQuizPage() {
                         <div key={subIdx} className="flex items-start">
                           <span className="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200 mr-3 sm:mr-4 pt-0.5">({subIdx + 1})</span>
                           <div className="space-y-1 flex-1">
-                            {subQ.options.map((option, optIdx) => (
-                              <label key={option} className="flex items-start space-x-2 text-sm sm:text-base text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-2 px-3 rounded-md transition-colors">
-                                <input
-                                  type="radio"
-                                  name={`${question.id}_${subIdx}`}
-                                  value={option}
-                                  checked={Array.isArray(answersRef.current[question.id]) && answersRef.current[question.id][subIdx] === option}
-                                  onChange={() => {
-                                    const currentAnswers = Array.isArray(answersRef.current[question.id]) ? [...answersRef.current[question.id]] : new Array((question as ClozeQuestion).questions.length).fill('');
-                                    currentAnswers[subIdx] = option;
-                                    handleAnswerChange(question.id, currentAnswers);
-                                  }}
-                                  className="radio text-primary mt-1"
-                                />
-                                <div className="flex-1">
-                                  <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
-                                  <span className="break-words">{option}</span>
-                                </div>
-                              </label>
-                            ))}
+                            {subQ.options.map((option, optIdx) => {
+                              const isSelected = Array.isArray(answersRef.current[question.id]) && answersRef.current[question.id][subIdx] === option;
+                              const isCorrect = optIdx === subQ.answer;
+                              let optionColor = '';
+                              if (submitted) {
+                                if (isSelected && isCorrect) {
+                                  optionColor = 'bg-green-100 dark:bg-green-900/30';
+                                } else if (isSelected && !isCorrect) {
+                                  optionColor = 'bg-red-100 dark:bg-red-900/30';
+                                }
+                              }
+
+                              return (
+                                <label key={option} className={`flex items-start space-x-2 text-sm sm:text-base text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 py-2 px-3 rounded-md transition-colors ${optionColor}`}>
+                                  <input
+                                    type="radio"
+                                    name={`${question.id}_${subIdx}`}
+                                    value={option}
+                                    checked={isSelected}
+                                    disabled={submitted}
+                                    onChange={() => {
+                                      const currentAnswers = Array.isArray(answersRef.current[question.id]) ? [...answersRef.current[question.id]] : new Array((question as ClozeQuestion).questions.length).fill('');
+                                      currentAnswers[subIdx] = option;
+                                      handleAnswerChange(question.id, currentAnswers);
+                                    }}
+                                    className="radio text-primary mt-1"
+                                  />
+                                  <div className="flex-1">
+                                    <span className="font-medium mr-2">({String.fromCharCode(65 + optIdx)})</span>
+                                    <span className="break-words">{option}</span>
+                                  </div>
+                                </label>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
@@ -597,7 +680,7 @@ export default function StudentQuizPage() {
                         <Input
                           key={i}
                           className="w-full sm:w-40 bg-white dark:bg-gray-900 border-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-400 dark:border-gray-700 text-gray-900 dark:text-mainBg"
-                          placeholder={`填空 ${i + 1}`}
+                          placeholder={t('quiz.fillInBlank', { number: i + 1 })}
                           value={(answersRef.current[question.id] as string[] | undefined)?.[i] || ''}
                           onChange={(e) => {
                             const currentAnswers = (answersRef.current[question.id] as string[]) || [];
@@ -617,7 +700,7 @@ export default function StudentQuizPage() {
                     <Textarea
                       value={answersRef.current[question.id] || ''}
                       onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                      placeholder="請輸入你的答案"
+                      placeholder={t('quiz.shortAnswer.placeholder')}
                       className="w-full min-h-[120px] bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
                     />
                   </div>
@@ -635,10 +718,11 @@ export default function StudentQuizPage() {
             variant="outline"
             className="w-full sm:w-auto dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
           >
-            ◀ 上一頁
+            {t('quiz.navigation.previous')}
           </Button>
           <div className="text-sm text-gray-600 dark:text-gray-300 order-first sm:order-none">
-            第 {page} / {totalPages} 頁　|　已完成 {completedCount} / {questions.length} 題
+            {t('quiz.navigation.pageInfo', { current: page, total: totalPages })}　|　
+            {t('quiz.navigation.progress', { completed: completedCount, total: questions.length })}
           </div>
           <Button
             onClick={() => handlePageChange(page + 1)}
@@ -646,7 +730,7 @@ export default function StudentQuizPage() {
             variant="outline"
             className="w-full sm:w-auto dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
           >
-            下一頁 ▶
+            {t('quiz.navigation.next')}
           </Button>
         </div>
       </div>
@@ -658,7 +742,7 @@ export default function StudentQuizPage() {
           disabled={submitting || completedCount !== questions.length}
           className="w-full bg-primary hover:bg-primary/90 dark:bg-primary dark:hover:bg-primary/90 text-base sm:text-lg py-4 sm:py-6"
         >
-          {submitting ? '提交中...' : '📤 完成'}
+          {submitting ? t('quiz.submit.submitting') : t('quiz.submit.submit')}
         </Button>
       </div>
     </div>

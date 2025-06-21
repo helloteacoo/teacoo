@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 import { ChevronLeft, ChevronDown, ChevronRight } from 'lucide-react';
@@ -27,6 +28,7 @@ export default function StudentAnswerDetail({
   onBack,
   isPractice
 }: StudentAnswerDetailProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedQuestions, setExpandedQuestions] = useState<Record<string, boolean>>({});
@@ -69,7 +71,7 @@ export default function StudentAnswerDetail({
       return question.answers.map(idx => question.options[idx]).join('、');
     } else if (isReadingQuestion(question)) {
       return question.questions.map((q, i) => 
-        `${i + 1}. ${q.options[parseInt(q.answer)]}`
+        `${i + 1}. ${q.answer}`
       ).join('\n');
     } else if (isClozeQuestion(question)) {
       return question.questions.map((q, i) => 
@@ -97,7 +99,7 @@ export default function StudentAnswerDetail({
     } else if (isReadingQuestion(question)) {
       return Array.isArray(userAnswer) &&
              question.questions.every((q, i) => 
-               userAnswer[i] === q.options[parseInt(q.answer)]
+               userAnswer[i] === q.answer
              );
     } else if (isClozeQuestion(question)) {
       return Array.isArray(userAnswer) &&
@@ -123,7 +125,7 @@ export default function StudentAnswerDetail({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">載入題目中...</div>
+        <div className="text-lg">{t('studentAnswerDetail.loading')}</div>
       </div>
     );
   }
@@ -145,7 +147,7 @@ export default function StudentAnswerDetail({
                 ⬅
               </Button>
             )}
-            <h2 className="text-xl font-semibold">🙋‍♂️ {studentName} 的作答記錄</h2>
+            <h2 className="text-xl font-semibold">🙋‍♂️ {studentName} {t('studentAnswerDetail.answerRecord')}</h2>
           </div>
         </div>
       </Card>
@@ -168,9 +170,9 @@ export default function StudentAnswerDetail({
               {/* 題目標頭 - 永遠顯示 */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <span className="font-semibold">第 {index + 1} 題</span>
+                  <span className="font-semibold">{t('studentAnswerDetail.questionNumber', { number: index + 1 })}</span>
                   <span className={`text-sm ${isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-                    {isCorrect ? '✅ 答對' : '❌ 答錯'}
+                    {isCorrect ? `✅ ${t('studentAnswerDetail.answerStatus.correct')}` : `❌ ${t('studentAnswerDetail.answerStatus.incorrect')}`}
                   </span>
                   <span className="text-sm text-gray-500">{question.type}</span>
                 </div>
@@ -198,10 +200,10 @@ export default function StudentAnswerDetail({
                                   key={optIndex}
                                   className={`p-0.5 rounded border-2 ${
                                     Array.isArray(userAnswer) && userAnswer[subIndex] === option
-                                      ? isCorrect
+                                      ? option === subQ.answer
                                         ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
                                         : 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                                      : 'border-transparent bg-trasparent dark:bg-trasparent'
+                                      : 'border-transparent'
                                   }`}
                                 >
                                   ({String.fromCharCode(65 + optIndex)}){'\u00A0'}{option}
@@ -223,10 +225,10 @@ export default function StudentAnswerDetail({
                                   key={optIndex}
                                   className={`p-0.5 rounded border-2 ${
                                     Array.isArray(userAnswer) && userAnswer[subIndex] === option
-                                      ? isCorrect
+                                      ? option === subQ.options[subQ.answer]
                                         ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
                                         : 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                                      : 'border-transparent bg-trasparent dark:bg-trasparent'
+                                      : 'border-transparent'
                                   }`}
                                 >
                                   ({String.fromCharCode(65 + optIndex)}){'\u00A0'}{option}
@@ -299,14 +301,14 @@ export default function StudentAnswerDetail({
                   {/* 答案與解釋 */}
                   <div className="space-y-2 text-sm">
                     <div>
-                      <span className="font-medium">正解：</span>
+                      <span className="font-medium">{t('studentAnswerDetail.correctAnswer')}</span>
                       <span className="text-green-600 dark:text-green-400 whitespace-pre-line">
                         {getCorrectAnswer(question)}
                       </span>
                     </div>
                     {question.explanation && (
                       <div>
-                        <span className="font-medium">解釋：</span>
+                        <span className="font-medium">{t('studentAnswerDetail.explanation')}</span>
                         <span className="text-gray-600 dark:text-gray-400">{question.explanation}</span>
                       </div>
                     )}

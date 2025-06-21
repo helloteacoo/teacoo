@@ -347,5 +347,54 @@
       "minTags": "至少需要 {{count}} 個標籤",
       "maxTags": "最多只能選擇 {{count}} 個標籤"
     }
+  },
+  "quiz": {
+    "notFound": "找不到此試卷",
+    "totalQuestions": "共 {{count}} 題",
+    "selectName": "請選擇姓名",
+    "enterName": "請輸入姓名",
+    "selectNamePlaceholder": "請選擇姓名",
+    "enterNamePlaceholder": "請輸入姓名",
+    "startQuiz": "開始作答",
+    "deadline": "📆 截止：{{date}}",
+    "fillInBlank": "填空 {{number}}",
+    "shortAnswer": {
+      "placeholder": "請輸入你的答案"
+    },
+    "navigation": {
+      "previous": "◀ 上一頁",
+      "next": "下一頁 ▶",
+      "pageInfo": "第 {{current}} / {{total}} 頁",
+      "progress": "已完成 {{completed}} / {{total}} 題"
+    },
+    "submit": {
+      "submitting": "提交中...",
+      "submit": "📤 完成"
+    },
+    "success": {
+      "completed": "✅ 作業已完成！",
+      "score": "🎯 得分：{{score}} / {{total}} 題正確（{{percentage}}%）",
+      "time": "⏱️ 作答時間：{{minutes}} 分 {{seconds}} 秒",
+      "viewResult": "📄 查看作答結果",
+      "submit": "提交成功！"
+    },
+    "errors": {
+      "nameRequired": "請輸入姓名",
+      "nameNotFound": "查無此姓名",
+      "answerRequired": "請填寫第 {{number}} 題",
+      "readAfterWrite": "寫入後無法讀取文件",
+      "submitFailed": "提交失敗，請稍後再試"
+    }
+  },
+  "studentAnswerDetail": {
+    "loading": "載入題目中...",
+    "answerRecord": "的作答記錄",
+    "questionNumber": "第 {{number}} 題",
+    "answerStatus": {
+      "correct": "答對",
+      "incorrect": "答錯"
+    },
+    "correctAnswer": "正解：",
+    "explanation": "解釋："
   }
 } 
