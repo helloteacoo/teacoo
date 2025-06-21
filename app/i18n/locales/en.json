@@ -303,22 +303,19 @@
     }
   },
   "questionCards": {
-    "limitWarning": {
-      "premium": "You have reached the 1000 questions limit for premium version",
-      "free": "You have reached the 100 questions limit for free version. Upgrade to premium for up to 1000 questions!"
+    "premium": {
+      "limitReached": "You have reached the 1000 questions limit for Premium version",
+      "limitWarning": "You have reached the 100 questions limit for Free version. Upgrade to Premium for up to 1000 questions!",
+      "upgradePrompt": "Upgrade to Premium to view this question"
     },
-    "upgradeToView": "Upgrade to premium to view this question",
-    "edit": "Edit",
+    "actions": {
+      "edit": "Edit"
+    },
     "answer": {
-      "correct": "Correct Answer",
-      "explanation": "Explanation",
-      "overallExplanation": "Overall Explanation",
-      "description": "Description"
-    },
-    "separator": {
-      "and": "and",
-      "type": "Type",
-      "tags": "Tags"
+      "correct": "Correct Answer:",
+      "explanation": "Explanation:",
+      "overallExplanation": "Overall Explanation:",
+      "description": "Description:"
     }
   }
 } 

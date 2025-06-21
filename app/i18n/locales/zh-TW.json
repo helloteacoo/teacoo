@@ -303,22 +303,19 @@
     }
   },
   "questionCards": {
-    "limitWarning": {
-      "premium": "您已達到付費版本的1000題上限",
-      "free": "您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！"
+    "premium": {
+      "limitReached": "您已達到付費版本的1000題上限",
+      "limitWarning": "您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！",
+      "upgradePrompt": "升級至付費版本以檢視此題目"
     },
-    "upgradeToView": "升級至付費版本以檢視此題目",
-    "edit": "編輯",
+    "actions": {
+      "edit": "編輯"
+    },
     "answer": {
-      "correct": "正解",
-      "explanation": "解釋",
-      "overallExplanation": "整體解釋",
-      "description": "說明"
-    },
-    "separator": {
-      "and": "、",
-      "type": "｜",
-      "tags": "、"
+      "correct": "正解：",
+      "explanation": "解釋：",
+      "overallExplanation": "整體解釋：",
+      "description": "說明："
     }
   }
 } 

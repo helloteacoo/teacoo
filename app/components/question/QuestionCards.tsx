@@ -73,7 +73,9 @@ export default function QuestionCards({
       {questions.length > MAX_ITEMS && (
         <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg mb-4">
           <p className="text-yellow-800 dark:text-yellow-200">
-            {t(`questionCards.limitWarning.${isPremium ? 'premium' : 'free'}`)}
+            {isPremium 
+              ? t('questionCards.premium.limitReached')
+              : t('questionCards.premium.limitWarning')}
           </p>
         </div>
       )}
@@ -94,7 +96,7 @@ export default function QuestionCards({
               <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md z-10 flex items-center justify-center">
                 <div className="text-center px-4 py-2 bg-yellow-100/90 dark:bg-yellow-900/90 rounded-lg">
                   <p className="text-yellow-800 dark:text-yellow-200 font-medium">
-                    {t('questionCards.upgradeToView')}
+                    {t('questionCards.premium.upgradePrompt')}
                   </p>
                 </div>
               </div>
@@ -103,7 +105,7 @@ export default function QuestionCards({
               <Button
                 onClick={() => onEditClick(q)}
                 className="absolute top-3 right-3 bg-transparent hover:bg-transparent text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 p-0 h-auto shadow-none"
-                title={t('questionCards.edit')}
+                title={t('questionCards.actions.edit')}
                 variant="ghost"
               >
                 <Pencil className="w-4 h-4 text-gray-500 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-500" />
@@ -123,7 +125,7 @@ export default function QuestionCards({
                   </div>
                   <div className="flex-1">
                     <div className="text-sm text-gray-700 dark:text-gray-400">
-                      {t(`questionTypes.${q.type}`)} {t('questionCards.separator.type')} {q.tags.join(t('questionCards.separator.tags'))}
+                      {q.type} ｜ {q.tags.join(', ')}
                     </div>
                     <div className={`font-medium mt-1 text-gray-800 dark:text-gray-300 ${isCollapsed ? 'line-clamp-1' : ''}`}>
                       1. {(() => {
@@ -151,11 +153,11 @@ export default function QuestionCards({
                         ))}
                       </ul>
                       <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                        🟢 {t('questionCards.answer.correct')}：({String.fromCharCode(65 + q.answer)}) {q.options[q.answer]}
+                        🟢 {t('questionCards.answer.correct')} ({String.fromCharCode(65 + q.answer)}) {q.options[q.answer]}
                       </div>
                       {q.explanation && (
                         <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                          💡 {t('questionCards.answer.explanation')}：{q.explanation}
+                          💡 {t('questionCards.answer.explanation')} {q.explanation}
                         </div>
                       )}
                     </>
@@ -167,37 +169,37 @@ export default function QuestionCards({
                         ))}
                       </ul>
                       <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                        🟢 {t('questionCards.answer.correct')}：
+                        🟢 {t('questionCards.answer.correct')}
                         {q.answers
                           .sort((a, b) => a - b)
                           .map(index => `(${String.fromCharCode(65 + index)}) ${q.options[index]}`)
-                          .join(t('questionCards.separator.and'))}
+                          .join('、')}
                       </div>
                       {q.explanation && (
                         <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                          💡 {t('questionCards.answer.explanation')}：{q.explanation}
+                          💡 {t('questionCards.answer.explanation')} {q.explanation}
                         </div>
                       )}
                     </>
                   ) : isFillInQuestion(q) ? (
                     <>
                       <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                        🟢 {t('questionCards.answer.correct')}：{q.blanks.join(t('questionCards.separator.and'))}
+                        🟢 {t('questionCards.answer.correct')} {q.blanks.join('、')}
                       </div>
                       {q.explanation && (
                         <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                          💡 {t('questionCards.answer.explanation')}：{q.explanation}
+                          💡 {t('questionCards.answer.explanation')} {q.explanation}
                         </div>
                       )}
                     </>
                   ) : isShortAnswerQuestion(q) ? (
                     <>
                       <div className="text-sm mt-1 text-gray-800 dark:text-gray-300 ml-6">
-                        🟢 {t('questionCards.answer.correct')}：{q.answer}
+                        🟢 {t('questionCards.answer.correct')} {q.answer}
                       </div>
                       {q.explanation && (
                         <div className="text-sm mt-1 text-gray-600 dark:text-gray-400 ml-6">
-                          💡 {t('questionCards.answer.explanation')}：{q.explanation}
+                          💡 {t('questionCards.answer.explanation')} {q.explanation}
                         </div>
                       )}
                     </>
@@ -213,11 +215,11 @@ export default function QuestionCards({
                               ))}
                             </ul>
                             <div className="text-sm mt-1">
-                              🟢 {t('questionCards.answer.correct')}：({String.fromCharCode(65 + sub.options.indexOf(sub.answer))}) {sub.answer}
+                              🟢 {t('questionCards.answer.correct')} ({String.fromCharCode(65 + sub.options.indexOf(sub.answer))}) {sub.answer}
                             </div>
                             {sub.explanation && (
                               <div className="text-sm mt-1 text-gray-600 dark:text-gray-400">
-                                💡 {t('questionCards.answer.explanation')}：{sub.explanation}
+                                💡 {t('questionCards.answer.explanation')} {sub.explanation}
                               </div>
                             )}
                           </li>
@@ -225,7 +227,7 @@ export default function QuestionCards({
                       </ul>
                       {q.explanation && (
                         <div className="text-sm mt-2 text-gray-600 dark:text-gray-400 ml-6">
-                          💡 {t('questionCards.answer.overallExplanation')}：{q.explanation}
+                          💡 {t('questionCards.answer.overallExplanation')} {q.explanation}
                         </div>
                       )}
                     </>
@@ -240,11 +242,11 @@ export default function QuestionCards({
                               ))}
                             </ul>
                             <div className="text-sm mt-1">
-                              🟢 {t('questionCards.answer.correct')}：({String.fromCharCode(65 + parseInt(sub.answer.toString()))}) {sub.options[parseInt(sub.answer.toString())]}
+                              🟢 {t('questionCards.answer.correct')} ({String.fromCharCode(65 + parseInt(sub.answer.toString()))}) {sub.options[parseInt(sub.answer.toString())]}
                             </div>
                             {sub.content && (
                               <div className="text-sm mt-1 text-gray-600 dark:text-gray-400">
-                                💡 {t('questionCards.answer.description')}：{sub.content}
+                                💡 {t('questionCards.answer.description')} {sub.content}
                               </div>
                             )}
                           </li>
@@ -252,7 +254,7 @@ export default function QuestionCards({
                       </ul>
                       {q.explanation && (
                         <div className="text-sm mt-2 text-gray-600 dark:text-gray-400 ml-6">
-                          💡 {t('questionCards.answer.overallExplanation')}：{q.explanation}
+                          💡 {t('questionCards.answer.overallExplanation')} {q.explanation}
                         </div>
                       )}
                     </>
