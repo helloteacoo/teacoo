@@ -5,7 +5,10 @@
     "logout": "登出",
     "darkMode": "切換到深色模式",
     "lightMode": "切換到亮色模式",
-    "loading": "載入中..."
+    "loading": "載入中...",
+    "add": "新增",
+    "required": "必填",
+    "optional": "選填"
   },
   "nav": {
     "myQuestions": "我的題庫",
@@ -74,7 +77,24 @@
         "formatError": "請檢查輸入格式是否正確",
         "tagRequired": "請至少選擇一個標籤",
         "tagLimit": "最多只能選擇四個標籤",
-        "checkUsageFailed": "檢查使用次數時發生錯誤"
+        "checkUsageFailed": "檢查使用次數時發生錯誤",
+        "updateUsageFailed": "更新使用次數失敗",
+        "selectType": "請選擇題型",
+        "minOptions": "請至少填寫 {{count}} 個選項",
+        "selectAnswer": "請選擇正確答案",
+        "minAnswers": "請至少選擇 {{count}} 個答案",
+        "invalidAnswers": "請確保所有選擇的答案都已填寫",
+        "minBlanks": "請新增至少 {{count}} 個填空答案",
+        "emptyBlanks": "請填寫所有填空答案",
+        "emptyAnswer": "請輸入標準答案",
+        "emptyArticle": "請輸入文章內容",
+        "minSubQuestions": "請至少添加 {{count}} 個子題目",
+        "emptySubQuestion": "第 {{number}} 個子題目的內容不可為空",
+        "subQuestionMinOptions": "請為第 {{number}} 個子題目至少填寫 {{count}} 個選項",
+        "subQuestionSelectAnswer": "請為第 {{number}} 個子題目選擇正確答案",
+        "clozeMinOptions": "請為第 {{number}} 個空格至少填寫 {{count}} 個選項",
+        "clozeSelectAnswer": "請為第 {{number}} 個空格選擇正確答案",
+        "unknownType": "無法辨識的題型"
       }
     },
     "questionTypes": {
@@ -316,6 +336,16 @@
       "explanation": "解釋：",
       "overallExplanation": "整體解釋：",
       "description": "說明："
+    }
+  },
+  "tagSelector": {
+    "selectTags": "選擇標籤...",
+    "selectedTags": "已選擇 {{count}} 個標籤",
+    "selectedTagsMax": "已選擇 {{count}} 個標籤 (上限)",
+    "searchPlaceholder": "搜尋標籤...",
+    "errors": {
+      "minTags": "至少需要 {{count}} 個標籤",
+      "maxTags": "最多只能選擇 {{count}} 個標籤"
     }
   }
 } 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -34,23 +35,22 @@ export default function GroupQuestionForm({
   initialData,
   allTags
 }: GroupQuestionFormProps) {
+  const { t } = useTranslation();
   const [article, setArticle] = useState('');
   const [content, setContent] = useState('');
   const [questions, setQuestions] = useState<(SubQuestion | ClozeSubQuestion)[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [explanation, setExplanation] = useState('');
   const [blankError, setBlankError] = useState<string>('');
   const [showError, setShowError] = useState(false);
 
   // 同步 initialData 的變化
   useEffect(() => {
     console.log('🧪 GroupQuestionForm - initialData:', initialData);
-    if (initialData && initialData.type === type) {
+          if (initialData && initialData.type === type) {
       if (type === '閱讀測驗') {
         const data = initialData as ReadingQuestion;
         setArticle(data.article);
         setContent(data.content || '');
-        setExplanation(data.explanation || '');
         setTags(data.tags);
 
         const formattedQuestions = data.questions.map((q, qIndex) => {
@@ -71,7 +71,6 @@ export default function GroupQuestionForm({
         const data = initialData as ClozeQuestion;
         setArticle(data.content);
         setContent(data.content || '');
-        setExplanation(data.explanation || '');
         setTags(data.tags);
 
         const formattedQuestions = data.questions.map((q, qIndex) => {
@@ -102,7 +101,6 @@ export default function GroupQuestionForm({
       setContent('');
       setQuestions([]);
       setTags(defaultTags);
-      setExplanation('');
     }
   }, [type, defaultTags, initialData]);
 
@@ -208,13 +206,13 @@ export default function GroupQuestionForm({
   const validateForm = useMemo(() => {
     // 文章內容不可為空
     if (!article.trim()) {
-      return '請輸入文章內容';
+      return t('ai.convert.errors.emptyArticle');
     }
 
     if (type === '閱讀測驗') {
       // 至少要有一個子題
       if (questions.length === 0) {
-        return '請至少添加一個子題目';
+        return t('ai.convert.errors.minSubQuestions', { count: 1 });
       }
 
       // 檢查每個子題
@@ -223,18 +221,18 @@ export default function GroupQuestionForm({
         
         // 題目內容不可為空
         if (!q.content?.trim()) {
-          return `第 ${i + 1} 個子題目的內容不可為空`;
+          return t('ai.convert.errors.emptySubQuestion', { number: i + 1 });
         }
 
         // 至少要有 A 和 B 兩個選項
         const validOptions = q.options.slice(0, 2).filter(opt => opt.trim());
         if (validOptions.length < 2) {
-          return `請為第 ${i + 1} 個子題目至少填寫選項 A 和 B`;
+          return t('ai.convert.errors.subQuestionMinOptions', { number: i + 1, count: 2 });
         }
 
         // 必須選擇一個正確答案
         if (!q.answer && !q.selectedOptionId) {
-          return `請為第 ${i + 1} 個子題目選擇正確答案`;
+          return t('ai.convert.errors.subQuestionSelectAnswer', { number: i + 1 });
         }
       }
     } else if (type === '克漏字') {
@@ -245,19 +243,19 @@ export default function GroupQuestionForm({
         // 至少要有 A 和 B 兩個選項
         const validOptions = q.options.slice(0, 2).filter(opt => opt.trim());
         if (validOptions.length < 2) {
-          return `請為第 ${i + 1} 個空格至少填寫選項 A 和 B`;
+          return t('ai.convert.errors.clozeMinOptions', { number: i + 1, count: 2 });
         }
 
         // 必須選擇一個正確答案
         if (q.selectedOptionId === undefined || q.selectedOptionId === null || q.selectedOptionId === '') {
-          return `請為第 ${i + 1} 個空格選擇正確答案`;
+          return t('ai.convert.errors.clozeSelectAnswer', { number: i + 1 });
         }
       }
     }
 
     // 共同條件：至少一個標籤
     if (tags.length === 0) {
-      return '請至少選擇一個標籤';
+      return t('ai.convert.errors.tagRequired');
     }
 
     return ''; // 通過所有驗證
@@ -265,7 +263,8 @@ export default function GroupQuestionForm({
     type,
     article,
     questions,
-    tags
+    tags,
+    t
   ]);
 
   const handleSubmit = () => {
@@ -278,7 +277,6 @@ export default function GroupQuestionForm({
         type: '閱讀測驗',
         content,
         article,
-        explanation,
         tags,
         questions: (questions as SubQuestion[]).map(q => ({
           id: q.id,
@@ -295,7 +293,6 @@ export default function GroupQuestionForm({
         updatedAt: new Date().toISOString(),
         type: '克漏字',
         content: article,
-        explanation,
         tags,
         questions: (questions as ClozeSubQuestion[]).map(q => ({
           options: q.options,
@@ -317,11 +314,11 @@ export default function GroupQuestionForm({
       }}
     >
       <div>
-        <Label>文章內容</Label>
+        <Label>{t('ai.fields.article')}</Label>
         <Textarea
           value={article}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setArticle(e.target.value)}
-          placeholder={type === '克漏字' ? '請使用【1】、[[1]]或__1__等格式標記空格處' : '請輸入文章內容...'}
+          placeholder={type === '克漏字' ? t('ai.fields.clozePlaceholder') : t('ai.fields.article')}
           className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
           required
         />
@@ -330,13 +327,13 @@ export default function GroupQuestionForm({
       {type === '閱讀測驗' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label>子題目</Label>
+            <Label>{t('ai.fields.subQuestions')}</Label>
             <button
               type="button"
               onClick={addQuestion}
               className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-primary/80"
             >
-              新增子題
+              {t('common.add')}
             </button>
           </div>
 
@@ -344,11 +341,11 @@ export default function GroupQuestionForm({
             <div key={question.id} className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <Label>題目 {questionIndex + 1}</Label>
+                  <Label>{t('ai.fields.question')} {questionIndex + 1}</Label>
                   <Textarea
                     value={(question as SubQuestion).content}
                     onChange={(e) => handleQuestionChange(questionIndex, 'content', e.target.value)}
-                    placeholder="請輸入題目內容..."
+                    placeholder={t('ai.fields.stem')}
                     className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                     required
                   />
@@ -363,7 +360,7 @@ export default function GroupQuestionForm({
               </div>
 
               <div className="space-y-3">
-                <Label>選項</Label>
+                <Label>{t('ai.fields.options')}</Label>
                 <RadioGroup
                   value={question.selectedOptionId}
                   onValueChange={(value: string) => {
@@ -389,7 +386,7 @@ export default function GroupQuestionForm({
                             handleQuestionChange(questionIndex, 'answer', e.target.value);
                           }
                         }}
-                        placeholder={`選項 ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (必填)' : ''}`}
+                        placeholder={`${t('ai.fields.options')} ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (' + t('common.required') + ')' : ''}`}
                         className="placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                         required={optionIndex < 2}
                       />
@@ -400,11 +397,11 @@ export default function GroupQuestionForm({
 
               {'explanation' in question && (
                 <div>
-                  <Label>解說 (選填)</Label>
+                  <Label>{t('ai.fields.explanation')} ({t('common.optional')})</Label>
                   <Textarea
                     value={question.explanation || ''}
                     onChange={(e) => handleQuestionChange(questionIndex, 'explanation', e.target.value)}
-                    placeholder="請輸入解說..."
+                    placeholder={t('ai.fields.explanation')}
                     className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                   />
                 </div>
@@ -417,19 +414,19 @@ export default function GroupQuestionForm({
       {type === '克漏字' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label>空格選項</Label>
+            <Label>{t('ai.fields.blanks')}</Label>
             <button
               type="button"
               onClick={addQuestion}
               className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-primary/80"
             >
-              新增空格
+              {t('common.add')}
             </button>
           </div>
           {questions.map((question, questionIndex) => (
             <div key={question.id} className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
               <div className="flex items-center justify-between">
-                <Label>空格 {questionIndex + 1}</Label>
+                <Label>{t('ai.fields.blank')} {questionIndex + 1}</Label>
                 <button
                   type="button"
                   onClick={() => removeQuestion(questionIndex)}
@@ -465,7 +462,7 @@ export default function GroupQuestionForm({
                             handleQuestionChange(questionIndex, 'answer', e.target.value);
                           }
                         }}
-                        placeholder={`選項 ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (必填)' : ''}`}
+                        placeholder={`${t('ai.fields.options')} ${String.fromCharCode(65 + optionIndex)}${optionIndex < 2 ? ' (' + t('common.required') + ')' : ''}`}
                         className="placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                         required={optionIndex < 2}
                       />
@@ -475,11 +472,11 @@ export default function GroupQuestionForm({
               </div>
 
               <div>
-                <Label>解說 (選填)</Label>
+                <Label>{t('ai.fields.explanation')} ({t('common.optional')})</Label>
                 <Textarea
                   value={question.explanation || ''}
                   onChange={(e) => handleQuestionChange(questionIndex, 'explanation', e.target.value)}
-                  placeholder="請輸入此空格的解說..."
+                  placeholder={t('ai.fields.explanation')}
                   className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
                 />
               </div>
@@ -489,17 +486,7 @@ export default function GroupQuestionForm({
       )}
 
       <div>
-        <Label>整體解說 (選填)</Label>
-        <Textarea
-          value={explanation}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setExplanation(e.target.value)}
-          placeholder="請輸入整體解說..."
-          className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-300"
-        />
-      </div>
-
-      <div>
-        <Label>標籤</Label>
+        <Label>{t('ai.fields.tags')}</Label>
         <TagSelector
           value={tags}
           onChange={setTags}
@@ -524,14 +511,13 @@ export default function GroupQuestionForm({
             e.preventDefault();
             if (validateForm) {
               setShowError(true);
-              // 3秒後自動隱藏錯誤訊息
               setTimeout(() => setShowError(false), 3000);
             } else {
               handleSubmit();
             }
           }}
         >
-          <span className="text-white dark:text-mainBg">💾儲存</span>
+          <span className="text-white dark:text-mainBg">💾 {t('ai.convert.save')}</span>
         </Button>
       </div>
     </form>

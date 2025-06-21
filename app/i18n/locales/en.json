@@ -5,7 +5,10 @@
     "logout": "Logout",
     "darkMode": "Switch to Dark Mode",
     "lightMode": "Switch to Light Mode",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "add": "Add",
+    "required": "Required",
+    "optional": "Optional"
   },
   "nav": {
     "myQuestions": "Question Bank",
@@ -74,7 +77,24 @@
         "formatError": "Please check if the input format is correct",
         "tagRequired": "Please select at least one tag",
         "tagLimit": "You can select up to four tags",
-        "checkUsageFailed": "Error checking usage count"
+        "checkUsageFailed": "Error checking usage count",
+        "updateUsageFailed": "Error updating usage count",
+        "selectType": "Please select a question type",
+        "minOptions": "Please fill in at least {{count}} options",
+        "selectAnswer": "Please select the correct answer",
+        "minAnswers": "Please select at least {{count}} answers",
+        "invalidAnswers": "Please ensure all selected answers are filled in",
+        "minBlanks": "Please add at least {{count}} blank answer",
+        "emptyBlanks": "Please fill in all blank answers",
+        "emptyAnswer": "Please enter the standard answer",
+        "emptyArticle": "Please enter article content",
+        "minSubQuestions": "Please add at least {{count}} sub-question",
+        "emptySubQuestion": "Content for sub-question {{number}} cannot be empty",
+        "subQuestionMinOptions": "Please fill in at least {{count}} options for sub-question {{number}}",
+        "subQuestionSelectAnswer": "Please select the correct answer for sub-question {{number}}",
+        "clozeMinOptions": "Please fill in at least {{count}} options for blank {{number}}",
+        "clozeSelectAnswer": "Please select the correct answer for blank {{number}}",
+        "unknownType": "Unrecognized question type"
       }
     },
     "questionTypes": {
@@ -316,6 +336,16 @@
       "explanation": "Explanation:",
       "overallExplanation": "Overall Explanation:",
       "description": "Description:"
+    }
+  },
+  "tagSelector": {
+    "selectTags": "Select tags...",
+    "selectedTags": "{{count}} tags selected",
+    "selectedTagsMax": "{{count}} tags selected (max)",
+    "searchPlaceholder": "Search tags...",
+    "errors": {
+      "minTags": "At least {{count}} tags required",
+      "maxTags": "Maximum {{count}} tags allowed"
     }
   }
 } 

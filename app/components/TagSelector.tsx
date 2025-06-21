@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Check } from 'lucide-react';
 import {
   Command,
@@ -38,6 +39,7 @@ export default function TagSelector({
   disabled = false,
   className = '',
 }: TagSelectorProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const handleSelect = (selectedTag: string) => {
@@ -49,7 +51,7 @@ export default function TagSelector({
       const newTags = value.filter(tag => tag !== selectedTag);
       if (newTags.length < minTags) {
         console.log('❌ 標籤數量不足，無法移除');
-        alert(`至少需要 ${minTags} 個標籤`);
+        alert(t('tagSelector.errors.minTags', { count: minTags }));
         return;
       }
       console.log('✅ 成功移除標籤，新標籤列表:', newTags);
@@ -58,7 +60,7 @@ export default function TagSelector({
       // 如果還沒選擇這個標籤，就添加它
       if (value.length >= maxTags) {
         console.log('❌ 已達到最大標籤數量:', maxTags);
-        alert(`最多只能選擇 ${maxTags} 個標籤`);
+        alert(t('tagSelector.errors.maxTags', { count: maxTags }));
         return;
       }
       const newTags = [...value, selectedTag];
@@ -101,17 +103,17 @@ export default function TagSelector({
             disabled={disabled || value.length >= maxTags}
           >
             {value.length === 0 
-              ? "選擇標籤..." 
+              ? t('tagSelector.selectTags')
               : value.length >= maxTags 
-                ? `已選擇 ${value.length} 個標籤 (上限)`
-                : `已選擇 ${value.length} 個標籤`
+                ? t('tagSelector.selectedTagsMax', { count: value.length })
+                : t('tagSelector.selectedTags', { count: value.length })
             }
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0 bg-white dark:bg-gray-800 text-gray-400 dark:text-mainBg">
           <Command className="w-full dark:bg-gray-800">
             <CommandInput 
-              placeholder="搜尋標籤..." 
+              placeholder={t('tagSelector.searchPlaceholder')}
               className="border-none focus:ring-0 text-gray-400 dark:text-gray-400 dark:bg-gray-800"
             />
             

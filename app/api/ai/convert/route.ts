@@ -167,7 +167,10 @@ export async function POST(request: Request) {
 
       const result = completion.choices[0].message.content;
       if (!result) {
-        throw new Error('無法轉換題目');
+        return NextResponse.json(
+          { error: '無法轉換題目：AI 回應為空' },
+          { status: 500 }
+        );
       }
 
       console.log('🔍 OpenAI 原始回應:', result);
@@ -179,69 +182,92 @@ export async function POST(request: Request) {
         console.log('🔍 解析後的回應:', data);
       } catch (error) {
         console.error('❌ JSON 解析錯誤:', error);
-        return NextResponse.json({ error: '題目格式錯誤' }, { status: 400 });
+        return NextResponse.json(
+          { error: '題目格式錯誤：無法解析 AI 回應' },
+          { status: 400 }
+        );
       }
 
       // 確保回傳的是題目陣列
       if (!data.questions || !Array.isArray(data.questions)) {
-        throw new Error('回傳格式錯誤');
+        return NextResponse.json(
+          { error: '題目格式錯誤：回傳的不是題目陣列' },
+          { status: 400 }
+        );
       }
 
-      // 驗證每個題目的格式
+      // 驗證每個題目的基本結構
       data.questions.forEach((q: any, index: number) => {
-        if (!q.type || !q.content) {
-          throw new Error(`第 ${index + 1} 題格式錯誤`);
+        if (!q.type) {
+          console.error(`[AI 轉換] 第 ${index + 1} 題格式錯誤:`, q);
+          throw new Error(`第 ${index + 1} 題缺少必要欄位（題型）`);
         }
 
-        // 根據題型驗證必要欄位
+        // 根據題型檢查必要欄位
         switch (q.type) {
-          case '單選題':
-            if (!Array.isArray(q.options) || typeof q.answer !== 'number') {
-              throw new Error(`第 ${index + 1} 題（單選題）格式錯誤`);
-            }
-            break;
-          case '多選題':
-            if (!Array.isArray(q.options) || !Array.isArray(q.answers)) {
-              throw new Error(`第 ${index + 1} 題（多選題）格式錯誤`);
-            }
-            break;
-          case '填空題':
-            if (!Array.isArray(q.blanks)) {
-              throw new Error(`第 ${index + 1} 題（填空題）格式錯誤`);
-            }
-            break;
-          case '簡答題':
-            if (typeof q.answer !== 'string') {
-              throw new Error(`第 ${index + 1} 題（簡答題）格式錯誤`);
-            }
-            break;
           case '閱讀測驗':
-            if (!q.article || !Array.isArray(q.questions)) {
-              throw new Error(`第 ${index + 1} 題（閱讀測驗）格式錯誤`);
+            if (!q.article) {
+              throw new Error(`第 ${index + 1} 題（閱讀測驗）缺少文章內容`);
             }
-            break;
-          case '克漏字':
-            if (!q.content || !Array.isArray(q.questions)) {
-              throw new Error(`第 ${index + 1} 題（克漏字）格式錯誤`);
+            if (!Array.isArray(q.questions) || q.questions.length === 0) {
+              throw new Error(`第 ${index + 1} 題（閱讀測驗）缺少子題目`);
             }
             // 檢查每個子題目
             q.questions.forEach((subQ: any, subIndex: number) => {
-              // 確保每個空格都有剛好 4 個選項
-              if (!Array.isArray(subQ.options) || subQ.options.length !== 4) {
-                throw new Error(`第 ${index + 1} 題第 ${subIndex + 1} 個空格必須有 4 個選項`);
+              if (!subQ.content) {
+                throw new Error(`第 ${index + 1} 題的第 ${subIndex + 1} 個子題目缺少題目內容`);
               }
-              // 確保答案是 0-3 的數字
-              if (typeof subQ.answer !== 'number' || subQ.answer < 0 || subQ.answer > 3) {
-                throw new Error(`第 ${index + 1} 題第 ${subIndex + 1} 個空格的答案必須是 0-3 的數字`);
+              if (!Array.isArray(subQ.options) || subQ.options.length < 2) {
+                throw new Error(`第 ${index + 1} 題的第 ${subIndex + 1} 個子題目選項不足`);
               }
-              // 確保沒有 content 欄位
-              if ('content' in subQ) {
-                throw new Error(`第 ${index + 1} 題第 ${subIndex + 1} 個空格不應該有題目內容`);
+              if (!subQ.answer) {
+                throw new Error(`第 ${index + 1} 題的第 ${subIndex + 1} 個子題目缺少答案`);
               }
             });
             break;
+
+          case '克漏字':
+            if (!q.content) {
+              throw new Error(`第 ${index + 1} 題（克漏字）缺少文章內容`);
+            }
+            if (!Array.isArray(q.questions) || q.questions.length === 0) {
+              throw new Error(`第 ${index + 1} 題（克漏字）缺少空格選項`);
+            }
+            // 檢查每個空格的選項
+            q.questions.forEach((blank: any, blankIndex: number) => {
+              if (!Array.isArray(blank.options) || blank.options.length < 2) {
+                throw new Error(`第 ${index + 1} 題的第 ${blankIndex + 1} 個空格選項不足`);
+              }
+              if (typeof blank.answer !== 'number') {
+                throw new Error(`第 ${index + 1} 題的第 ${blankIndex + 1} 個空格缺少答案`);
+              }
+            });
+            break;
+
           default:
-            throw new Error(`第 ${index + 1} 題題型不支援`);
+            // 一般題型都需要題目內容，但閱讀測驗和克漏字除外
+            if (!q.type.match(/^(閱讀測驗|克漏字)$/) && !q.content) {
+              throw new Error(`第 ${index + 1} 題缺少題目內容`);
+            }
+            // 選擇題需要選項
+            if ((q.type === '單選題' || q.type === '多選題') && 
+                (!Array.isArray(q.options) || q.options.length < 2)) {
+              throw new Error(`第 ${index + 1} 題選項不足`);
+            }
+            // 檢查答案
+            if (q.type === '單選題' && typeof q.answer !== 'number' && typeof q.answer !== 'string') {
+              throw new Error(`第 ${index + 1} 題缺少答案`);
+            }
+            if (q.type === '多選題' && (!Array.isArray(q.answers) || q.answers.length === 0)) {
+              throw new Error(`第 ${index + 1} 題缺少答案`);
+            }
+            if (q.type === '填空題' && (!Array.isArray(q.blanks) || q.blanks.length === 0)) {
+              throw new Error(`第 ${index + 1} 題缺少填空答案`);
+            }
+            if (q.type === '簡答題' && !q.answer) {
+              throw new Error(`第 ${index + 1} 題缺少答案`);
+            }
+            break;
         }
       });
 

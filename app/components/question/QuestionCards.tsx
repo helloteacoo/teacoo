@@ -225,11 +225,6 @@ export default function QuestionCards({
                           </li>
                         ))}
                       </ul>
-                      {q.explanation && (
-                        <div className="text-sm mt-2 text-gray-600 dark:text-gray-400 ml-6">
-                          💡 {t('questionCards.answer.overallExplanation')} {q.explanation}
-                        </div>
-                      )}
                     </>
                   ) : isClozeQuestion(q) && (
                     <>
@@ -252,11 +247,6 @@ export default function QuestionCards({
                           </li>
                         ))}
                       </ul>
-                      {q.explanation && (
-                        <div className="text-sm mt-2 text-gray-600 dark:text-gray-400 ml-6">
-                          💡 {t('questionCards.answer.overallExplanation')} {q.explanation}
-                        </div>
-                      )}
                     </>
                   )}
                 </>

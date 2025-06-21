@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
@@ -67,6 +68,7 @@ export default function SingleQuestionForm({
   initialData,
   allTags
 }: SingleQuestionFormProps) {
+  const { t } = useTranslation();
   console.log('🧩 type:', type, 'initialData?.type:', initialData?.type);
 
   const [content, setContent] = useState('');
@@ -182,6 +184,8 @@ export default function SingleQuestionForm({
   };
 
   const renderAnswerInput = () => {
+    const { t } = useTranslation();
+    
     switch (type) {
       case '單選題':
         return (
@@ -198,7 +202,7 @@ export default function SingleQuestionForm({
                     newOptions[index] = e.target.value;
                     setOptions(newOptions);
                   }}
-                  placeholder={`選項 ${index + 1}${index < 2 ? ' (必填)' : ''}`}
+                  placeholder={`${t('ai.fields.options')} ${String.fromCharCode(65 + index)}${index < 2 ? ' (' + t('common.required') + ')' : ''}`}
                   className="placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                 />
               </div>
@@ -232,7 +236,7 @@ export default function SingleQuestionForm({
                     newOptions[index] = e.target.value;
                     setOptions(newOptions);
                   }}
-                  placeholder={`選項 ${index + 1}${index < 3 ? ' (必填)' : ''}`}
+                  placeholder={`${t('ai.fields.options')} ${String.fromCharCode(65 + index)}${index < 3 ? ' (' + t('common.required') + ')' : ''}`}
                   className="placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                 />
               </div>
@@ -243,7 +247,7 @@ export default function SingleQuestionForm({
         return (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <Label>填空答案</Label>
+              <Label>{t('ai.fields.blanks')}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -251,12 +255,12 @@ export default function SingleQuestionForm({
                 onClick={() => setBlanks([...blanks, ''])}
                 className="text-xs"
               >
-                新增答案
+                {t('common.add')}
               </Button>
             </div>
             {blanks.map((blank, index) => (
               <div key={index} className="flex items-center gap-3">
-                <Label className="w-20">空格 {index + 1}:</Label>
+                <Label className="w-20">{t('ai.fields.blank')} {index + 1}:</Label>
                 <div className="flex-1 flex gap-2">
                   <Input
                     value={blank}
@@ -265,7 +269,7 @@ export default function SingleQuestionForm({
                       newBlanks[index] = e.target.value;
                       setBlanks(newBlanks);
                     }}
-                    placeholder="請輸入答案..."
+                    placeholder={t('ai.fields.blankPlaceholder', { number: index + 1 })}
                     className="flex-1 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                   />
                   <Button
@@ -286,7 +290,7 @@ export default function SingleQuestionForm({
             ))}
             {blanks.length === 0 && (
               <div className="text-gray-500 text-center py-2">
-                請點擊「新增答案」來新增填空答案
+                {t('ai.fields.fillInInstruction')}
               </div>
             )}
           </div>
@@ -294,11 +298,11 @@ export default function SingleQuestionForm({
       case '簡答題':
         return (
           <div>
-            <Label>答案</Label>
+            <Label>{t('ai.fields.answer')}</Label>
             <Textarea
               value={shortAnswer}
               onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setShortAnswer(e.target.value)}
-              placeholder="請輸入答案"
+              placeholder={t('ai.fields.answer')}
               className="mt-1.5 placeholder:text-gray-400 hover:bg-primary/80 dark:text-gray-800 dark:border-gray-700"
               required
             />
@@ -312,12 +316,12 @@ export default function SingleQuestionForm({
   const validateForm = useMemo(() => {
     // 檢查是否選擇題型
     if (!type) {
-      return '請選擇題型';
+      return t('ai.convert.errors.selectType');
     }
 
     // 共同條件：題目內容不可為空
     if (!content.trim()) {
-      return '請輸入題目內容';
+      return t('ai.convert.errors.emptyInput');
     }
 
     switch (type) {
@@ -325,11 +329,11 @@ export default function SingleQuestionForm({
         // 檢查至少有 A 和 B 兩個選項
         const validOptions = options.slice(0, 2).filter(opt => opt.trim());
         if (validOptions.length < 2) {
-          return '請至少填寫選項 A 和 B';
+          return t('ai.convert.errors.minOptions', { count: 2 });
         }
         // 必須選擇一個正確答案
         if (answer === undefined) {
-          return '請選擇正確答案';
+          return t('ai.convert.errors.selectAnswer');
         }
         break;
       }
@@ -338,15 +342,15 @@ export default function SingleQuestionForm({
         // 檢查前三個必填選項
         const requiredOptions = options.slice(0, 3).filter(opt => opt.trim());
         if (requiredOptions.length < 3) {
-          return '請填寫前三個必填選項';
+          return t('ai.convert.errors.minOptions', { count: 3 });
         }
         // 檢查是否選擇了至少兩個答案
         if (answers.length < 2) {
-          return '請至少選擇兩個答案';
+          return t('ai.convert.errors.minAnswers', { count: 2 });
         }
         // 檢查所有選擇的答案是否有效
         if (answers.some(index => !options[index]?.trim())) {
-          return '請確保所有選擇的答案都已填寫';
+          return t('ai.convert.errors.invalidAnswers');
         }
         break;
       }
@@ -354,10 +358,10 @@ export default function SingleQuestionForm({
       case '填空題': {
         // 只檢查是否有填寫答案
         if (blanks.length === 0) {
-          return '請新增至少一個填空答案';
+          return t('ai.convert.errors.minBlanks', { count: 1 });
         }
         if (blanks.some(ans => !ans.trim())) {
-          return '請填寫所有填空答案';
+          return t('ai.convert.errors.emptyBlanks');
         }
         break;
       }
@@ -365,7 +369,7 @@ export default function SingleQuestionForm({
       case '簡答題': {
         // 檢查標準答案是否填寫
         if (!shortAnswer.trim()) {
-          return '請輸入標準答案';
+          return t('ai.convert.errors.emptyAnswer');
         }
         break;
       }
@@ -373,7 +377,7 @@ export default function SingleQuestionForm({
 
     // 共同條件：至少一個標籤
     if (tags.length === 0) {
-      return '請至少選擇一個標籤';
+      return t('ai.convert.errors.tagRequired');
     }
 
     return ''; // 通過所有驗證
@@ -385,7 +389,8 @@ export default function SingleQuestionForm({
     answers,
     shortAnswer,
     tags,
-    blanks
+    blanks,
+    t
   ]);
 
   return (
@@ -397,11 +402,11 @@ export default function SingleQuestionForm({
       }}
     >
       <div>
-        <Label>題目內容</Label>
+        <Label>{t('ai.fields.question')}</Label>
         <Textarea
           value={content}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
-          placeholder={type === '填空題' ? '請輸入題目內容...' : '請輸入題目內容...'}
+          placeholder={type === '填空題' ? t('ai.fields.fillInPlaceholder') : t('ai.fields.stem')}
           className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
           required
         />
@@ -410,17 +415,17 @@ export default function SingleQuestionForm({
       {renderAnswerInput()}
 
       <div>
-        <Label>解說 (選填)</Label>
+        <Label>{t('ai.fields.explanation')} ({t('common.optional')})</Label>
         <Textarea
           value={explanation}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setExplanation(e.target.value)}
-          placeholder="請輸入解說..."
+          placeholder={t('ai.fields.explanation')}
           className="mt-1.5 placeholder:text-gray-400 bg-mainBg dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
         />
       </div>
 
       <div>
-        <Label>標籤</Label>
+        <Label>{t('ai.fields.tags')}</Label>
         <TagSelector
           value={tags}
           onChange={setTags}
@@ -451,7 +456,7 @@ export default function SingleQuestionForm({
             handleSubmit();
           }}
         >
-          <span className="text-white dark:text-mainBg">💾儲存</span>
+          <span className="text-white dark:text-mainBg">💾 {t('ai.convert.save')}</span>
         </Button>
       </div>
     </form>

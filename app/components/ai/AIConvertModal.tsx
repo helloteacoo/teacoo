@@ -4,7 +4,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/app/components/ui/dialog';
 import type { Question, MultipleChoiceQuestion } from '@/app/types/question';
 import { TextareaInputPanel } from './TextareaInputPanel';
@@ -14,9 +13,6 @@ import { toast } from 'sonner';
 import { Button } from "@/app/components/ui/button";
 import { convertQuestionsWithAI } from "@/app/lib/ai/convertPrompt";
 import { v4 as uuidv4 } from 'uuid';
-import { useAuth } from '@/lib/contexts/auth';
-import { doc, getDoc, setDoc, increment } from 'firebase/firestore';
-import { db } from '@/app/lib/firebase/firebase';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -24,126 +20,56 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onImport: (questions: Question[]) => void;
   availableTags: string[];
+  isPremium?: boolean;
 }
 
-interface AIUsageLimit {
-  count: number;
-  lastUsedDate: string;
-}
-
-const FREE_DAILY_LIMIT = 3;
+const FREE_DAILY_LIMIT = 300;
 const PREMIUM_DAILY_LIMIT = 10;
 
-export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: Props) {
+export function AIConvertModal({ open, onOpenChange, onImport, availableTags, isPremium = false }: Props) {
   const { t } = useTranslation();
-  const { user, isPremium } = useAuth();
   const [input, setInput] = useState('');
   const [isConverting, setIsConverting] = useState(false);
   const [convertedQuestions, setConvertedQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [usageCount, setUsageCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [remainingConversions, setRemainingConversions] = useState<number>(isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT);
 
-  // 檢查並更新使用次數
-  const checkAndUpdateUsage = async () => {
-    if (!user) return false;
-
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const usageRef = doc(db, 'usage', user.uid);
-      const usageDoc = await getDoc(usageRef);
-      
-      let currentUsage: AIUsageLimit = {
-        count: 0,
-        lastUsedDate: today
-      };
-
-      if (usageDoc.exists()) {
-        const data = usageDoc.data() as AIUsageLimit;
-        // 如果是新的一天，重置計數
-        if (data.lastUsedDate !== today) {
-          currentUsage.count = 0;
-        } else {
-          currentUsage = data;
-        }
-      }
-
-      const dailyLimit = isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
-      
-      // 確保 count 不會超過限制
-      currentUsage.count = Math.min(currentUsage.count, dailyLimit);
-      
-      if (currentUsage.count >= dailyLimit) {
-        toast.error(t('ai.convert.errors.limitReached'), {
-          description: isPremium 
-            ? t('ai.convert.premiumLimit')
-            : t('ai.convert.freeLimit')
-        });
-        setUsageCount(currentUsage.count); // 更新顯示的使用次數
-        return false;
-      }
-
-      // 更新使用次數
-      const newCount = currentUsage.count + 1;
-      await setDoc(usageRef, {
-        count: newCount,
-        lastUsedDate: today
-      }, { merge: true });
-
-      setUsageCount(newCount);
-      return true;
-    } catch (error) {
-      console.error('檢查使用次數時發生錯誤:', error);
-      toast.error(t('ai.convert.errors.checkUsageFailed'));
-      return false;
-    }
-  };
-
-  // 載入使用次數
+  // 從 localStorage 讀取今天的轉換次數
   useEffect(() => {
-    const loadUsageCount = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
+    const today = new Date().toISOString().split('T')[0];
+    const storedData = localStorage.getItem('aiConvertUsage');
+    if (storedData) {
+      const { date, count } = JSON.parse(storedData);
+      if (date === today) {
+        const limit = isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
+        setRemainingConversions(Math.max(0, limit - count));
+      } else {
+        // 如果是新的一天，重置次數
+        localStorage.setItem('aiConvertUsage', JSON.stringify({ date: today, count: 0 }));
+        setRemainingConversions(isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT);
       }
-
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const usageRef = doc(db, 'usage', user.uid);
-        const usageDoc = await getDoc(usageRef);
-        
-        if (usageDoc.exists()) {
-          const data = usageDoc.data() as AIUsageLimit;
-          if (data.lastUsedDate === today) {
-            const limit = isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
-            const count = Math.min(data.count, limit);
-            setUsageCount(count);
-            
-            // 如果已經達到限制，顯示提示
-            if (count >= limit) {
-              toast.error(t('ai.convert.errors.limitReached'), {
-                description: isPremium 
-                  ? t('ai.convert.premiumLimit')
-                  : t('ai.convert.freeLimit')
-              });
-            }
-          } else {
-            setUsageCount(0);
-          }
-        } else {
-          setUsageCount(0);
-        }
-      } catch (error) {
-        console.error('載入使用次數時發生錯誤:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (open) {
-      loadUsageCount();
+    } else {
+      localStorage.setItem('aiConvertUsage', JSON.stringify({ date: today, count: 0 }));
+      setRemainingConversions(isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT);
     }
-  }, [user, open, isPremium, t]);
+  }, [isPremium, open]);
+
+  const updateConversionCount = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const storedData = localStorage.getItem('aiConvertUsage');
+    const currentData = storedData ? JSON.parse(storedData) : { date: today, count: 0 };
+    
+    if (currentData.date !== today) {
+      currentData.date = today;
+      currentData.count = 1;
+    } else {
+      currentData.count += 1;
+    }
+    
+    localStorage.setItem('aiConvertUsage', JSON.stringify(currentData));
+    const limit = isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
+    setRemainingConversions(Math.max(0, limit - currentData.count));
+  };
 
   const handleConvert = async (text: string) => {
     if (!text.trim()) {
@@ -151,19 +77,17 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
       return;
     }
 
-    if (!user) {
-      toast.error(t('ai.convert.errors.loginRequired'));
+    if (remainingConversions <= 0) {
+      toast.error(isPremium ? t('ai.convert.premiumLimit') : t('ai.convert.freeLimit'));
       return;
     }
-
-    const canProceed = await checkAndUpdateUsage();
-    if (!canProceed) return;
 
     setIsConverting(true);
     try {
       const questions = await convertQuestionsWithAI(text);
       setConvertedQuestions(questions);
       setCurrentIndex(0);
+      updateConversionCount();
     } catch (error) {
       toast.error(t('ai.convert.errors.conversionFailed'), {
         description: error instanceof Error ? error.message : t('ai.convert.errors.formatError'),
@@ -204,36 +128,20 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
     }
   }, [open]);
 
-  const dailyLimit = isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
-  const remainingUses = Math.max(0, dailyLimit - usageCount);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="max-w-[90vw] w-[1400px] max-h-[90vh] md:max-h-[85vh] bg-mainBg dark:bg-gray-800 rounded-2xl md:rounded-lg" 
-        aria-describedby="dialog-description"
-      >
-        <DialogHeader>
-          <DialogTitle className="flex justify-between items-center text-base md:text-lg">
-            <span>{t('ai.convert.title')}</span>
-            {!isLoading && (
-              remainingUses > 0 ? (
-                <span className="text-xs md:text-sm font-normal text-gray-500">
-                  {t('ai.convert.remainingUses', { remaining: remainingUses, total: dailyLimit })}
-                </span>
-              ) : (
-                <span className="text-xs md:text-sm font-normal text-red-500">
-                  {t('ai.convert.limitReached', { remaining: 0, total: dailyLimit })}
-                </span>
-              )
-            )}
-          </DialogTitle>
-          <DialogDescription id="dialog-description" className="text-sm">
-            {t('ai.convert.description')}
-          </DialogDescription>
+      <DialogContent className="max-w-[90vw] w-[1400px] bg-mainBg dark:bg-gray-800 max-h-[95vh] overflow-y-auto rounded-lg">
+        <DialogHeader className="flex flex-row items-center justify-between">
+          <DialogTitle>{t('ai.convert.title')}</DialogTitle>
+          <div className="text-sm text-gray-500 mr-8">
+            {t('ai.convert.remainingUses', {
+              remaining: remainingConversions,
+              total: isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT
+            })}
+          </div>
         </DialogHeader>
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-8 h-[60vh] lg:h-[calc(90vh-6rem)]">
-          <div className="h-[35vh] lg:h-full overflow-hidden">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-8 h-auto lg:h-[calc(90vh-6rem)]">
+          <div className="h-[30vh] lg:h-full flex flex-col">
             <TextareaInputPanel
               value={input}
               onChange={setInput}
@@ -242,7 +150,7 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
               isOpen={open}
             />
           </div>
-          <div className="h-[25vh] lg:h-full overflow-y-auto">
+          <div className="h-[45vh] lg:h-full overflow-y-auto">
             {convertedQuestions.length > 0 ? (
               <EditableQuestionPreviewCard
                 question={convertedQuestions[currentIndex]}
@@ -256,7 +164,7 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
                 onSkip={handleSkip}
               />
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-500 text-sm md:text-base">
+              <div className="flex items-center justify-center h-full text-gray-500">
                 {t('ai.convert.previewPlaceholder')}
               </div>
             )}
