@@ -10,6 +10,13 @@ import { Button } from './ui/button';
 import { useTheme } from '../contexts/ThemeContext';
 import { SunIcon, MoonIcon, HamburgerMenuIcon, Cross1Icon } from '@radix-ui/react-icons';
 import { useTranslation } from 'react-i18next';
+import { Pacifico } from 'next/font/google';
+
+const pacifico = Pacifico({ 
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 const DEFAULT_AVATAR = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23215F97"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"%3E%3C/path%3E%3C/svg%3E';
 
@@ -51,9 +58,9 @@ export default function Navigation() {
           <div className="flex items-center space-x-6">
             {/* Logo */}
             <div className="flex-shrink-0">
-              <span className="text-xl font-bold text-primary dark:text-white">
+              <Link href="/" className={`${pacifico.className} text-4xl text-primary dark:text-white hover:opacity-80 transition-opacity`}>
                 Teacoo
-              </span>
+              </Link>
             </div>
 
             {/* 桌面版導航 */}
@@ -63,6 +70,7 @@ export default function Navigation() {
                   <Link
                     key={item.name}
                     href={item.href}
+                    prefetch={true}
                     className={`text-base font-semibold transition-colors duration-150 border-b-2 px-1.5 pb-1.5 ${
                       pathname === item.href
                         ? 'text-primary border-primary'
@@ -124,7 +132,10 @@ export default function Navigation() {
                 </Button>
               </div>
             ) : (
-              <Link href="/login">
+              <Link 
+                href="/login" 
+                prefetch={true}
+              >
                 <Button variant="default">{t('nav.signIn')}</Button>
               </Link>
             )}
@@ -194,6 +205,7 @@ export default function Navigation() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  prefetch={true}
                   className={`
                     block px-3 py-2 rounded-md text-base font-medium transition-colors duration-150
                     ${pathname === item.href
@@ -206,7 +218,10 @@ export default function Navigation() {
                 </Link>
               ))}
               {!user && (
-                <Link href="/login" className="block px-3 py-2">
+                <Link 
+                  href="/login" 
+                  prefetch={true}
+                >
                   <Button variant="default" className="w-full">{t('nav.signIn')}</Button>
                 </Link>
               )}

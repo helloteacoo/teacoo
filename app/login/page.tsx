@@ -12,6 +12,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Checkbox } from "../components/ui/checkbox";
 import { useTranslation } from 'react-i18next';
+import { Pacifico } from 'next/font/google';
 
 // Icons import
 import {
@@ -22,6 +23,12 @@ import {
   ChartBarIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
+
+const pacifico = Pacifico({ 
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 const features = [
   {
@@ -122,7 +129,7 @@ export default function LoginPage() {
         <div className="max-w-2xl mx-auto w-full">
           {/* Logo 區域 */}
           <motion.div variants={itemVariants} className="mb-12">
-            <h1 className="text-3xl font-bold text-mainBg">Teacoo</h1>
+            <h1 className={`${pacifico.className} text-4xl text-mainBg`}>Teacoo</h1>
             <p className="mt-2 text-lg text-mainBg/80">
               Build your own question bank with ease 
             </p>
