@@ -51,9 +51,58 @@
     }
   },
   "ai": {
-    "convert": "Convert",
-    "converting": "Converting...",
-    "placeholder": "Please paste or enter question text..."
+    "convert": {
+      "title": "AI Question Conversion",
+      "description": "Convert text questions into structured formats like multiple choice, fill-in-the-blank, etc. Daily usage is limited, please use wisely.",
+      "remainingUses": "Remaining uses today: {{remaining}} / {{total}}",
+      "limitReached": "{{remaining}} / {{total}}",
+      "premiumLimit": "Premium users can use 10 times per day",
+      "freeLimit": "Free users can use 3 times per day, upgrade to premium for more uses",
+      "inputPlaceholder": "Please paste or enter question text...",
+      "previewPlaceholder": "Please paste questions and click 'Convert'",
+      "originalText": "Original Text",
+      "previewAndEdit": "Preview & Edit",
+      "converting": "Converting...",
+      "convert": "🚀 Convert",
+      "save": "💾 Save",
+      "questionType": "Question Type",
+      "questionCount": "Question {{current}} of {{total}}",
+      "errors": {
+        "emptyInput": "Please enter question content",
+        "loginRequired": "Please login first",
+        "conversionFailed": "Conversion failed",
+        "formatError": "Please check if the input format is correct",
+        "tagRequired": "Please select at least one tag",
+        "tagLimit": "You can select up to four tags",
+        "checkUsageFailed": "Error checking usage count"
+      }
+    },
+    "questionTypes": {
+      "single": "MCQ (Single Answer)",
+      "multiple": "MCQ (Multiple Answers)",
+      "fillIn": "Fill in the Blank",
+      "shortAnswer": "Short Answer",
+      "reading": "Reading Comprehension",
+      "cloze": "Cloze"
+    },
+    "fields": {
+      "stem": "Question Stem",
+      "options": "Options",
+      "answer": "Answer",
+      "answers": "Correct Answers",
+      "blanks": "Blank Answers",
+      "blank": "Blank",
+      "article": "Article Content",
+      "subQuestions": "Sub-questions",
+      "explanation": "Explanation",
+      "tags": "Tags",
+      "question": "Question",
+      "fillInPlaceholder": "Enter question content, use [[answer]] to mark blanks...",
+      "blankPlaceholder": "Enter answer for blank {{number}}",
+      "fillInInstruction": "Use [[answer]] format to mark blanks in the question",
+      "clozeInstruction": "Article content (use [[1]], 【1】 or __1__ format to mark blanks)",
+      "clozePlaceholder": "Enter article content, use [[1]], 【1】 or __1__ format to mark blanks..."
+    }
   },
   "sidebar": {
     "questionTypes": "Question Types",
@@ -177,6 +226,99 @@
           "answer": "No, your data and question bank will be fully retained and not deleted."
         }
       }
+    }
+  },
+  "questionPreview": {
+    "question": "Question {{current}} / {{total}}",
+    "options": "Options:",
+    "answer": "Answer:",
+    "subQuestions": "Sub-questions:",
+    "explanation": "Explanation:",
+    "previous": "Previous",
+    "next": "Next",
+    "skip": "Skip",
+    "import": "Import",
+    "importDisabled": "Please select tags first"
+  },
+  "assignQuiz": {
+    "title": {
+      "practice": "Ready to Start",
+      "practiceSetup": "Self Practice",
+      "assign": "Assignment Created",
+      "assignSetup": "Assign Homework"
+    },
+    "form": {
+      "practiceTitle": "Practice Title",
+      "assignmentTitle": "Assignment Title",
+      "titlePlaceholder": {
+        "practice": "Enter practice name",
+        "assign": "Enter assignment name"
+      },
+      "showTimer": "Show Timer",
+      "targetList": {
+        "enable": "Target List",
+        "premiumOnly": "(👑 Upgrade to create your own lists)",
+        "createNew": "Create List",
+        "selectList": "Select List",
+        "selectPlaceholder": "Please select a list",
+        "newListName": "New List Name",
+        "newListNamePlaceholder": "e.g., Grade 8 Class B",
+        "studentNames": "Student Names (one per line)",
+        "studentNamesPlaceholder": "Enter student names, one per line",
+        "creating": "Creating...",
+        "create": "Create List"
+      },
+      "submit": {
+        "practice": "Start Practice",
+        "assign": "Assign Homework",
+        "processing": "Processing..."
+      }
+    },
+    "messages": {
+      "premiumFeature": "Premium feature only",
+      "loginRequired": "Please login first",
+      "listNameRequired": "Please fill in list name and student list",
+      "createListSuccess": "List created successfully!",
+      "createListError": "Failed to create list: ",
+      "responseLimit": {
+        "free": "Free version allows max 10 respondents",
+        "premium": "Premium version allows max 100 respondents"
+      }
+    },
+    "success": {
+      "practice": {
+        "ready": "✅ Ready to Start!",
+        "description": "Click the button below to start practicing",
+        "startButton": "▶️ Start Practice"
+      },
+      "assign": {
+        "success": "✅ Assignment Created!",
+        "description": "Assignment has been created successfully. Students can access it through:",
+        "quizLink": "Quiz Link",
+        "copyButton": "📋 Copy",
+        "copySuccess": "Link copied to clipboard",
+        "copyError": "Failed to copy link, please copy manually",
+        "previewButton": "🔍 Preview Assignment"
+      }
+    }
+  },
+  "questionCards": {
+    "limitWarning": {
+      "premium": "You have reached the 1000 questions limit for premium version",
+      "free": "You have reached the 100 questions limit for free version. Upgrade to premium for up to 1000 questions!"
+    },
+    "upgradeToView": "Upgrade to premium to view this question",
+    "edit": "Edit",
+    "answer": {
+      "correct": "Correct Answer",
+      "explanation": "Explanation",
+      "overallExplanation": "Overall Explanation",
+      "description": "Description"
+    },
+    "separator": {
+      "and": "and",
+      "type": "Type",
+      "tags": "Tags"
     }
   }
 } 

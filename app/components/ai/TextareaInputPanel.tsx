@@ -3,6 +3,7 @@ import { Button } from '@/app/components/ui/button';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const MAX_CHARS = 1500;
 
@@ -21,6 +22,7 @@ export function TextareaInputPanel({
   onChange,
   isOpen = true,
 }: TextareaInputPanelProps) {
+  const { t } = useTranslation();
   const [localText, setLocalText] = useState(value || '');
 
   // Reset when modal closes
@@ -48,12 +50,12 @@ export function TextareaInputPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="font-medium text-gray-800 dark:text-mainBg">原始文字</h3>
+      <h3 className="font-medium text-gray-800 dark:text-mainBg">{t('ai.convert.originalText')}</h3>
       
       <Textarea
         value={value ?? localText}
         onChange={handleChange}
-        placeholder="請貼上或輸入題目文字..."
+        placeholder={t('ai.convert.inputPlaceholder')}
         className="resize-none h-[280px] border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-md shadow-sm"
       />
 
@@ -75,10 +77,10 @@ export function TextareaInputPanel({
           {isConverting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              轉換中...
+              {t('ai.convert.converting')}
             </>
           ) : (
-            '🚀 轉換'
+            t('ai.convert.convert')
           )}
         </Button>
       </div>

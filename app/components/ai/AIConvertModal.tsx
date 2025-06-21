@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/lib/contexts/auth';
 import { doc, getDoc, setDoc, increment } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase/firebase';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   open: boolean;
@@ -34,6 +35,7 @@ const FREE_DAILY_LIMIT = 3;
 const PREMIUM_DAILY_LIMIT = 10;
 
 export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: Props) {
+  const { t } = useTranslation();
   const { user, isPremium } = useAuth();
   const [input, setInput] = useState('');
   const [isConverting, setIsConverting] = useState(false);
@@ -68,26 +70,31 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
 
       const dailyLimit = isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
       
+      // 確保 count 不會超過限制
+      currentUsage.count = Math.min(currentUsage.count, dailyLimit);
+      
       if (currentUsage.count >= dailyLimit) {
-        toast.error('已達今日使用上限', {
+        toast.error(t('ai.convert.errors.limitReached'), {
           description: isPremium 
-            ? '付費版每日可使用 10 次'
-            : '免費版每日可使用 3 次，升級專業版可提高使用次數'
+            ? t('ai.convert.premiumLimit')
+            : t('ai.convert.freeLimit')
         });
+        setUsageCount(currentUsage.count); // 更新顯示的使用次數
         return false;
       }
 
       // 更新使用次數
+      const newCount = currentUsage.count + 1;
       await setDoc(usageRef, {
-        count: increment(1),
+        count: newCount,
         lastUsedDate: today
       }, { merge: true });
 
-      setUsageCount(currentUsage.count + 1);
+      setUsageCount(newCount);
       return true;
     } catch (error) {
       console.error('檢查使用次數時發生錯誤:', error);
-      toast.error('檢查使用次數時發生錯誤');
+      toast.error(t('ai.convert.errors.checkUsageFailed'));
       return false;
     }
   };
@@ -108,7 +115,18 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
         if (usageDoc.exists()) {
           const data = usageDoc.data() as AIUsageLimit;
           if (data.lastUsedDate === today) {
-            setUsageCount(data.count);
+            const limit = isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
+            const count = Math.min(data.count, limit);
+            setUsageCount(count);
+            
+            // 如果已經達到限制，顯示提示
+            if (count >= limit) {
+              toast.error(t('ai.convert.errors.limitReached'), {
+                description: isPremium 
+                  ? t('ai.convert.premiumLimit')
+                  : t('ai.convert.freeLimit')
+              });
+            }
           } else {
             setUsageCount(0);
           }
@@ -125,16 +143,16 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
     if (open) {
       loadUsageCount();
     }
-  }, [user, open]);
+  }, [user, open, isPremium, t]);
 
   const handleConvert = async (text: string) => {
     if (!text.trim()) {
-      toast.error('請輸入題目內容');
+      toast.error(t('ai.convert.errors.emptyInput'));
       return;
     }
 
     if (!user) {
-      toast.error('請先登入');
+      toast.error(t('ai.convert.errors.loginRequired'));
       return;
     }
 
@@ -147,8 +165,8 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
       setConvertedQuestions(questions);
       setCurrentIndex(0);
     } catch (error) {
-      toast.error('轉換失敗', {
-        description: error instanceof Error ? error.message : "請檢查輸入格式是否正確",
+      toast.error(t('ai.convert.errors.conversionFailed'), {
+        description: error instanceof Error ? error.message : t('ai.convert.errors.formatError'),
       });
     } finally {
       setIsConverting(false);
@@ -187,7 +205,7 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
   }, [open]);
 
   const dailyLimit = isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
-  const remainingUses = dailyLimit - usageCount;
+  const remainingUses = Math.max(0, dailyLimit - usageCount);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -197,15 +215,21 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
       >
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center text-base md:text-lg">
-            <span>AI 題目轉換</span>
+            <span>{t('ai.convert.title')}</span>
             {!isLoading && (
-              <span className="text-xs md:text-sm font-normal text-gray-500">
-                今日剩餘次數：{remainingUses} / {dailyLimit}
-              </span>
+              remainingUses > 0 ? (
+                <span className="text-xs md:text-sm font-normal text-gray-500">
+                  {t('ai.convert.remainingUses', { remaining: remainingUses, total: dailyLimit })}
+                </span>
+              ) : (
+                <span className="text-xs md:text-sm font-normal text-red-500">
+                  {t('ai.convert.limitReached', { remaining: 0, total: dailyLimit })}
+                </span>
+              )
             )}
           </DialogTitle>
           <DialogDescription id="dialog-description" className="text-sm">
-            將文字題目轉換為結構化的選擇題、填空題等格式。每日使用次數有限，請謹慎使用。
+            {t('ai.convert.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-8 h-[60vh] lg:h-[calc(90vh-6rem)]">
@@ -233,7 +257,7 @@ export function AIConvertModal({ open, onOpenChange, onImport, availableTags }: 
               />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500 text-sm md:text-base">
-                請貼上題目後點選「轉換」
+                {t('ai.convert.previewPlaceholder')}
               </div>
             )}
           </div>

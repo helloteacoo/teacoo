@@ -11,23 +11,26 @@ import { useAuth } from '@/lib/contexts/auth';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '@/app/lib/firebase/firebase';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 interface AssignQuizModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedQuestions: Question[];
-  mode?: 'assign' | 'practice';  // 新增模式參數
+  mode?: 'assign' | 'practice';
 }
 
 function AssignQuizContent() {
   const { state, mode } = useAssignQuiz();
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-3">
       <DialogHeader className="pb-2">
         <DialogTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100">
           {state.step === 'completed' 
-            ? (mode === 'practice' ? '準備開始' : '派發成功') 
-            : (mode === 'practice' ? '自我練習' : '派發作業')}
+            ? t(`assignQuiz.title.${mode === 'practice' ? 'practice' : 'assign'}`)
+            : t(`assignQuiz.title.${mode === 'practice' ? 'practiceSetup' : 'assignSetup'}`)}
         </DialogTitle>
       </DialogHeader>
 
@@ -62,12 +65,11 @@ export default function AssignQuizModal({
   open,
   onOpenChange,
   selectedQuestions,
-  mode = 'assign',  // 預設為派發模式
+  mode = 'assign',
 }: AssignQuizModalProps) {
   const { user } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
 
-  // 檢查使用者是否為付費版
   useEffect(() => {
     const checkPremiumStatus = async () => {
       if (user) {
@@ -78,19 +80,12 @@ export default function AssignQuizModal({
     checkPremiumStatus();
   }, [user]);
 
-  const handleSuccess = () => {
-    // 派發成功後不自動關閉 Modal，讓使用者自行關閉
-    // setTimeout(() => {
-    //   onOpenChange(false);
-    // }, 1000);
-  };
-
   return (
     <AssignQuizProvider 
       selectedQuestions={selectedQuestions}
-      onSuccess={handleSuccess}
-      mode={mode}  // 傳遞模式到 Provider
-      isPremium={isPremium}  // 傳遞付費狀態到 Provider
+      onSuccess={() => {}}
+      mode={mode}
+      isPremium={isPremium}
     >
       <AssignQuizModalContent open={open} onOpenChange={onOpenChange} />
     </AssignQuizProvider>

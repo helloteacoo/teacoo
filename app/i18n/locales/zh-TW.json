@@ -51,9 +51,58 @@
     }
   },
   "ai": {
-    "convert": "轉換",
-    "converting": "轉換中...",
-    "placeholder": "請貼上或輸入題目文字..."
+    "convert": {
+      "title": "AI 題目轉換",
+      "description": "將文字題目轉換為結構化的選擇題、填空題等格式。每日使用次數有限，請謹慎使用。",
+      "remainingUses": "今日剩餘次數：{{remaining}} / {{total}}",
+      "limitReached": "{{remaining}} / {{total}}",
+      "premiumLimit": "付費版每日可使用 10 次",
+      "freeLimit": "免費版每日可使用 3 次，升級專業版可提高使用次數",
+      "inputPlaceholder": "請貼上或輸入題目文字...",
+      "previewPlaceholder": "請貼上題目後點選「轉換」",
+      "originalText": "原始文字",
+      "previewAndEdit": "預覽與編輯",
+      "converting": "轉換中...",
+      "convert": "🚀 轉換",
+      "save": "💾儲存",
+      "questionType": "選擇題型",
+      "questionCount": "第 {{current}} 題，共 {{total}} 題",
+      "errors": {
+        "emptyInput": "請輸入題目內容",
+        "loginRequired": "請先登入",
+        "conversionFailed": "轉換失敗",
+        "formatError": "請檢查輸入格式是否正確",
+        "tagRequired": "請至少選擇一個標籤",
+        "tagLimit": "最多只能選擇四個標籤",
+        "checkUsageFailed": "檢查使用次數時發生錯誤"
+      }
+    },
+    "questionTypes": {
+      "single": "單選題",
+      "multiple": "多選題",
+      "fillIn": "填空題",
+      "shortAnswer": "簡答題",
+      "reading": "閱讀測驗",
+      "cloze": "克漏字"
+    },
+    "fields": {
+      "stem": "題幹",
+      "options": "選項",
+      "answer": "答案",
+      "answers": "正確答案",
+      "blanks": "填空答案",
+      "blank": "填空",
+      "article": "文章內容",
+      "subQuestions": "子題目",
+      "explanation": "解析",
+      "tags": "標籤",
+      "question": "題目",
+      "fillInPlaceholder": "請輸入題目內容，使用 [[答案]] 標記填空處...",
+      "blankPlaceholder": "請輸入第 {{number}} 個填空的答案",
+      "fillInInstruction": "請在題目中使用 [[答案]] 格式來標記填空處",
+      "clozeInstruction": "文章內容（使用【1】、[[1]]或__1__等格式標記空格）",
+      "clozePlaceholder": "請輸入文章內容，使用【1】、[[1]]或__1__等格式標記空格..."
+    }
   },
   "sidebar": {
     "questionTypes": "題型",
@@ -177,6 +226,99 @@
           "answer": "不會，您的資料與題庫都會完整保留，不會被刪除。"
         }
       }
+    }
+  },
+  "questionPreview": {
+    "question": "題目 {{current}} / {{total}}",
+    "options": "選項：",
+    "answer": "答案：",
+    "subQuestions": "子題目：",
+    "explanation": "解釋：",
+    "previous": "上一題",
+    "next": "下一題",
+    "skip": "跳過",
+    "import": "匯入此題",
+    "importDisabled": "請先選擇標籤"
+  },
+  "assignQuiz": {
+    "title": {
+      "practice": "準備開始",
+      "practiceSetup": "自我練習",
+      "assign": "派發成功",
+      "assignSetup": "派發作業"
+    },
+    "form": {
+      "practiceTitle": "練習標題",
+      "assignmentTitle": "作業標題",
+      "titlePlaceholder": {
+        "practice": "請輸入練習名稱",
+        "assign": "請輸入作業名稱"
+      },
+      "showTimer": "顯示計時器",
+      "targetList": {
+        "enable": "是否啟用名單",
+        "premiumOnly": "(👑升級付費版建立自己的名單)",
+        "createNew": "建立名單",
+        "selectList": "選擇名單",
+        "selectPlaceholder": "請選擇名單",
+        "newListName": "新名單名稱",
+        "newListNamePlaceholder": "例如：八年級 B 班",
+        "studentNames": "學生姓名（每行一位）",
+        "studentNamesPlaceholder": "請輸入學生姓名，每行一位",
+        "creating": "建立中...",
+        "create": "建立名單"
+      },
+      "submit": {
+        "practice": "開始作答",
+        "assign": "派發作業",
+        "processing": "處理中..."
+      }
+    },
+    "messages": {
+      "premiumFeature": "免費版不支援名單功能",
+      "loginRequired": "請先登入",
+      "listNameRequired": "請填寫名單名稱和學生名單",
+      "createListSuccess": "名單建立成功！",
+      "createListError": "建立名單失敗：",
+      "responseLimit": {
+        "free": "免費版本最多允許 10 人作答",
+        "premium": "付費版本最多允許 100 人作答"
+      }
+    },
+    "success": {
+      "practice": {
+        "ready": "✅ 準備就緒！",
+        "description": "點擊下方按鈕開始練習",
+        "startButton": "▶️ 開始練習"
+      },
+      "assign": {
+        "success": "✅ 派發成功！",
+        "description": "作業已成功派發，學生可以透過以下方式進入：",
+        "quizLink": "作答連結",
+        "copyButton": "📋 複製",
+        "copySuccess": "連結已複製到剪貼簿",
+        "copyError": "無法複製連結，請手動複製",
+        "previewButton": "🔍 預覽作業"
+      }
+    }
+  },
+  "questionCards": {
+    "limitWarning": {
+      "premium": "您已達到付費版本的1000題上限",
+      "free": "您已達到免費版本的100題上限。升級至付費版本可存放最多1000題！"
+    },
+    "upgradeToView": "升級至付費版本以檢視此題目",
+    "edit": "編輯",
+    "answer": {
+      "correct": "正解",
+      "explanation": "解釋",
+      "overallExplanation": "整體解釋",
+      "description": "說明"
+    },
+    "separator": {
+      "and": "、",
+      "type": "｜",
+      "tags": "、"
     }
   }
 } 

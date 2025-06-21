@@ -13,8 +13,10 @@ import { auth } from '../../lib/firebase/firebase';
 import { useAuth } from '@/lib/contexts/auth';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase/firebase';
+import { useTranslation } from 'react-i18next';
 
 export default function AssignQuizForm() {
+  const { t } = useTranslation();
   const { state, dispatch, handleSubmit, selectedQuestions, mode } = useAssignQuiz();
   const [submitting, setSubmitting] = useState(false);
   const [useTargetList, setUseTargetList] = useState(false);
@@ -43,24 +45,24 @@ export default function AssignQuizForm() {
 
   useEffect(() => {
     if (useTargetList && mode === 'assign' && !isPremium) {
-      toast.error('免費版不支援名單功能');
+      toast.error(t('assignQuiz.messages.premiumFeature'));
       setUseTargetList(false);
     } else if (useTargetList && mode === 'assign') {
       getAllLists().then(setLists);
     }
-  }, [useTargetList, mode, isPremium]);
+  }, [useTargetList, mode, isPremium, t]);
 
   // 檢查使用者登入狀態
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user && createNewList) {
-        toast.error('請先登入才能建立名單');
+        toast.error(t('assignQuiz.messages.loginRequired'));
         setCreateNewList(false);
       }
     });
 
     return () => unsubscribe();
-  }, [createNewList]);
+  }, [createNewList, t]);
 
   // 檢查回應人數限制
   const checkResponseLimit = () => {
@@ -68,7 +70,7 @@ export default function AssignQuizForm() {
     const maxResponses = isPremium ? 100 : 10;
     
     if (targetList.length > maxResponses) {
-      toast.error(`${isPremium ? '付費' : '免費'}版本最多允許 ${maxResponses} 人作答`);
+      toast.error(t(`assignQuiz.messages.responseLimit.${isPremium ? 'premium' : 'free'}`));
       return false;
     }
     return true;
@@ -91,29 +93,24 @@ export default function AssignQuizForm() {
   // 建立新名單
   const handleCreateList = async () => {
     if (!isPremium) {
-      toast.error('免費版不支援名單功能');
+      toast.error(t('assignQuiz.messages.premiumFeature'));
       return;
     }
     
-    console.log('開始建立名單');
     if (!newListName.trim() || !newListStudents.trim()) {
-      console.log('名單名稱或學生名單為空');
-      toast.error('請填寫名單名稱和學生名單');
+      toast.error(t('assignQuiz.messages.listNameRequired'));
       return;
     }
     
     if (!auth.currentUser) {
-      console.log('使用者未登入');
-      toast.error('請先登入');
+      toast.error(t('assignQuiz.messages.loginRequired'));
       return;
     }
 
-    console.log('準備建立名單:', { newListName, studentsCount: newListStudents.split('\n').length });
     setCreatingList(true);
     const students = newListStudents.split('\n').map(s => s.trim()).filter(Boolean);
     
     try {
-      console.log('呼叫 addList API');
       const listId = await addList({
         name: newListName,
         students,
@@ -121,11 +118,9 @@ export default function AssignQuizForm() {
       });
       
       if (!listId) {
-        console.error('建立名單失敗: 未收到 listId');
-        throw new Error('建立名單失敗');
+        throw new Error(t('assignQuiz.messages.createListError'));
       }
 
-      console.log('名單建立成功:', listId);
       const newList = { 
         id: listId, 
         name: newListName, 
@@ -137,7 +132,6 @@ export default function AssignQuizForm() {
       setLists(prev => [...prev, newList]);
       setSelectedListId(listId);
       
-      // 更新 settings 中的 targetList
       dispatch({
         type: "SET_SETTINGS",
         payload: {
@@ -149,10 +143,9 @@ export default function AssignQuizForm() {
       setNewListName("");
       setNewListStudents("");
       setCreateNewList(false);
-      toast.success('名單建立成功！');
+      toast.success(t('assignQuiz.messages.createListSuccess'));
     } catch (error) {
-      console.error('建立名單失敗:', error);
-      toast.error('建立名單失敗：' + (error instanceof Error ? error.message : '未知錯誤'));
+      toast.error(t('assignQuiz.messages.createListError') + (error instanceof Error ? error.message : ''));
     } finally {
       setCreatingList(false);
     }
@@ -194,13 +187,13 @@ export default function AssignQuizForm() {
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
         <label className="block mb-1 text-sm font-medium text-gray-800 dark:text-gray-100">
-          {mode === 'practice' ? '練習標題' : '作業標題'}
+          {t(mode === 'practice' ? 'assignQuiz.form.practiceTitle' : 'assignQuiz.form.assignmentTitle')}
         </label>
         <Input
           value={state.data.title}
           className="w-full text-sm placeholder:text-gray-400 dark:placeholder:text-gray-400 bg-white dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600"
           onChange={handleTitleChange}
-          placeholder={mode === 'practice' ? '請輸入練習名稱' : '請輸入作業名稱'}
+          placeholder={t(`assignQuiz.form.titlePlaceholder.${mode}`)}
           required
         />
       </div>
@@ -211,7 +204,7 @@ export default function AssignQuizForm() {
           id="show-timer-switch"
         />
         <label htmlFor="show-timer-switch" className="text-sm text-gray-700 dark:text-gray-300">
-          顯示計時器
+          {t('assignQuiz.form.showTimer')}
         </label>
       </div>
       
@@ -224,7 +217,7 @@ export default function AssignQuizForm() {
               checked={useTargetList}
               onCheckedChange={checked => {
                 if (!isPremium && checked) {
-                  toast.error('免費版不支援名單功能');
+                  toast.error(t('assignQuiz.messages.premiumFeature'));
                   return;
                 }
                 setUseTargetList(!!checked);
@@ -241,11 +234,11 @@ export default function AssignQuizForm() {
               }}
             />
             <label htmlFor="use-target-list" className="text-sm select-none text-gray-700 dark:text-gray-300">
-              是否啟用名單
+              {t('assignQuiz.form.targetList.enable')}
             </label>
             {!isPremium && (
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                (👑升級付費版建立自己的名單)
+                {t('assignQuiz.form.targetList.premiumOnly')}
               </span>
             )}
           </div>
@@ -271,15 +264,17 @@ export default function AssignQuizForm() {
                   }}
                 />
                 <label htmlFor="create-new-list" className="text-sm select-none text-gray-700 dark:text-gray-300">
-                  建立名單
+                  {t('assignQuiz.form.targetList.createNew')}
                 </label>
               </div>
               {!createNewList ? (
                 <div>
-                  <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">選擇名單</label>
+                  <label className="block mb-1 text-sm text-gray-700 dark:text-gray-300">
+                    {t('assignQuiz.form.targetList.selectList')}
+                  </label>
                   <Select value={selectedListId} onValueChange={handleListSelect}>
                     <SelectTrigger className="bg-white dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100">
-                      <SelectValue placeholder="請選擇名單" />
+                      <SelectValue placeholder={t('assignQuiz.form.targetList.selectPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent className="dark:bg-gray-900 dark:border-gray-700">
                       {lists.map(list => (
@@ -290,31 +285,31 @@ export default function AssignQuizForm() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <label className="block mb-1 text-xs text-gray-700 dark:text-gray-300">新名單名稱</label>
+                  <label className="block mb-1 text-xs text-gray-700 dark:text-gray-300">
+                    {t('assignQuiz.form.targetList.newListName')}
+                  </label>
                   <Input 
                     value={newListName} 
                     onChange={e => setNewListName(e.target.value)} 
-                    placeholder="例如：八年級 B 班"
+                    placeholder={t('assignQuiz.form.targetList.newListNamePlaceholder')}
                     className="text-sm placeholder:text-gray-400 dark:placeholder:text-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                   />
-                  <label className="block mb-1 text-xs text-gray-700 dark:text-gray-300">學生姓名（每行一位）</label>
+                  <label className="block mb-1 text-xs text-gray-700 dark:text-gray-300">
+                    {t('assignQuiz.form.targetList.studentNames')}
+                  </label>
                   <textarea
                     className="w-full border rounded p-2 min-h-[60px] text-sm bg-white dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600"
                     value={newListStudents}
                     onChange={e => setNewListStudents(e.target.value)}
-                    placeholder="請輸入學生姓名，每行一位"
+                    placeholder={t('assignQuiz.form.targetList.studentNamesPlaceholder')}
                   />
                   <Button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleCreateList();
-                    }}
+                    onClick={handleCreateList}
                     disabled={creatingList || !newListName.trim() || !newListStudents.trim()}
                     className="w-full"
                   >
-                    {creatingList ? '建立中...' : '建立名單'}
+                    {creatingList ? t('assignQuiz.form.targetList.creating') : t('assignQuiz.form.targetList.create')}
                   </Button>
                 </div>
               )}
@@ -328,7 +323,9 @@ export default function AssignQuizForm() {
         disabled={submitting}
         className="w-full"
       >
-        {submitting ? '處理中...' : (mode === 'practice' ? '開始作答' : '派發作業')}
+        {submitting 
+          ? t('assignQuiz.form.submit.processing')
+          : t(`assignQuiz.form.submit.${mode}`)}
       </Button>
     </form>
   );

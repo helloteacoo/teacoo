@@ -11,6 +11,7 @@ import { Label } from '@/app/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   question: Question;
@@ -25,12 +26,12 @@ interface Props {
 }
 
 const QUESTION_TYPES = [
-  { value: '單選題', label: '單選題' },
-  { value: '多選題', label: '多選題' },
-  { value: '填空題', label: '填空題' },
-  { value: '簡答題', label: '簡答題' },
-  { value: '閱讀測驗', label: '閱讀測驗' },
-  { value: '克漏字', label: '克漏字' },
+  { value: '單選題', label: 'ai.questionTypes.single' },
+  { value: '多選題', label: 'ai.questionTypes.multiple' },
+  { value: '填空題', label: 'ai.questionTypes.fillIn' },
+  { value: '簡答題', label: 'ai.questionTypes.shortAnswer' },
+  { value: '閱讀測驗', label: 'ai.questionTypes.reading' },
+  { value: '克漏字', label: 'ai.questionTypes.cloze' },
 ];
 
 function sanitizeQuestion(raw: any): Question | null {
@@ -178,6 +179,7 @@ export function EditableQuestionPreviewCard({
   onImport,
   onSkip,
 }: Props) {
+  const { t } = useTranslation();
   const [editedQuestions, setEditedQuestions] = useState<Question[]>(
     questions.map(q => sanitizeQuestion(q) || q)
   );
@@ -237,10 +239,10 @@ export function EditableQuestionPreviewCard({
 
   const validateTags = () => {
     if (selectedTags.length === 0) {
-      return '請至少選擇一個標籤';
+      return t('ai.convert.errors.tagRequired');
     }
     if (selectedTags.length > 4) {
-      return '最多只能選擇四個標籤';
+      return t('ai.convert.errors.tagLimit');
     }
     return '';
   };
@@ -264,16 +266,16 @@ export function EditableQuestionPreviewCard({
   const renderSingleChoiceEditor = (q: SingleChoiceQuestion) => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">題幹</label>
+        <label className="block text-sm font-medium mb-1">{t('ai.fields.stem')}</label>
         <Textarea
           value={q.content}
           onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as SingleChoiceQuestion)}
-          placeholder="請輸入題目內容..."
+          placeholder={t('ai.fields.stem')}
           className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">選項</label>
+        <label className="block text-sm font-medium mb-2">{t('ai.fields.options')}</label>
         <div className="space-y-2">
           {q.options.map((option, index) => (
             <div key={index} className="flex items-center gap-2">
@@ -285,7 +287,7 @@ export function EditableQuestionPreviewCard({
                   newOptions[index] = e.target.value;
                   updateEditedQuestion({ ...q, options: newOptions } as SingleChoiceQuestion);
                 }}
-                placeholder={`選項 ${String.fromCharCode(65 + index)}`}
+                placeholder={`${t('ai.fields.options')} ${String.fromCharCode(65 + index)}`}
                 className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
               />
             </div>
@@ -293,13 +295,13 @@ export function EditableQuestionPreviewCard({
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">正確答案</label>
+        <label className="block text-sm font-medium mb-1">{t('ai.fields.answer')}</label>
         <Select
           value={q.answer.toString()}
           onValueChange={(value) => updateEditedQuestion({ ...q, answer: parseInt(value) } as SingleChoiceQuestion)}
         >
           <SelectTrigger>
-            <SelectValue placeholder="選擇正確答案" />
+            <SelectValue placeholder={t('ai.fields.answer')} />
           </SelectTrigger>
           <SelectContent>
             {q.options.map((_, index) => (
@@ -316,16 +318,16 @@ export function EditableQuestionPreviewCard({
   const renderMultipleChoiceEditor = (q: MultipleChoiceQuestion) => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">題幹</label>
+        <label className="block text-sm font-medium mb-1">{t('ai.fields.stem')}</label>
         <Textarea
           value={q.content}
           onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as MultipleChoiceQuestion)}
-          placeholder="請輸入題目內容..."
+          placeholder={t('ai.fields.stem')}
           className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">選項</label>
+        <label className="block text-sm font-medium mb-2">{t('ai.fields.options')}</label>
         <div className="space-y-2">
           {q.options.map((option, index) => (
             <div key={index} className="flex items-center gap-2">
@@ -346,7 +348,7 @@ export function EditableQuestionPreviewCard({
                   newOptions[index] = e.target.value;
                   updateEditedQuestion({ ...q, options: newOptions } as MultipleChoiceQuestion);
                 }}
-                placeholder={`選項 ${String.fromCharCode(65 + index)}`}
+                placeholder={`${t('ai.fields.options')} ${String.fromCharCode(65 + index)}`}
                 className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
               />
             </div>
@@ -359,7 +361,7 @@ export function EditableQuestionPreviewCard({
   const renderFillInBlankEditor = (q: FillInQuestion) => (
     <div className="space-y-4">
       <div>
-        <Label className="text-gray-700 dark:text-mainBg">題幹</Label>
+        <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.stem')}</Label>
         <Textarea
           value={q.content}
           onChange={(e) => {
@@ -373,16 +375,16 @@ export function EditableQuestionPreviewCard({
               blanks
             } as FillInQuestion);
           }}
-          placeholder="請輸入題目內容，使用 [[答案]] 標記填空處..."
+          placeholder={t('ai.fields.fillInPlaceholder')}
           className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
-        <Label className="text-gray-700 dark:text-mainBg">填空答案</Label>
+        <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.blanks')}</Label>
         <div className="mt-2 space-y-2">
           {q.blanks.map((blank: string, index: number) => (
             <div key={index} className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 w-20">填空 {index + 1}：</span>
+              <span className="text-sm text-gray-500 w-20">{t('ai.fields.blank')} {index + 1}：</span>
               <Input
                 value={blank}
                 onChange={(e) => {
@@ -394,13 +396,13 @@ export function EditableQuestionPreviewCard({
                   } as FillInQuestion);
                 }}
                 className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
-                placeholder={`請輸入第 ${index + 1} 個填空的答案`}
+                placeholder={t('ai.fields.blankPlaceholder', { number: index + 1 })}
               />
             </div>
           ))}
           {q.blanks.length === 0 && (
             <div className="text-sm text-gray-500">
-              請在題目中使用 [[答案]] 格式來標記填空處
+              {t('ai.fields.fillInInstruction')}
             </div>
           )}
         </div>
@@ -411,20 +413,20 @@ export function EditableQuestionPreviewCard({
   const renderShortAnswerEditor = (q: ShortAnswerQuestion) => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">題幹</label>
+        <label className="block text-sm font-medium mb-1">{t('ai.fields.stem')}</label>
         <Textarea
           value={q.content}
           onChange={(e) => updateEditedQuestion({ ...q, content: e.target.value } as ShortAnswerQuestion)}
-          placeholder="請輸入題目內容..."
+          placeholder={t('ai.fields.stem')}
           className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">答案</label>
+        <label className="block text-sm font-medium mb-1">{t('ai.fields.answer')}</label>
         <Textarea
           value={q.answer}
           onChange={(e) => updateEditedQuestion({ ...q, answer: e.target.value } as ShortAnswerQuestion)}
-          placeholder="請輸入參考答案..."
+          placeholder={t('ai.fields.answer')}
           className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
@@ -434,22 +436,22 @@ export function EditableQuestionPreviewCard({
   const renderReadingTestEditor = (q: ReadingQuestion) => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">文章內容</label>
+        <label className="block text-sm font-medium mb-1">{t('ai.fields.article')}</label>
         <Textarea
           value={q.article}
           onChange={(e) => updateEditedQuestion({ ...q, article: e.target.value } as ReadingQuestion)}
-          placeholder="請輸入文章內容..."
+          placeholder={t('ai.fields.article')}
           rows={5}
           className="bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">子題目</label>
+        <label className="block text-sm font-medium mb-2">{t('ai.fields.subQuestions')}</label>
         <div className="space-y-4">
           {q.questions.map((subQ, index) => (
             <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 space-y-4">
               <div>
-                <Label className="text-gray-700 dark:text-mainBg">題目 {index + 1}</Label>
+                <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.question')} {index + 1}</Label>
                 <Textarea
                   value={subQ.content}
                   onChange={(e) => {
@@ -506,7 +508,7 @@ export function EditableQuestionPreviewCard({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="選擇正確答案" />
+                    <SelectValue placeholder={t('ai.fields.answer')} />
                   </SelectTrigger>
                   <SelectContent>
                     {subQ.options.map((_, optIndex) => (
@@ -527,7 +529,7 @@ export function EditableQuestionPreviewCard({
   const renderClozeTestEditor = (q: ClozeQuestion) => (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">文章內容（使用【1】、[[1]]或__1__等格式標記空格）</label>
+        <label className="block text-sm font-medium mb-1">{t('ai.fields.clozeInstruction')}</label>
         <Textarea
           value={q.content}
           onChange={(e) => {
@@ -550,18 +552,18 @@ export function EditableQuestionPreviewCard({
               questions: currentQuestions.slice(0, blanks.length)
             } as ClozeQuestion);
           }}
-          placeholder="請輸入文章內容，使用【1】、[[1]]或__1__等格式標記空格..."
+          placeholder={t('ai.fields.clozePlaceholder')}
           rows={5}
           className="bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">選項設定</label>
+        <label className="block text-sm font-medium mb-2">{t('ai.fields.options')}</label>
         <div className="space-y-4">
           {q.questions.map((subQ, index) => (
             <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
               <div className="mb-2">
-                <Label className="text-gray-700 dark:text-mainBg">空格 {index + 1}</Label>
+                <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.blank')} {index + 1}</Label>
               </div>
               <div className="space-y-2">
                 {subQ.options.map((option, optIndex) => (
@@ -601,7 +603,7 @@ export function EditableQuestionPreviewCard({
                         } as ClozeQuestion);
                       }}
                       className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
-                      placeholder={`選項 ${String.fromCharCode(65 + optIndex)}`}
+                      placeholder={`${t('ai.fields.options')} ${String.fromCharCode(65 + optIndex)}`}
                     />
                   </div>
                 ))}
@@ -635,11 +637,11 @@ export function EditableQuestionPreviewCard({
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center py-1 mb-1 flex-shrink-0 dark:border-gray-600">
-        <h3 className="font-medium mb-2 text-gray-800 dark:text-mainBg">預覽與編輯</h3>
+        <h3 className="font-medium mb-2 text-gray-800 dark:text-mainBg">{t('ai.convert.previewAndEdit')}</h3>
         <div className="flex items-center space-x-4">
           <Select value={editedQuestion.type} onValueChange={handleTypeChange}>
             <SelectTrigger className="w-[140px] h-8 bg-mainBg dark:bg-default text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-600">
-              <SelectValue placeholder="選擇題型" />
+              <SelectValue placeholder={t('ai.convert.questionType')} />
             </SelectTrigger>
             <SelectContent className="bg-mainBg dark:bg-default text-gray-700 dark:text-mainBg border-gray-200 dark:border-gray-600">
               {QUESTION_TYPES.map(type => (
@@ -648,13 +650,13 @@ export function EditableQuestionPreviewCard({
                   value={type.value}
                   className="text-gray-700 dark:text-mainBg hover:bg-gray-100 dark:hover:bg-gray-400"
                 >
-                  {type.label}
+                  {t(type.label)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            <span>第 {currentIndex + 1} 題，共 {totalQuestions} 題</span>
+            <span>{t('ai.convert.questionCount', { current: currentIndex + 1, total: totalQuestions })}</span>
           </div>
         </div>
       </div>
@@ -690,6 +692,39 @@ export function EditableQuestionPreviewCard({
                             }}
                             className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                           />
+                        </div>
+                        <div className="space-y-2">
+                          {subQ.options.map((option, optIndex) => (
+                            <div key={optIndex} className="flex items-center gap-2">
+                              <RadioGroup
+                                value={subQ.answer}
+                                onValueChange={(value) => {
+                                  const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
+                                  newQuestions[index] = { ...subQ, answer: value };
+                                  updateEditedQuestion({
+                                    ...editedQuestion,
+                                    questions: newQuestions
+                                  } as ReadingQuestion);
+                                }}
+                              >
+                                <RadioGroupItem value={option} />
+                              </RadioGroup>
+                              <Input
+                                value={option}
+                                onChange={(e) => {
+                                  const newQuestions = [...(editedQuestion as ReadingQuestion).questions];
+                                  const newOptions = [...subQ.options];
+                                  newOptions[optIndex] = e.target.value;
+                                  newQuestions[index] = { ...subQ, options: newOptions };
+                                  updateEditedQuestion({
+                                    ...editedQuestion,
+                                    questions: newQuestions
+                                  } as ReadingQuestion);
+                                }}
+                                className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
+                              />
+                            </div>
+                          ))}
                         </div>
                         <div>
                           <Label className="text-gray-700 dark:text-mainBg">選項</Label>
@@ -837,7 +872,7 @@ export function EditableQuestionPreviewCard({
 
             {editedQuestion.type === '單選題' && (
               <div>
-                <Label className="text-gray-700 dark:text-mainBg">題幹</Label>
+                <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.stem')}</Label>
                 <Textarea
                   value={editedQuestion.content}
                   onChange={(e) =>
@@ -846,10 +881,10 @@ export function EditableQuestionPreviewCard({
                       content: e.target.value
                     } as SingleChoiceQuestion)
                   }
-                  placeholder="請輸入題目內容..."
+                  placeholder={t('ai.fields.question')}
                   className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                 />
-                <Label className="text-gray-700 dark:text-mainBg mt-4 block">選項</Label>
+                <Label className="text-gray-700 dark:text-mainBg mt-4 block">{t('ai.fields.options')}</Label>
                 <RadioGroup
                   value={String((editedQuestion as SingleChoiceQuestion).answer)}
                   onValueChange={(value) =>
@@ -883,7 +918,7 @@ export function EditableQuestionPreviewCard({
 
             {editedQuestion.type === '多選題' && (
               <div>
-                <Label className="text-gray-700 dark:text-mainBg">題幹</Label>
+                <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.stem')}</Label>
                 <Textarea
                   value={editedQuestion.content}
                   onChange={(e) =>
@@ -892,10 +927,10 @@ export function EditableQuestionPreviewCard({
                       content: e.target.value
                     } as MultipleChoiceQuestion)
                   }
-                  placeholder="請輸入題目內容..."
+                  placeholder={t('ai.fields.question')}
                   className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                 />
-                <Label className="text-gray-700 dark:text-mainBg mt-4 block">選項</Label>
+                <Label className="text-gray-700 dark:text-mainBg mt-4 block">{t('ai.fields.options')}</Label>
                 <div className="mt-2 space-y-2">
                   {(editedQuestion as MultipleChoiceQuestion).options.map((option: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2">
@@ -932,7 +967,7 @@ export function EditableQuestionPreviewCard({
             {editedQuestion.type === '填空題' && (
               <div className="space-y-4">
                 <div>
-                  <Label className="text-gray-700 dark:text-mainBg">題幹</Label>
+                  <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.stem')}</Label>
                   <Textarea
                     value={editedQuestion.content}
                     onChange={(e) => {
@@ -946,12 +981,12 @@ export function EditableQuestionPreviewCard({
                         blanks
                       } as FillInQuestion);
                     }}
-                    placeholder="請輸入題目內容，使用 [[答案]] 標記填空處..."
+                    placeholder={t('ai.fields.fillInInstruction')}
                     className="mt-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-700 dark:text-mainBg">填空答案</Label>
+                  <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.blanks')}</Label>
                   <div className="mt-2 space-y-2">
                     {(editedQuestion as FillInQuestion).blanks.map((blank: string, index: number) => (
                       <div key={index} className="flex items-center gap-2">
@@ -967,13 +1002,13 @@ export function EditableQuestionPreviewCard({
                             } as FillInQuestion);
                           }}
                           className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-mainBg border-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
-                          placeholder={`請輸入第 ${index + 1} 個填空的答案`}
+                          placeholder={t('ai.fields.blankPlaceholder', { number: index + 1 })}
                         />
                       </div>
                     ))}
                     {(editedQuestion as FillInQuestion).blanks.length === 0 && (
                       <div className="text-sm text-gray-500">
-                        請在題目中使用 [[答案]] 格式來標記填空處
+                        {t('ai.fields.fillInInstruction')}
                       </div>
                     )}
                   </div>
@@ -983,7 +1018,7 @@ export function EditableQuestionPreviewCard({
 
             {editedQuestion.type === '簡答題' && (
               <div>
-                <Label className="text-gray-700 dark:text-mainBg">答案</Label>
+                <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.answer')}</Label>
                 <Textarea
                   value={(editedQuestion as ShortAnswerQuestion).answer}
                   onChange={(e) =>
@@ -998,7 +1033,7 @@ export function EditableQuestionPreviewCard({
             )}
 
             <div>
-              <Label className="text-gray-700 dark:text-mainBg">解析</Label>
+              <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.explanation')}</Label>
               <Textarea
                 value={editedQuestion.explanation}
                 onChange={(e) =>
@@ -1012,7 +1047,7 @@ export function EditableQuestionPreviewCard({
             </div>
 
             <div>
-              <Label className="text-gray-700 dark:text-mainBg">標籤</Label>
+              <Label className="text-gray-700 dark:text-mainBg">{t('ai.fields.tags')}</Label>
               <div className="mt-2">
                 <TagSelector
                   value={selectedTags}
@@ -1065,7 +1100,7 @@ export function EditableQuestionPreviewCard({
             }}
             className={`bg-primary hover:bg-primary/80 text-white transition ${validateTags() ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            💾儲存
+            {t('ai.convert.save')}
           </Button>
         </div>
       </div>
